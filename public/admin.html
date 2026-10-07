@@ -5,6 +5,7 @@
 <div class="field"><label for="data">Report data for the month</label><textarea id="data" rows="10" placeholder='{"month":"October 2026","asof":"November 3, 2026","cities":{…},"areas":{…}}'></textarea></div>
 <div class="field"><label for="test">Send a test "ready" email to (optional)</label><input type="email" id="test" placeholder="info@ellasoltani.ca"></div>
 <div class="row"><button class="btn ghost" id="bt">Send test email only</button><button class="btn" id="bp">Publish and email all subscribers</button></div><p id="out" role="status"></p></div>
+<div class="card"><h2 style="font-size:1.5rem">Early-access email list</h2><p class="muted">People who signed up on the first page and agreed to be emailed.</p><div class="row"><button class="btn ghost" id="dl">Download the list</button><span id="lout" role="status"></span></div></div>
 </main></div><script>
 const $=i=>document.getElementById(i);
 async function go(body){ $('out').className='';$('out').textContent='Working…'; let report; try{report=JSON.parse($('data').value)}catch{ $('out').className='err';$('out').textContent='The report data is not valid.';return}
@@ -12,4 +13,6 @@ async function go(body){ $('out').className='';$('out').textContent='Working…'
   $('out').className=r.ok?'ok':'err'; $('out').textContent=r.ok?(j.test?`Test email sent (${j.emailed}). Nothing was published.`:`Published ${report.month}. Emails sent: ${j.emailed}.`):j.error; }
 $('bt').onclick=()=>{ if(!$('test').value){$('out').className='err';$('out').textContent='Enter an email address for the test.';return} go({testTo:$('test').value}); };
 $('bp').onclick=()=>{ if(confirm('Publish this report and email every subscriber now?')) go({notify:true}); };
+$('dl').onclick=async()=>{const r=await fetch('/api/leads',{headers:{authorization:'Bearer '+$('tok').value}});if(!r.ok){$('lout').className='err';$('lout').textContent='Enter your admin password above first.';return}
+  const t=await r.text(),n=t.trim().split('\n').length-1,a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='early-access-list.csv';a.click();$('lout').className='ok';$('lout').textContent=n+' people on the list.';};
 </script></body></html>

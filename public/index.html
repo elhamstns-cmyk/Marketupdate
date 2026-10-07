@@ -1,59 +1,150 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>The Market Update: branded monthly market reports for Greater Vancouver REALTORS®</title>
-<meta name="description" content="Every month, a ready-to-send Greater Vancouver market report with your name, logo and brokerage. Share a link, PDF, social images or an email in minutes.">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="/css/site.css"></head><body>
-<div class="container">
-<nav class="nav"><a class="brand" href="/" data-site>The Market Update</a><div class="row"><a href="#pricing">Pricing</a><a class="btn sm" href="/app">Log in</a></div></nav>
+<title>The Market Update: a branded market report for your clients, every month</title>
+<meta name="description" content="A beautiful monthly Greater Vancouver market report with your name on it, for REALTORS® and mortgage brokers. Join the early-access list.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Caveat:wght@700&display=swap">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#10231c;background:#fff;line-height:1.5}
+h1,h2,p{margin:0;text-wrap:balance}a{color:inherit}
+.dark{background:radial-gradient(900px 520px at 50% 108%,rgba(23,147,108,.35),transparent 70%),#07100d;color:#fff;overflow:hidden}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:20px clamp(18px,4vw,44px);font-size:14px}
+.logo{font-weight:800;font-size:19px;display:flex;gap:9px;align-items:center;letter-spacing:-.02em;text-decoration:none}
+.dot{width:22px;height:22px;border-radius:7px;background:#1fb886;display:inline-block}
+.ghost{border:1px solid rgba(255,255,255,.3);border-radius:99px;padding:8px 16px;text-decoration:none}
+.c{display:grid;justify-items:center;text-align:center;gap:20px;padding:clamp(36px,6vw,64px) 18px 0}
+h1{font-size:clamp(2.5rem,7.6vw,4.75rem);letter-spacing:-.045em;line-height:1;font-weight:800;max-width:900px}
+h1 .q{display:block}h1 .a{display:block;font-size:.5em;letter-spacing:-.03em;line-height:1.15;margin-top:.35em;font-weight:700;color:#d7e6df}
+@media (min-width:760px){h1{font-size:clamp(3.2rem,7vw,5.6rem);max-width:none}h1 .a{white-space:nowrap}}
+.sub{font-size:clamp(1.05rem,2.2vw,1.3rem);color:#b9c9c2;max-width:560px}
+@media (min-width:760px){.sub{max-width:820px}}
+form{display:grid;gap:12px;width:min(520px,100%);justify-items:stretch}
+.rowf{display:flex;gap:8px;background:#fff;border-radius:99px;padding:6px}
+.rowf input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:17px;padding:10px 16px;color:#10231c;outline:0;border-radius:99px}
+button.cta{font:inherit;background:#1fb886;color:#05130e;font-weight:700;border:0;border-radius:99px;padding:13px 22px;font-size:16px;cursor:pointer;white-space:nowrap}
+button.cta:disabled{opacity:.6}
+.roles{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.roles label{border:1px solid rgba(255,255,255,.28);border-radius:99px;padding:7px 14px;font-size:14px;cursor:pointer}
+.roles input{position:absolute;opacity:0}.roles input:checked+span{font-weight:700}
+.roles label:has(input:checked){background:#fff;color:#07100d;border-color:#fff}
+.roles label:has(input:focus-visible),.rowf:has(input:focus-visible),button:focus-visible,a:focus-visible{outline:3px solid #1fb886;outline-offset:2px}
+.consent{display:flex;gap:10px;text-align:left;font-size:13px;color:#a9bab3;align-items:flex-start}
+.consent input{margin-top:3px;width:16px;height:16px;flex:none;accent-color:#1fb886}
+.hp{position:absolute;left:-9999px}
+.msg{font-size:15px;min-height:1.4em}.msg.err{color:#ff9d8a}
+.done{background:rgba(31,184,134,.14);border:1px solid #1fb886;border-radius:18px;padding:22px;font-size:18px;width:min(520px,100%)}
+.dev{width:min(760px,100%);background:#fff;color:#10231c;border-radius:22px 22px 0 0;padding:clamp(18px,3vw,26px) clamp(18px,4vw,32px) 36px;text-align:left;margin-top:22px;box-shadow:0 -20px 120px rgba(31,184,134,.33),0 0 0 1px rgba(255,255,255,.13);display:grid;gap:14px}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #d6e7df;padding-bottom:12px}
+.av{width:44px;height:44px;border-radius:50%;background:#0f6b4f;flex:none}
+.rt{font-size:clamp(1.3rem,3.6vw,1.9rem);font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.kp{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kp div{background:#ecf7f2;border-radius:12px;padding:12px;min-width:0}.kp b{display:block;font-size:clamp(.95rem,2.6vw,1.3rem)}
+.kp i{font-style:normal;font-weight:700;font-size:13px}.kp i span{color:inherit;font-size:inherit}.kp span{font-size:13px;color:#577067}
+.gz{display:grid;gap:8px}.track{height:12px;border-radius:9px;background:linear-gradient(90deg,#9cc7b0 30%,#ead9a6 30% 50%,#e3a184 50%);position:relative}
+.track i{position:absolute;top:-5px;width:4px;height:22px;background:#10231c;border-radius:2px}
+.bands{display:flex;justify-content:space-between;font-size:12px;color:#577067;font-weight:600}
+.pick{display:flex;gap:10px;flex-wrap:wrap}.sel{flex:1 1 180px;border:1px solid #d6e7df;border-radius:10px;padding:10px 12px;font-size:15px}
+.seg{display:inline-flex;border:1px solid #d6e7df;border-radius:10px;padding:3px;font-size:14px;font-weight:600}.seg span{padding:7px 12px;border-radius:7px}.seg .on{background:#0f6b4f;color:#fff}
+.rk{display:grid;gap:0}.rk div{display:grid;grid-template-columns:minmax(96px,150px) 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid #e3efe9;font-size:14px}
+.rk em{display:block;height:9px;border-radius:3px;background:#1fb886}.rk b{font-variant-numeric:tabular-nums}
+.askb{background:#0f6b4f;color:#fff;border-radius:12px;padding:14px;text-align:center;font-weight:700}
+#more{display:grid;gap:18px;margin-top:4px}.h3{font-size:1.15rem;font-weight:800;letter-spacing:-.02em}
 
-<header class="hero">
-  <p class="eyebrow">For Greater Vancouver REALTORS®</p>
-  <h1>Your monthly market update, ready to send in two minutes</h1>
-  <p class="lede">Each month we turn the board's numbers into a polished, interactive report with your name, logo, brokerage and phone number on it. You get an email when it is ready. Log in, pick Greater Vancouver or a city, and send.</p>
-  <div class="row c"><a class="btn" href="/app">Get started</a><a class="btn ghost" href="/r/demo" target="_blank">See a sample report</a></div>
-</header>
-
-<section class="block"><p class="eyebrow">How it works</p><h2>Three steps, once a month</h2>
-  <div class="grid3">
-    <div class="card"><span class="step">1</span><h3>Add your details once</h3><p class="muted">Name, brokerage, phone, email, logo and photo. It takes about a minute and you never retype it.</p></div>
-    <div class="card"><span class="step">2</span><h3>Get the "ready" email</h3><p class="muted">Early each month, as soon as the new statistics are in, your branded report is waiting for you.</p></div>
-    <div class="card"><span class="step">3</span><h3>Send it your way</h3><p class="muted">Share a link, download a PDF, post a social image, or paste a finished email into your CRM.</p></div>
-  </div></section>
-
-<section class="block"><p class="eyebrow">What you can send</p><h2>One report, four formats</h2>
-  <div class="grid3">
-    <div class="card"><h3>Interactive link</h3><p class="muted">Clients pick their city and home type, see prices, sales and whether it is a buyer's or seller's market, then message you in one tap.</p></div>
-    <div class="card"><h3>PDF</h3><p class="muted">A clean one-page summary for printing, open houses and listing presentations.</p></div>
-    <div class="card"><h3>Social images</h3><p class="muted">Post and story sizes with the key numbers and your branding, plus a caption to paste.</p></div>
-    <div class="card"><h3>Client email</h3><p class="muted">Subject line and message written for you with the month's real figures. Copy, paste, send.</p></div>
-  </div></section>
-
-<section class="block" id="pricing"><div class="center"><p class="eyebrow">Pricing</p><h2>Simple plans, cancel anytime</h2>
-  <div class="toggle" role="group" aria-label="Billing"><button type="button" data-cycle="monthly" aria-pressed="true">Monthly</button><button type="button" data-cycle="yearly" aria-pressed="false">Yearly, 2 months free</button></div></div>
-  <div class="plans">
-    <div class="card plan"><h3>Essentials</h3><div class="price"><span data-price="basic">$29</span><small data-per> / month</small></div>
-      <ul class="ticks"><li>Greater Vancouver report every month</li><li>Your name, logo, brokerage and contact details</li><li>Your own shareable link</li><li>Ready-to-send client email</li><li class="no">Individual city reports</li><li class="no">PDF and social images</li></ul>
-      <a class="btn ghost" href="/app?plan=basic">Choose Essentials</a></div>
-    <div class="card plan rec"><span class="badge">Recommended</span><h3>Pro</h3><div class="price"><span data-price="pro">$49</span><small data-per> / month</small></div>
-      <ul class="ticks"><li>Everything in Essentials</li><li>Every city and area, each with its own link</li><li>PDF download</li><li>Social post and story images with captions</li><li>City-specific client emails</li></ul>
-      <a class="btn" href="/app?plan=pro">Choose Pro</a></div>
+/* handwritten "every month" note */
+.hw{font-family:Caveat,"Segoe Script","Bradley Hand",cursive;font-style:normal;font-weight:700;line-height:1;color:#1fb886;letter-spacing:0;white-space:nowrap}
+/* wide screens: an editor's insert mark after "update", with the words written above it */
+.ins{display:none;position:relative;width:0;height:0;vertical-align:baseline}
+.ins em{position:absolute;bottom:1.9em;right:-1.1em;font-size:.44em;transform:rotate(-5deg);transform-origin:right bottom;clip-path:inset(-20% 100% -20% -5%);animation:write .8s 1.6s ease-out forwards}
+.ins svg{position:absolute;left:.04em;bottom:-.16em;width:.34em;height:.34em;fill:none;stroke:#1fb886;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.ins svg path{stroke-dasharray:60;stroke-dashoffset:60;animation:draw .35s 1.2s ease-out forwards}
+/* narrow screens: the note sits under the headline */
+.l2{display:block}
+.note{display:flex;justify-content:center;margin:.18em 0 0;transform:rotate(-4deg)}
+.note .w{position:relative;display:inline-block}
+.note em{font-size:.62em;clip-path:inset(-20% 100% -20% -5%);animation:write .9s 1.3s ease-out forwards}
+.note .ul{position:absolute;left:0;right:0;bottom:-.14em;width:100%;height:.14em;fill:none;stroke:#1fb886;stroke-width:4;stroke-linecap:round}
+.note .ul path{stroke-dasharray:220;stroke-dashoffset:220;animation:draw .5s 2.1s ease-out forwards}
+@keyframes write{to{clip-path:inset(-20% -10% -20% -5%)}}@keyframes draw{to{stroke-dashoffset:0}}
+@media (min-width:760px){.ins{display:inline-block}.note{display:none}}
+/* entrance motion */
+.rise{opacity:0;transform:translateY(22px);animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+.rise.d1{animation-delay:.12s}.rise.d2{animation-delay:.28s}.rise.d3{animation-delay:.5s}
+@keyframes rise{to{opacity:1;transform:none}}
+.track i{left:0;transition:left 1.6s cubic-bezier(.2,.7,.2,1)}
+.rk em{width:0;transition:width 1.3s cubic-bezier(.2,.7,.2,1)}
+.dark{background-size:140% 140%,auto;animation:glow 9s ease-in-out infinite alternate}
+@keyframes glow{from{background-position:35% 100%,0 0}to{background-position:65% 100%,0 0}}
+.t{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}.t.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rise,.t{opacity:1;transform:none}.hw{clip-path:none!important}.ins svg path,.note svg path{stroke-dashoffset:0!important}}
+.light{padding:clamp(56px,9vw,90px) 20px;text-align:center;display:grid;gap:18px;justify-items:center}
+.light h2{font-size:clamp(2rem,5.4vw,3.25rem);letter-spacing:-.035em;font-weight:800;max-width:780px;line-height:1.05}
+.light p.lead{font-size:clamp(1.05rem,2.2vw,1.25rem);color:#577067;max-width:560px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;width:min(1040px,100%);margin-top:22px}
+.t{background:#ecf7f2;border-radius:22px;padding:28px;text-align:left;display:grid;gap:8px}
+.t b{font-size:1.3rem;letter-spacing:-.02em}.t span{color:#577067}.big{font-size:2.6rem;font-weight:800;color:#0f6b4f;letter-spacing:-.03em;line-height:1}
+.again{background:#0f6b4f;color:#fff;border-radius:99px;padding:15px 28px;font-weight:700;text-decoration:none;margin-top:14px;display:inline-block}
+footer{border-top:1px solid #d6e7df;padding:24px 20px 40px;font-size:13px;color:#577067;text-align:center;max-width:820px;margin:0 auto}
+@media (max-width:520px){.rowf{flex-direction:column;border-radius:22px;padding:8px}button.cta{width:100%}.kp{grid-template-columns:1fr}}
+</style></head><body>
+<div class="dark">
+  <div class="nav"><a class="logo" href="/"><span class="dot"></span>The Market Update</a><a class="ghost" href="/app">Log in</a></div>
+  <div class="c">
+    <h1 class="rise"><span class="q">“How’s the market?”</span> <span class="a">Now you have an answer ready every month.</span></h1>
+    <p class="sub rise d1">Greater Vancouver's latest numbers, designed and branded as yours. For REALTORS® and mortgage brokers.</p>
+    <form id="f" class="rise d2" novalidate>
+      <div class="roles" role="radiogroup" aria-label="I am a">
+        <label><input type="radio" name="role" value="realtor" checked><span>I'm a REALTOR®</span></label>
+        <label><input type="radio" name="role" value="broker"><span>I'm a mortgage broker</span></label>
+      </div>
+      <div class="rowf"><input type="email" id="email" placeholder="Your email address" autocomplete="email" aria-label="Your email address" required><button class="cta" id="go">Get early access</button></div>
+      <input class="hp" type="text" id="company" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <label class="consent"><input type="checkbox" id="consent"><span id="ctext">Yes, email me about The Market Update, including launch news and offers. I can unsubscribe at any time.</span></label>
+      <p class="msg" id="msg" role="status"></p>
+    </form>
+    <div class="dev rise d3" aria-hidden="true">
+      <div class="top"><div><b style="font-size:19px">Your Name Here</b><div style="font-size:14px;color:#577067">Your Brokerage · 604-555-0100</div></div><span class="av"></span></div>
+      <div><span style="display:inline-block;background:#ecf7f2;color:#0f6b4f;font-weight:600;font-size:13px;padding:5px 12px;border-radius:99px" id="mo">This month</span><div class="rt" style="margin-top:8px">Greater Vancouver Market Report</div></div>
+      <div class="kp" id="kp"></div>
+      <div id="more"></div>
+    </div>
   </div>
-  <p class="center muted small" style="margin-top:16px">Prices in Canadian dollars, plus GST. Yearly plans are billed once a year.</p></section>
-
-<section class="block"><p class="eyebrow">Questions</p><h2>Good to know</h2><div style="margin-top:18px">
-  <details><summary>Who can subscribe?</summary><p class="muted">Licensed REALTORS® who are members of Greater Vancouver REALTORS®. You confirm your membership when you set up your profile.</p></details>
-  <details><summary>When is the report ready?</summary><p class="muted">Early each month, shortly after the board releases the previous month's statistics. You get an email the moment it is live.</p></details>
-  <details><summary>Does my link change every month?</summary><p class="muted">No. Your link stays the same and always shows the newest report, so you can keep it in your email signature or bio.</p></details>
-  <details><summary>Can I cancel?</summary><p class="muted">Yes, anytime, from your account. Your report stays live until the end of the period you paid for.</p></details>
-</div></section>
-<footer class="site">Market statistics are sourced from Greater Vancouver REALTORS® monthly reports. MLS®, REALTOR® and related marks are trademarks of their respective owners. This service is not affiliated with or endorsed by Greater Vancouver REALTORS®.</footer>
 </div>
+<section class="light">
+  <h2>Make it yours in seconds.</h2>
+  <p class="lead">Your logo, your photo, your colours, your font. Watch the report change as you click.</p>
+  <div class="grid">
+    <div class="t"><span class="big">1</span><b>Add your details once</b><span>About a minute. Never again.</span></div>
+    <div class="t"><span class="big">2</span><b>We tell you it's ready</b><span>Early every month, by email.</span></div>
+    <div class="t"><span class="big">3</span><b>Send it your way</b><span>Link, PDF, social post or a finished client email.</span></div>
+  </div>
+  <a class="again" href="#f">Get early access</a>
+</section>
+<footer>The Market Update is run by Ella Soltani, Vancouver, BC. Contact: info@ellasoltani.ca. Market statistics are sourced from Greater Vancouver REALTORS® monthly reports. This service is not affiliated with or endorsed by Greater Vancouver REALTORS®. REALTOR® and MLS® are trademarks of their respective owners.</footer>
 <script>
-const P={basic:{monthly:29,yearly:290},pro:{monthly:49,yearly:490}};
-document.querySelector('.toggle').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const c=b.dataset.cycle;
-  document.querySelectorAll('.toggle button').forEach(x=>x.setAttribute('aria-pressed',x===b));
-  document.querySelectorAll('[data-price]').forEach(el=>el.textContent='$'+P[el.dataset.price][c]);
-  document.querySelectorAll('[data-per]').forEach(el=>el.textContent=c==='yearly'?' / year':' / month');
-  document.querySelectorAll('.plans a').forEach(a=>{const u=new URL(a.href);u.searchParams.set('cycle',c);a.href=u});});
-fetch('/api/config').then(r=>r.json()).then(c=>document.querySelectorAll('[data-site]').forEach(e=>e.textContent=c.siteName)).catch(()=>{});
+const $=i=>document.getElementById(i);
+const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function roll(el){const n=+el.dataset.n,dec=+el.dataset.dec||0,pre=el.dataset.pre||'',suf=el.dataset.suf||'',f=v=>pre+(dec?v.toFixed(dec):Math.round(v).toLocaleString('en-CA'))+suf;
+  if(still){el.textContent=f(n);return} const t0=performance.now(),d=1500;
+  (function step(t){const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,4);el.textContent=f(n*e);if(k<1)requestAnimationFrame(step)})(t0);}
+function play(el){el.querySelectorAll('[data-n]').forEach(roll);el.querySelectorAll('[data-left]').forEach(i=>i.style.left=i.dataset.left+'%');el.querySelectorAll('[data-w]').forEach(i=>i.style.width=i.dataset.w+'%');}
+function motion(){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){io.unobserve(e.target);setTimeout(()=>play(e.target),e.target.id==='kp'?700:150)}}),{threshold:.35});
+  [$('kp'),...$('more').children].forEach(x=>io.observe(x));}
+document.querySelectorAll('.t').forEach((t,i)=>{t.style.transitionDelay=i*120+'ms';new IntersectionObserver((es,o)=>es.forEach(e=>{if(e.isIntersecting){t.classList.add('in');o.disconnect()}}),{threshold:.3}).observe(t)});
+
+fetch('/api/report?slug=demo').then(r=>r.json()).then(j=>{const M=j.report.cities['Greater Vancouver'];$('mo').textContent=j.report.month;
+  $('kp').innerHTML=[['detached','Detached'],['townhome','Townhome'],['condo','Condo']].map(([k,l])=>{const p=M[k].price;return `<div><span>${l}</span><b data-n="${Math.round(p.now)}" data-pre="$">$0</b><i style="color:${p.yoy<0?'#c2452d':'#0f6b4f'}">${p.yoy<0?'▼':'▲'} <span data-n="${Math.abs(p.yoy)}" data-dec="1" data-suf="%">0.0%</span></i></div>`}).join('');
+  const r=M.detached.ratio,mk=r<12?"Buyer's market":r<=20?'Balanced market':"Seller's market",A=j.report.areas;
+  const rows=Object.keys(A).map(a=>({a,...A[a].detached})).filter(x=>x.price>0).sort((x,y)=>y.price-x.price).slice(0,6),mx=rows[0].price;
+  $('more').innerHTML=`<div class="gz"><div><b>${mk}</b> <span style="font-size:13px;color:#577067">${r.toFixed(1)}% of listed detached homes sold</span></div><div class="track"><i data-left="${Math.min(r,40)/40*100}"></i></div><div class="bands"><span>Buyer's</span><span>Balanced</span><span>Seller's</span></div></div>
+   <div><div class="h3">Pick your city</div><div class="pick" style="margin-top:8px"><div class="sel">Greater Vancouver ▾</div><div class="seg"><span class="on">Detached</span><span>Townhome</span><span>Condo</span></div></div></div>
+   <div><div class="h3">How the areas compare</div><div class="rk" style="margin-top:8px">${rows.map(x=>`<div><span>${x.a}</span><span><em data-w="${(x.price/mx*100).toFixed(0)}"></em></span><b data-n="${Math.round(x.price)}" data-pre="$">$0</b></div>`).join('')}</div></div>
+   <div class="askb">Ask for your neighbourhood's numbers</div>`;motion();}).catch(()=>{});
+$('f').addEventListener('submit',async e=>{e.preventDefault();const m=$('msg');m.className='msg';
+  const email=$('email').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){m.className='msg err';m.textContent='Please enter a valid email address.';$('email').focus();return}
+  if(!$('consent').checked){m.className='msg err';m.textContent='Please tick the box so we can email you.';return}
+  $('go').disabled=true;m.textContent='Adding you…';
+  try{const r=await fetch('/api/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,role:document.querySelector('input[name=role]:checked').value,consent:true,consentText:$('ctext').textContent,company:$('company').value})}),j=await r.json();
+    if(!r.ok) throw new Error(j.error);
+    $('f').outerHTML='<div class="done" id="f" role="status"><b>You\'re on the list.</b><br>We\'ll email you the moment The Market Update opens.</div>';
+  }catch(err){m.className='msg err';m.textContent=err.message||'Something went wrong. Please try again.';$('go').disabled=false}});
 </script></body></html>
