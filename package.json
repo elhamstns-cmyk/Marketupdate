@@ -1,0 +1,7 @@
+{
+  "name": "market-update-pro",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "dev": "node scripts/dev.mjs", "stripe:setup": "node scripts/stripe-setup.mjs" }
+}

@@ -1,0 +1,50 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Market Report</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/css/report.css">
+<style>
+@page{size:letter;margin:12mm}
+body{background:#fff;font-size:12px;line-height:1.4}
+.sheet{max-width:780px;margin:0 auto;padding:10px 20px;display:flex;flex-direction:column;gap:11px}
+.sheet h1{font-size:2.4rem}.sheet h2{font-size:1.35rem}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.col{border:1px solid var(--line);border-top:2px solid var(--gold);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:3px;break-inside:avoid}
+.col .big{font-size:1.9rem}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:2px 6px;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}
+th{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.bar2{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--soft);padding:10px 16px;border-radius:10px}
+.foot{display:flex;justify-content:space-between;gap:16px;align-items:center;border-top:2px solid var(--gold);padding-top:10px}
+footer{border:0;padding:0;font-size:.68rem}
+@media print{.sheet{zoom:.82;padding:0}}
+</style></head><body>
+<div class="bar2 noprint" style="max-width:780px;margin:14px auto"><span>Choose <strong>Save as PDF</strong> in the print window.</span><button class="btn" style="flex:none" onclick="print()">Save as PDF / Print</button></div>
+<div id="root" class="sheet">Loading…</div>
+<script type="module">
+import { TYPES, T1, money, get, market, chg, regionSummary, readout, brandMark, sourceLine, esc, areasOf } from '/js/report.js';
+const s = location.pathname.split('/')[2], q = new URLSearchParams(location.search);
+const r = await fetch('/api/report?slug=' + encodeURIComponent(s)), j = await r.json(), root = document.getElementById('root');
+if (!r.ok) root.textContent = j.error; else {
+  const D = j.report; let A = j.agent;
+  if (j.sample && q.has('me')) { try { A = { ...A, ...JSON.parse(localStorage.getItem('mup_demo_profile')) }; } catch {} }
+  const area = areasOf(D).includes(q.get('area')) ? q.get('area') : 'Greater Vancouver';
+  document.title = `${area} Market Report ${D.month}`;
+  const col = (t) => { const o = get(D, area, t), mk = market(o.ratio);
+    return `<div class="col"><span class="eyebrow">${T1[t]}</span><div class="big">${o.price ? money(o.price) : 'No benchmark'}</div><div>${o.price ? chg(o.yoy, 'vs. last year') : ''}</div>
+      <div style="margin-top:6px"><strong>${mk || ''}</strong>${o.ratio != null ? ` <span class="muted small">${o.ratio.toFixed(1)}% sold</span>` : ''}</div>
+      <div class="small">Sold: <strong>${o.sales.toLocaleString()}</strong>${o.salesLy != null ? ` <span class="muted">(${o.salesLy.toLocaleString()} last year)</span>` : ''}</div>
+      <div class="small">For sale: <strong>${o.active.toLocaleString()}</strong>${o.activeLy != null ? ` <span class="muted">(${o.activeLy.toLocaleString()} last year)</span>` : ''}</div>
+      ${o.dom != null ? `<div class="small">Average days to sell: <strong>${o.dom}</strong> <span class="muted">(${o.domLy} last year)</span></div>` : ''}</div>`; };
+  const names = Object.keys(D.areas || {}).sort();
+  const cell = (a, t) => { const v = D.areas[a][t]; return `<td>${v.price ? money(v.price) : 'n/a'}</td><td>${v.yoy == null ? '' : chg(v.yoy)}</td>`; };
+  root.innerHTML = `<div class="mast">${brandMark(A)}<div class="me"><span>${esc(A.brokerage || '')}</span>${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}</div></div>
+    <div><p class="eyebrow">${esc(D.month)}</p><h1>${esc(area)} Market Report</h1></div>
+    <p>${area === 'Greater Vancouver' ? regionSummary(D) : readout(D, area, 'detached') || regionSummary(D)}</p>
+    <div class="cols">${TYPES.map(col).join('')}</div>
+    ${names.length ? `<h2>Benchmark prices by area</h2><table><thead><tr><th>Area</th><th>Detached</th><th>1 yr</th><th>Townhome</th><th>1 yr</th><th>Condo</th><th>1 yr</th></tr></thead>
+      <tbody>${names.map((a) => `<tr${a === area ? ' style="background:var(--soft);font-weight:600"' : ''}><td>${a}</td>${TYPES.map((t) => cell(a, t)).join('')}</tr>`).join('')}</tbody></table>` : ''}
+    <div class="foot"><div><strong style="font-family:var(--display);font-size:1.3rem">${esc(A.name || '')}</strong><br><span class="muted">${esc(A.brokerage || '')}</span></div>
+      <div style="text-align:right">${[A.phone, A.contact_email, A.website].filter(Boolean).map(esc).join('<br>')}</div></div>
+    <footer>${esc(sourceLine(D))}</footer>`;
+}
+</script></body></html>

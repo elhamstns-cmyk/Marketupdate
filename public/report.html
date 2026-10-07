@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Greater Vancouver Market Report</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/css/report.css"></head><body>
+<div id="sample" class="sample" hidden>Sample report. <a href="/">Put your own name and logo on it</a></div>
+<div id="root"><p style="text-align:center;padding:60px 20px">Loading the report…</p></div>
+<script type="module">
+import { mountReport, areasOf, slug } from '/js/report.js';
+const s = location.pathname.split('/')[2];
+const r = await fetch('/api/report?slug=' + encodeURIComponent(s)), j = await r.json();
+const root = document.getElementById('root');
+if (!r.ok) root.innerHTML = `<p style="text-align:center;padding:60px 20px">${j.error || 'This report is not available right now.'}</p>`;
+else {
+  let A = j.agent;
+  if (j.sample) { try { const mine = JSON.parse(localStorage.getItem('mup_demo_profile')); if (mine && mine.name && new URLSearchParams(location.search).has('me')) A = { ...A, ...mine }; else document.getElementById('sample').hidden = false; } catch { document.getElementById('sample').hidden = false; } }
+  const area = areasOf(j.report).find((a) => slug(a) === location.hash.slice(1));
+  document.title = `${area || 'Greater Vancouver'} Market Report, ${j.report.month} | ${A.name}`;
+  mountReport(root, j.report, A, { area });
+}
+</script></body></html>

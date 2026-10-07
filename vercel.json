@@ -1,0 +1,7 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/r/:slug/print", "destination": "/print.html" },
+    { "source": "/r/:slug", "destination": "/report.html" }
+  ]
+}
