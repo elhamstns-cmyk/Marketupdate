@@ -39,6 +39,7 @@ function showLogin() {
     <form id="f2" class="field" hidden><p class="ok">Check your inbox. Click the link in the email, or type the code here.</p><label for="code">Code from the email</label><input type="text" id="code" inputmode="numeric" autocomplete="one-time-code"><button class="btn" style="margin-top:8px">Continue</button></form>
     <p class="err" id="lerr"></p></div>`;
   let email;
+  if (qs.get('email')) { $('#em').value = qs.get('email'); setTimeout(() => $('#f1').requestSubmit(), 50); }
   $('#f1').onsubmit = async (e) => { e.preventDefault(); email = $('#em').value.trim(); $('#lerr').textContent = '';
     const r = await fetch(`${SB}/auth/v1/otp?redirect_to=${encodeURIComponent(location.origin + '/app')}`, { method: 'POST', headers: H, body: JSON.stringify({ email, create_user: true }) });
     if (r.ok) { $('#f2').hidden = false; $('#code').focus(); } else $('#lerr').textContent = 'We could not send the email. Please check the address and try again in a minute.'; };

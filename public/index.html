@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>The Market Update: a branded market report for your clients, every month</title>
 <meta name="description" content="A beautiful monthly Greater Vancouver market report with your name on it, for REALTORS® and mortgage brokers. Join the early-access list.">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Caveat:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;600;700&display=swap">
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#10231c;background:#fff;line-height:1.5}
@@ -29,6 +29,7 @@ button.cta:disabled{opacity:.6}
 .roles label:has(input:focus-visible),.rowf:has(input:focus-visible),button:focus-visible,a:focus-visible{outline:3px solid #1fb886;outline-offset:2px}
 .consent{display:flex;gap:10px;text-align:left;font-size:13px;color:#a9bab3;align-items:flex-start}
 .consent input{margin-top:3px;width:16px;height:16px;flex:none;accent-color:#1fb886}
+.fine{font-size:14px;color:#cfe0d8;font-weight:500}
 .hp{position:absolute;left:-9999px}
 .msg{font-size:15px;min-height:1.4em}.msg.err{color:#ff9d8a}
 .done{background:rgba(31,184,134,.14);border:1px solid #1fb886;border-radius:18px;padding:22px;font-size:18px;width:min(520px,100%)}
@@ -74,7 +75,30 @@ button.cta:disabled{opacity:.6}
 .dark{background-size:140% 140%,auto;animation:glow 9s ease-in-out infinite alternate}
 @keyframes glow{from{background-position:35% 100%,0 0}to{background-position:65% 100%,0 0}}
 .t{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}.t.in{opacity:1;transform:none}
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rise,.t{opacity:1;transform:none}.hw{clip-path:none!important}.ins svg path,.note svg path{stroke-dashoffset:0!important}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rise,.t,.sm{opacity:1;transform:none}.hw{clip-path:none!important}.ins svg path,.note svg path{stroke-dashoffset:0!important}}
+.gal{display:grid;gap:28px;width:min(1100px,100%);margin-top:26px;text-align:left}
+.sm{border-radius:24px;padding:clamp(20px,3vw,34px);display:grid;grid-template-columns:1fr 1fr;gap:18px clamp(20px,4vw,44px);box-shadow:0 18px 50px rgba(16,35,28,.14);border:1px solid rgba(0,0,0,.06);opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}.sm.in{opacity:1;transform:none}
+.sm .pane{display:grid;gap:14px;align-content:start;min-width:0}.sm .p2{border-left:1px solid var(--ln);padding-left:clamp(20px,4vw,44px)}
+.sm .tag{grid-column:1/-1;border-top:1px solid var(--ln);padding-top:12px}
+.sm .mut{font-size:14px;opacity:.7;font-weight:400}.sm .bigp{font-family:var(--hf);font-weight:700;font-size:clamp(2.2rem,4.4vw,3.2rem);line-height:1;letter-spacing:-.02em}
+.sm .chg{font-weight:700;color:#d2553b}.sm .chg span{font-weight:400;opacity:.7;color:var(--ink);font-size:14px}
+.sm .track{margin-top:2px}.sm .bands{color:inherit;opacity:.7}
+.sm .st3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;border-top:1px solid var(--ln);padding-top:12px}.sm .st3 div{display:grid}.sm .st3 b{font-size:1.4rem}
+.sm .rk2{display:grid}.sm .rk2 div{display:grid;grid-template-columns:minmax(96px,140px) 1fr auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--ln);font-size:14px}.sm .rk2 em{display:block;height:10px;border-radius:3px;background:var(--ac)}
+.sm .inp{border:1px solid var(--ln);background:var(--tn);border-radius:10px;padding:12px;font-size:14px;opacity:.75}
+.sm .chips{display:flex;flex-wrap:wrap;gap:8px}.sm .chips span{border:1px solid var(--ln);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600}.sm .chips .on{background:var(--ac);color:var(--bt);border-color:var(--ac)}
+.sm .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.sm .bt.alt{background:transparent;color:var(--ac);box-shadow:inset 0 0 0 2px var(--ac)}
+@media (max-width:820px){.sm{grid-template-columns:1fr}.sm .p2{border-left:0;padding-left:0;border-top:1px solid var(--ln);padding-top:16px}}
+.sm .who{display:flex;gap:16px;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--ln)}
+.sm .ph{width:92px;height:92px;border-radius:50%;flex:none;border:2px solid var(--ac);object-fit:cover}
+.sm .lg{display:flex;align-items:center;gap:8px;color:var(--ac);font-family:var(--hf);font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:13px}.sm .lg svg{width:26px;height:26px;flex:none}
+.sm .nm{font-family:var(--hf);font-weight:700;font-size:1.3rem;line-height:1.1}.sm .br{font-size:13px;opacity:.7}
+.sm .tt{font-family:var(--hf);font-weight:700;font-size:1.7rem;line-height:1.1;letter-spacing:-.01em}
+.sm .mo{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ac)}
+.sm .row3{display:grid;gap:8px}.sm .row3 div{display:flex;justify-content:space-between;align-items:baseline;background:var(--tn);border-radius:10px;padding:10px 12px;font-size:14px}
+.sm .row3 b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.sm .bt{background:var(--ac);color:var(--bt);border-radius:10px;padding:11px;text-align:center;font-weight:700;font-size:14px}
+.sm .tag{font-size:12px;opacity:.65}
 .light{padding:clamp(56px,9vw,90px) 20px;text-align:center;display:grid;gap:18px;justify-items:center}
 .light h2{font-size:clamp(2rem,5.4vw,3.25rem);letter-spacing:-.035em;font-weight:800;max-width:780px;line-height:1.05}
 .light p.lead{font-size:clamp(1.05rem,2.2vw,1.25rem);color:#577067;max-width:560px}
@@ -95,9 +119,10 @@ footer{border-top:1px solid #d6e7df;padding:24px 20px 40px;font-size:13px;color:
         <label><input type="radio" name="role" value="realtor" checked><span>I'm a REALTOR®</span></label>
         <label><input type="radio" name="role" value="broker"><span>I'm a mortgage broker</span></label>
       </div>
-      <div class="rowf"><input type="email" id="email" placeholder="Your email address" autocomplete="email" aria-label="Your email address" required><button class="cta" id="go">Get early access</button></div>
+      <div class="rowf"><input type="email" id="email" placeholder="Your email address" autocomplete="email" aria-label="Your email address" required><button class="cta" id="go">Sign up</button></div>
       <input class="hp" type="text" id="company" tabindex="-1" autocomplete="off" aria-hidden="true">
-      <label class="consent"><input type="checkbox" id="consent"><span id="ctext">Yes, email me about The Market Update, including launch news and offers. I can unsubscribe at any time.</span></label>
+      <label class="consent"><input type="checkbox" id="consent"><span id="ctext">Also email me tips and offers from The Market Update. Optional, and I can unsubscribe at any time.</span></label>
+      <p class="fine">Takes about a minute. Cancel anytime. <a href="#samples" style="color:#1fb886">See sample reports</a></p>
       <p class="msg" id="msg" role="status"></p>
     </form>
     <div class="dev rise d3" aria-hidden="true">
@@ -108,6 +133,11 @@ footer{border-top:1px solid #d6e7df;padding:24px 20px 40px;font-size:13px;color:
     </div>
   </div>
 </div>
+<section class="light" id="samples" style="padding-bottom:0">
+  <h2>See how yours could look.</h2>
+  <p class="lead">Same numbers, your style. Add your logo and photo, then choose your colours and font. These are sample agents.</p>
+  <div class="gal" id="gal"></div>
+</section>
 <section class="light">
   <h2>Make it yours in seconds.</h2>
   <p class="lead">Your logo, your photo, your colours, your font. Watch the report change as you click.</p>
@@ -116,7 +146,7 @@ footer{border-top:1px solid #d6e7df;padding:24px 20px 40px;font-size:13px;color:
     <div class="t"><span class="big">2</span><b>We tell you it's ready</b><span>Early every month, by email.</span></div>
     <div class="t"><span class="big">3</span><b>Send it your way</b><span>Link, PDF, social post or a finished client email.</span></div>
   </div>
-  <a class="again" href="#f">Get early access</a>
+  <a class="again" href="#f">Sign up</a>
 </section>
 <footer>The Market Update is run by Ella Soltani, Vancouver, BC. Contact: info@ellasoltani.ca. Market statistics are sourced from Greater Vancouver REALTORS® monthly reports. This service is not affiliated with or endorsed by Greater Vancouver REALTORS®. REALTOR® and MLS® are trademarks of their respective owners.</footer>
 <script>
@@ -132,6 +162,28 @@ document.querySelectorAll('.t').forEach((t,i)=>{t.style.transitionDelay=i*120+'m
 
 fetch('/api/report?slug=demo').then(r=>r.json()).then(j=>{const M=j.report.cities['Greater Vancouver'];$('mo').textContent=j.report.month;
   $('kp').innerHTML=[['detached','Detached'],['townhome','Townhome'],['condo','Condo']].map(([k,l])=>{const p=M[k].price;return `<div><span>${l}</span><b data-n="${Math.round(p.now)}" data-pre="$">$0</b><i style="color:${p.yoy<0?'#c2452d':'#0f6b4f'}">${p.yoy<0?'▼':'▲'} <span data-n="${Math.abs(p.yoy)}" data-dec="1" data-suf="%">0.0%</span></i></div>`}).join('');
+  
+  const V=[{n:'Sarah Mitchell',r:'REALTOR®',b:'Westbrook Realty',i:'JL',tag:'Modern · Green',bg:'#ffffff',ink:'#10231c',ac:'#0f6b4f',tn:'#ecf7f2',ln:'#d6e7df',bt:'#fff',hf:'Inter,sans-serif',bf:'Inter,sans-serif',cta:'Ask Sarah about your neighbourhood'},
+   {n:'Marcus Bell',r:'Mortgage broker',b:'Harbourline Mortgage',i:'PN',tag:'Classic · Navy',bg:'#f7f4ee',ink:'#14233f',ac:'#14233f',tn:'#ebe6da',ln:'#d9d2c2',bt:'#fff',hf:'Playfair Display,Georgia,serif',bf:'DM Sans,sans-serif',cta:'Ask Marcus what this means for your rate'},
+   {n:'David Hartley',r:'REALTOR®',b:'Northshore Homes',i:'MB',tag:'Bold · Black and gold',bg:'#111312',ink:'#f4f1e8',ac:'#d0a94a',tn:'#1e2220',ln:'#2c312e',bt:'#111312',hf:'DM Sans,sans-serif',bf:'DM Sans,sans-serif',cta:'Ask David about your neighbourhood'}];
+  const logos=[`<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M3 14 14 4l11 10v10H3z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M11 24v-7h6v7" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>`,
+   `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M3 18c4-6 7-6 11 0s7 6 11 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M3 11c4-6 7-6 11 0s7 6 11 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".5"/></svg>`,
+   `<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2 23 10 8l5 8 3-5 8 12z" fill="currentColor"/></svg>`];
+  const faces=['sarah','marcus','david'].map(f=>`<img class="ph" src="/img/sample-${f}.jpg" alt="" width="58" height="58">`);
+  const $m=n=>'$'+Math.round(n).toLocaleString('en-CA'),C=j.report.cities.Coquitlam||M,cd=C.detached,AR=j.report.areas;
+  const top=Object.keys(AR).map(a=>({a,...AR[a].detached})).filter(x=>x.price>0).sort((x,y)=>y.price-x.price).slice(0,6);
+  const mid=[
+   v=>`<div class="mo">${j.report.cities.Coquitlam?'Coquitlam':'Greater Vancouver'} · Detached benchmark price</div><div class="bigp">${$m(cd.price.now)}</div><div class="chg">${cd.price.yoy<0?'▼':'▲'} ${Math.abs(cd.price.yoy).toFixed(1)}% <span>vs. a year ago</span></div>
+     <div style="margin-top:6px"><b>${cd.ratio<12?"Buyer's market":cd.ratio<=20?'Balanced market':"Seller's market"}</b> <span class="mut">${cd.ratio.toFixed(1)}% sales-to-active ratio</span></div><div class="track"><i style="left:${Math.min(cd.ratio,40)/40*100}%;background:${v.ink}"></i></div><div class="bands"><span>Buyer's</span><span>Balanced</span><span>Seller's</span></div>
+     <div class="st3"><div><span class="mut">Homes sold</span><b>${cd.sales.now}</b></div><div><span class="mut">Homes for sale</span><b>${cd.active.now}</b></div><div><span class="mut">Days to sell</span><b>${cd.dom.now}</b></div></div>`,
+   v=>`<div class="tt" style="font-size:1.25rem">How the areas compare</div><div class="mut">Detached benchmark price by area. Tap an area to see its details.</div><div class="rk2">${top.map(x=>`<div><span>${x.a}</span><span><em style="width:${(x.price/top[0].price*100).toFixed(0)}%"></em></span><b>${$m(x.price)}</b></div>`).join('')}</div>`,
+   v=>`<div class="tt" style="font-size:1.25rem">Want the numbers for your own neighbourhood?</div><div class="mut">City averages hide a lot. I can send you recent sales and price ranges for your street or building.</div><div class="inp">e.g. Lonsdale, Edgemont, a building name</div><div class="chips"><span class="on">thinking of selling</span><span>looking to buy</span><span>just curious</span></div><div class="two"><div class="bt">Email ${v.n.split(' ')[0]}</div><div class="bt alt">Text ${v.n.split(' ')[0]}</div></div>`];
+  const part=['Shown with a city close-up from the middle of the report','Shown with the area comparison from the middle of the report','Shown with the end of the report, where clients contact you'];
+  $('gal').innerHTML=V.map((v,i)=>`<div class="sm" style="background:${v.bg};color:${v.ink};font-family:${v.bf};--ac:${v.ac};--tn:${v.tn};--ln:${v.ln};--bt:${v.bt};--hf:${v.hf};--ink:${v.ink}">
+    <div class="pane"><div class="lg">${logos[i]}<span>${v.b}</span></div><div class="who">${faces[i]}<div><div class="nm">${v.n}</div><div class="br">${v.r} · 604-555-01${i}${i+4}</div></div></div><div><div class="mo">${j.report.month}</div><div class="tt" style="margin-top:6px">Greater Vancouver Market Report</div></div><div class="row3">${[['detached','Detached'],['townhome','Townhome'],['condo','Condo']].map(([k,l])=>`<div><span>${l}</span><b>${$m(M[k].price.now)}</b></div>`).join('')}</div></div>
+    <div class="pane p2">${mid[i](v)}</div>
+    <div class="tag">Sample ${i+1} of 3 · ${v.tag} · ${part[i]}</div></div>`).join('');
+  document.querySelectorAll('.sm').forEach((t,i)=>{t.style.transitionDelay=i*130+'ms';new IntersectionObserver((es,o)=>es.forEach(e=>{if(e.isIntersecting){t.classList.add('in');o.disconnect()}}),{threshold:.2}).observe(t)});
   const r=M.detached.ratio,mk=r<12?"Buyer's market":r<=20?'Balanced market':"Seller's market",A=j.report.areas;
   const rows=Object.keys(A).map(a=>({a,...A[a].detached})).filter(x=>x.price>0).sort((x,y)=>y.price-x.price).slice(0,6),mx=rows[0].price;
   $('more').innerHTML=`<div class="gz"><div><b>${mk}</b> <span style="font-size:13px;color:#577067">${r.toFixed(1)}% of listed detached homes sold</span></div><div class="track"><i data-left="${Math.min(r,40)/40*100}"></i></div><div class="bands"><span>Buyer's</span><span>Balanced</span><span>Seller's</span></div></div>
@@ -141,10 +193,9 @@ fetch('/api/report?slug=demo').then(r=>r.json()).then(j=>{const M=j.report.citie
 $('f').addEventListener('submit',async e=>{e.preventDefault();const m=$('msg');m.className='msg';
   const email=$('email').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){m.className='msg err';m.textContent='Please enter a valid email address.';$('email').focus();return}
-  if(!$('consent').checked){m.className='msg err';m.textContent='Please tick the box so we can email you.';return}
-  $('go').disabled=true;m.textContent='Adding you…';
-  try{const r=await fetch('/api/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,role:document.querySelector('input[name=role]:checked').value,consent:true,consentText:$('ctext').textContent,company:$('company').value})}),j=await r.json();
+  $('go').disabled=true;m.textContent='One moment…';
+  try{const r=await fetch('/api/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,role:document.querySelector('input[name=role]:checked').value,consent:$('consent').checked,consentText:$('ctext').textContent,company:$('company').value})}),j=await r.json();
     if(!r.ok) throw new Error(j.error);
-    $('f').outerHTML='<div class="done" id="f" role="status"><b>You\'re on the list.</b><br>We\'ll email you the moment The Market Update opens.</div>';
+    location.href='/app?email='+encodeURIComponent(email);
   }catch(err){m.className='msg err';m.textContent=err.message||'Something went wrong. Please try again.';$('go').disabled=false}});
 </script></body></html>
