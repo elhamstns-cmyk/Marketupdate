@@ -1,5 +1,6 @@
 import { json, body, db, getUser, isActive, latestReport, forPlan, slugify, DEMO, SEED } from '../lib/util.js';
 const FIELDS = ['name', 'tagline', 'brokerage', 'phone', 'contact_email', 'website', 'licence', 'gvr_member', 'logo', 'photo'];
+const HEX = /^#[0-9a-f]{6}$/i;
 
 export default async function handler(req, res) {
   try {
@@ -12,6 +13,10 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const b = await body(req), patch = {};
       for (const f of FIELDS) if (f in b) patch[f] = typeof b[f] === 'string' ? b[f].slice(0, f === 'logo' || f === 'photo' ? 400000 : 200) : b[f];
+      if (['realtor', 'broker'].includes(b.role)) patch.role = b.role;
+      if (b.theme && typeof b.theme === 'object') patch.theme = { style: String(b.theme.style || 'modern').slice(0, 20),
+        ac: HEX.test(b.theme.ac) ? b.theme.ac : '#0f6b4f', bg: HEX.test(b.theme.bg) ? b.theme.bg : '#ffffff',
+        font: ['modern', 'classic', 'friendly'].includes(b.theme.font) ? b.theme.font : 'modern' };
       if (!p.slug && patch.name) {
         let s = slugify(patch.name);
         const taken = await db(`profiles?slug=eq.${s}&select=id`);

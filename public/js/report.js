@@ -1,4 +1,4 @@
-// The interactive market report. mountReport(root, D, A) draws it with the agent's branding (A).
+// The interactive market report. mountReport(root, D, A) draws it with the agent's branding (A) and theme (A.theme).
 export const TN = { detached: 'detached homes', townhome: 'townhomes', condo: 'condos' };
 export const T1 = { detached: 'Detached', townhome: 'Townhome', condo: 'Condo' };
 export const TYPES = ['detached', 'townhome', 'condo'];
@@ -8,7 +8,48 @@ export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&a
 export const first = (A) => (A.name || 'me').trim().split(/\s+/)[0];
 export const areasOf = (D) => ['Greater Vancouver', ...Object.keys(D.areas || {}).sort()];
 export const market = (r) => (r == null ? null : r < 12 ? "Buyer's market" : r <= 20 ? 'Balanced market' : "Seller's market");
+export const roleLabel = (A) => (A.role === 'broker' ? 'Mortgage broker' : 'REALTOR®');
 
+/* ---------- themes ---------- */
+export const FONTS = {
+  modern: { label: 'Modern', hf: 'Inter, system-ui, sans-serif', bf: 'Inter, system-ui, sans-serif' },
+  classic: { label: 'Classic', hf: '"Playfair Display", Georgia, serif', bf: '"DM Sans", system-ui, sans-serif' },
+  friendly: { label: 'Friendly', hf: 'Nunito, system-ui, sans-serif', bf: 'Nunito, system-ui, sans-serif' },
+};
+export const STYLES = {
+  modern: { label: 'Modern', ac: '#0f6b4f', bg: '#ffffff', font: 'modern' },
+  classic: { label: 'Classic', ac: '#14233f', bg: '#f7f4ee', font: 'classic' },
+  bold: { label: 'Bold', ac: '#d0a94a', bg: '#111312', font: 'modern' },
+};
+export const BASIC_THEME = { style: 'basic', ac: '#1d4f9c', bg: '#ffffff', font: 'modern' };
+export const FONT_LINK = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;700&family=Nunito:wght@400;600;700;800&display=swap';
+const hex = (h) => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null; };
+export const lum = (h) => { const c = hex(h) || [255, 255, 255]; const [r, g, b] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+export const mix = (a, b, t) => { const x = hex(a), y = hex(b); return '#' + x.map((v, i) => Math.round(v * t + y[i] * (1 - t)).toString(16).padStart(2, '0')).join(''); };
+// Turns a saved theme into the full set of colours the report uses.
+export function palette(theme) {
+  const t = { ...STYLES.modern, ...(theme || {}) };
+  const bg = hex(t.bg) ? t.bg : '#ffffff', ac = hex(t.ac) ? t.ac : '#0f6b4f', f = FONTS[t.font] || FONTS.modern;
+  const ink = lum(bg) < 0.35 ? '#f4f2ec' : '#10201a';
+  const act = contrast(ac, bg) < 2.6 ? ink : ac; // accent used as text must stay readable
+  const fill = contrast(ac, bg) < 1.4 ? ink : ac; // accent used as a button must be visible
+  return { bg, ac, ink, act, fill, bt: contrast(fill, '#111312') > contrast(fill, '#ffffff') ? '#111312' : '#ffffff', tn: mix(fill, bg, 0.09), ln: mix(ink, bg, 0.15), mut: mix(ink, bg, 0.62), hf: f.hf, bf: f.bf };
+}
+export const themeVars = (theme) => { const p = palette(theme); return `--bg:${p.bg};--ink:${p.ink};--ac:${p.fill};--act:${p.act};--bt:${p.bt};--tn:${p.tn};--ln:${p.ln};--mut:${p.mut};--hf:${p.hf};--bf:${p.bf}`; };
+
+/* ---------- sample agents shown on the landing page ---------- */
+const svgLogo = (path, c) => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28">${path.replaceAll('CUR', c)}</svg>`);
+export const SAMPLES = {
+  sarah: { name: 'Sarah Mitchell', role: 'realtor', brokerage: 'Westbrook Realty', phone: '604-555-0104', contact_email: 'sarah@example.com', photo: '/img/sample-sarah.jpg', theme: { style: 'modern', ...STYLES.modern },
+    mark: svgLogo('<path d="M3 14 14 4l11 10v10H3z" fill="none" stroke="CUR" stroke-width="2.4" stroke-linejoin="round"/><path d="M11 24v-7h6v7" fill="none" stroke="CUR" stroke-width="2.4"/>', '#0f6b4f') },
+  marcus: { name: 'Marcus Bell', role: 'broker', brokerage: 'Harbourline Mortgage', phone: '604-555-0115', contact_email: 'marcus@example.com', photo: '/img/sample-marcus.jpg', theme: { style: 'classic', ...STYLES.classic },
+    mark: svgLogo('<path d="M3 18c4-6 7-6 11 0s7 6 11 0" fill="none" stroke="CUR" stroke-width="2.4" stroke-linecap="round"/><path d="M3 11c4-6 7-6 11 0s7 6 11 0" fill="none" stroke="CUR" stroke-width="2.4" stroke-linecap="round" opacity=".5"/>', '#14233f') },
+  david: { name: 'David Hartley', role: 'realtor', brokerage: 'Northshore Homes', phone: '604-555-0126', contact_email: 'david@example.com', photo: '/img/sample-david.jpg', theme: { style: 'bold', ...STYLES.bold },
+    mark: svgLogo('<path d="M2 23 10 8l5 8 3-5 8 12z" fill="CUR"/>', '#d0a94a') },
+};
+
+/* ---------- data helpers ---------- */
 export function get(D, area, type) {
   const c = D.cities[area] && D.cities[area][type], a = area === 'Greater Vancouver' ? null : D.areas[area][type];
   const o = c ? { price: c.price.now, yoy: c.price.yoy, prev: c.price.prev, sales: c.sales.now, salesLy: c.sales.ly, active: c.active.now, activeLy: c.active.ly, dom: c.dom.now, domLy: c.dom.ly, ratio: c.ratio }
@@ -37,24 +78,36 @@ export function readout(D, area, type) {
 }
 export const sourceLine = (D) => `Source: Greater Vancouver REALTORS® monthly report, ${D.month}, current as of ${D.asof}. Benchmark prices are MLS® HPI figures. Ratios for areas without a detailed report are calculated from sales and active listings. This is not intended to solicit properties already listed for sale.`;
 
-export function brandMark(A) {
-  return A.logo ? `<img class="brandlogo" src="${esc(A.logo)}" alt="${esc(A.name)}">`
-    : `<div class="wm" role="img" aria-label="${esc(A.name)}"><span class="wm-n">${esc(A.name || 'Your Name')}</span>${A.tagline ? `<span class="wm-s"><i></i>${esc(A.tagline)}<i></i></span>` : ''}</div>`;
+// Logo (or brokerage name) plus photo, name, role and phone.
+export function whoBlock(A) {
+  const logo = A.logo ? `<img class="brandlogo" src="${esc(A.logo)}" alt="${esc(A.brokerage || '')}">`
+    : A.brokerage ? `<div class="lgtxt">${A.mark ? `<img src="${esc(A.mark)}" alt="">` : ''}<span>${esc(A.brokerage)}</span></div>` : '';
+  return `${logo}<div class="who">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><div class="nm">${esc(A.name || 'Your Name')}</div><div class="rl">${[roleLabel(A), A.phone].filter(Boolean).map(esc).join(' · ')}</div>${A.logo && A.brokerage ? `<div class="rl">${esc(A.brokerage)}</div>` : ''}</div></div>`;
+}
+// What the closing section says. Mortgage brokers get mortgage wording.
+export function askCopy(A) {
+  return A.role === 'broker'
+    ? { h: 'Wondering what this means for your mortgage?', p: 'Prices and rates move together. I can walk you through what this market means for your pre-approval, renewal or refinance, at no cost.', lab: 'Your city or neighbourhood', ph: 'e.g. your city or neighbourhood',
+        chips: ['buying a home', 'renewing soon', 'thinking of refinancing'], subj: 'A question about my mortgage',
+        msg: (w, type, intent) => `Hi ${first(A)}, could you tell me what the current market in ${w} means for my mortgage?` + (intent ? ` I'm ${intent}.` : '') }
+    : { h: 'Want the numbers for your own neighbourhood?', p: 'City averages hide a lot. I can send you recent sales, price ranges and days on market for your street, building or neighbourhood, at no cost.', lab: 'Your city or neighbourhood', ph: 'e.g. your neighbourhood or building name',
+        chips: ['thinking of selling', 'looking to buy', "just curious about my home's value"], subj: 'Market numbers for my area',
+        msg: (w, type, intent) => `Hi ${first(A)}, could you send me the latest market numbers for ${w} (${TN[type]})?` + (intent ? ` I'm ${intent}.` : '') };
 }
 
 export function mountReport(root, D, A, opts = {}) {
-  const AREAS = areasOf(D), multi = AREAS.length > 1, F = esc(first(A));
+  const AREAS = areasOf(D), multi = AREAS.length > 1, F = esc(first(A)), ask = askCopy(A);
   const S = { area: AREAS.includes(opts.area) ? opts.area : 'Greater Vancouver', type: 'detached', intent: null };
   const email = A.contact_email || '', phone = A.phone || '';
-  const av = A.photo ? `<img class="av" src="${esc(A.photo)}" alt="${esc(A.name)}">` : '';
+  root.classList.add('rpt'); root.style.cssText = themeVars(A.theme);
   root.innerHTML = `<div class="wrap">
-<div class="mast">${brandMark(A)}<div class="me"><span>${esc(A.brokerage || '')}</span>${av}</div></div>
-<header class="title"><p class="eyebrow">${esc(D.month)}</p><h1>Greater Vancouver Market Report</h1><span class="orn"></span>
+<div class="mast">${whoBlock(A)}</div>
+<header class="title"><p class="eyebrow">${esc(D.month)}</p><h1>Greater Vancouver Market Report</h1>
   <p class="lede">${regionSummary(D)}${multi ? ' Choose your city below to see where it stands.' : ''}</p></header>
-<section><h2>Greater Vancouver at a glance</h2><div class="metro">${TYPES.map((t) => { const m = D.cities['Greater Vancouver'][t]; return `<div><span class="lab">${T1[t]}</span><span class="num">${money(m.price.now)}</span><span>${chg(m.price.yoy, 'in a year')}</span></div>`; }).join('')}</div>
+<section><div class="metro">${TYPES.map((t) => { const m = D.cities['Greater Vancouver'][t]; return `<div><span class="lab">${T1[t]}</span><span class="num">${money(m.price.now)}</span><span>${chg(m.price.yoy, 'in a year')}</span></div>`; }).join('')}</div>
   <p class="small muted">Benchmark price is the MLS® HPI price of a typical home, compared with the same month last year.</p></section>
 <section><h2 data-id="h-city">${multi ? 'Pick your city' : 'A closer look'}</h2>
-  <div class="controls">${multi ? `<div class="field"><label>Area<select data-id="area" style="margin-top:5px">${AREAS.map((a) => `<option>${a}</option>`).join('')}</select></label></div>` : ''}
+  <div class="controls">${multi ? `<div class="field"><label>Area<select data-id="area">${AREAS.map((a) => `<option>${a}</option>`).join('')}</select></label></div>` : ''}
     <div class="field"><span class="lab">Home type</span><div class="seg" data-id="types" role="group" aria-label="Home type">${TYPES.map((t) => `<button type="button" data-t="${t}">${T1[t]}</button>`).join('')}</div></div></div>
   <div class="panel" aria-live="polite">
     <div><p class="eyebrow" data-id="p-title"></p><div class="big" data-id="p-price"></div><p data-id="p-chg" style="margin-top:8px"></p></div>
@@ -64,25 +117,23 @@ export function mountReport(root, D, A, opts = {}) {
       <p class="small muted">Share of listed homes that sold this month. Under 12% favours buyers, over 20% favours sellers.</p></div>
     <div class="stats" data-id="p-stats"></div><p data-id="p-read"></p></div></section>
 ${multi ? `<section><h2>How the areas compare</h2><p class="muted small" data-id="rank-sub"></p><div class="rank" data-id="rank"></div></section>` : ''}
-<section class="ask"><h2>Want the numbers for your own neighbourhood?</h2>
-  <p>City averages hide a lot. I can send you recent sales, price ranges and days on market for your street, building or neighbourhood, at no cost.</p>
-  <div class="field"><label>Your city or neighbourhood<input type="text" data-id="where" style="margin-top:5px" placeholder="e.g. your neighbourhood or building name"></label></div>
-  <div><span class="lab">I am</span><div class="chips" data-id="intent" role="group" aria-label="I am" style="margin-top:6px">
-    <button type="button">thinking of selling</button><button type="button">looking to buy</button><button type="button">just curious about my home's value</button></div></div>
-  <div><span class="lab">Your message to ${F}</span><p class="msg" data-id="msg" style="margin-top:6px"></p></div>
-  <div class="btns">${email ? `<a class="btn" data-id="mail" href="#">Email ${F}</a>` : ''}${phone ? `<a class="btn" data-id="sms" href="#">Text ${F}</a>` : ''}<button class="btn ghost" type="button" data-id="copy">Copy message</button></div>
+<section class="ask"><h2>${ask.h}</h2><p>${ask.p}</p>
+  <div class="field"><label>${ask.lab}<input type="text" data-id="where" placeholder="${ask.ph}"></label></div>
+  <div><span class="lab">I am</span><div class="chips" data-id="intent" role="group" aria-label="I am">${ask.chips.map((c) => `<button type="button">${esc(c)}</button>`).join('')}</div></div>
+  <div><span class="lab">Your message to ${F}</span><p class="msg" data-id="msg"></p></div>
+  <div class="btns">${email ? `<a class="btn" data-id="mail" href="#">Email ${F}</a>` : ''}${phone ? `<a class="btn alt" data-id="sms" href="#">Text ${F}</a>` : ''}<button class="btn alt" type="button" data-id="copy">Copy message</button></div>
   <div class="contact">${email ? `<span>${esc(email)}</span>` : ''}${phone ? `<span>${esc(phone)}</span>` : ''}${A.website ? `<span>${esc(A.website.replace(/^https?:\/\//, ''))}</span>` : ''}</div></section>
-<div class="sign">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}${brandMark(A)}<p class="muted small">${esc(A.brokerage || '')}</p></div>
+<div class="sign">${whoBlock(A)}</div>
 <footer>${esc(sourceLine(D))}</footer></div>`;
   const $ = (id) => root.querySelector(`[data-id="${id}"]`);
 
   function text() {
     const w = $('where').value.trim() || (S.area === 'Greater Vancouver' ? 'my area' : S.area);
-    return `Hi ${first(A)}, could you send me the latest market numbers for ${w} (${TN[S.type]})?` + (S.intent ? ` I'm ${S.intent}.` : '');
+    return ask.msg(w, S.type, S.intent);
   }
   function msg() {
     const t = text(); $('msg').textContent = t;
-    if ($('mail')) $('mail').href = `mailto:${email}?subject=${encodeURIComponent('Market numbers for my area')}&body=${encodeURIComponent(t)}`;
+    if ($('mail')) $('mail').href = `mailto:${email}?subject=${encodeURIComponent(ask.subj)}&body=${encodeURIComponent(t)}`;
     if ($('sms')) $('sms').href = `sms:+1${phone.replace(/\D/g, '')}?&body=${encodeURIComponent(t)}`;
   }
   function render() {
@@ -114,7 +165,7 @@ ${multi ? `<section><h2>How the areas compare</h2><p class="muted small" data-id
   function setArea(a, scroll) { S.area = a; render(); if (scroll) $('h-city').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   if ($('area')) $('area').addEventListener('change', (e) => setArea(e.target.value));
   $('types').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { S.type = b.dataset.t; render(); } });
-  if ($('rank')) $('rank').addEventListener('click', (e) => { const b = e.target.closest('.row'); if (b) setArea(b.dataset.a, true); });
+  if ($('rank')) $('rank').addEventListener('click', (e) => { const b = e.target.closest('.row'); if (b) setArea(b.dataset.a, !opts.embedded); });
   $('where').addEventListener('input', msg);
   $('intent').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const on = b.getAttribute('aria-pressed') === 'true';
     $('intent').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', String(!on)); S.intent = on ? null : b.textContent; msg(); });

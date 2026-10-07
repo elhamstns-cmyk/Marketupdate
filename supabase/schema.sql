@@ -19,3 +19,20 @@ create table if not exists reports (
 -- All access goes through the site's server functions (service key), so lock the tables down.
 alter table profiles enable row level security;
 alter table reports enable row level security;
+
+-- Campaign list: everyone who starts sign-up on the landing page
+create table if not exists leads (
+  email text primary key,
+  role text default 'realtor',
+  consent boolean default false,     -- ticked "email me tips and offers"
+  consent_text text,
+  consent_at timestamptz,
+  created_at timestamptz default now()
+);
+alter table leads add column if not exists consent boolean default false;
+alter table leads add column if not exists consent_at timestamptz;
+alter table leads enable row level security;
+
+-- Report look (Pro) and whether the subscriber is a REALTOR or a mortgage broker
+alter table profiles add column if not exists theme jsonb;
+alter table profiles add column if not exists role text default 'realtor';

@@ -110,7 +110,7 @@ footer{border-top:1px solid #d6e7df;padding:24px 20px 40px;font-size:13px;color:
 @media (max-width:520px){.rowf{flex-direction:column;border-radius:22px;padding:8px}button.cta{width:100%}.kp{grid-template-columns:1fr}}
 </style></head><body>
 <div class="dark">
-  <div class="nav"><a class="logo" href="/"><span class="dot"></span>The Market Update</a><a class="ghost" href="/app">Log in</a></div>
+  <div class="nav"><a class="logo" href="/"><span class="dot"></span>The Market Update</a><span style="display:flex;gap:20px;align-items:center"><a href="/plans" style="text-decoration:none;opacity:.8">Pricing</a><a class="ghost" href="/app">Log in</a></span></div>
   <div class="c">
     <h1 class="rise"><span class="q">“How’s the market?”</span> <span class="a">Now you have an answer ready every month.</span></h1>
     <p class="sub rise d1">Greater Vancouver's latest numbers, designed and branded as yours. For REALTORS® and mortgage brokers.</p>
@@ -182,7 +182,7 @@ fetch('/api/report?slug=demo').then(r=>r.json()).then(j=>{const M=j.report.citie
   $('gal').innerHTML=V.map((v,i)=>`<div class="sm" style="background:${v.bg};color:${v.ink};font-family:${v.bf};--ac:${v.ac};--tn:${v.tn};--ln:${v.ln};--bt:${v.bt};--hf:${v.hf};--ink:${v.ink}">
     <div class="pane"><div class="lg">${logos[i]}<span>${v.b}</span></div><div class="who">${faces[i]}<div><div class="nm">${v.n}</div><div class="br">${v.r} · 604-555-01${i}${i+4}</div></div></div><div><div class="mo">${j.report.month}</div><div class="tt" style="margin-top:6px">Greater Vancouver Market Report</div></div><div class="row3">${[['detached','Detached'],['townhome','Townhome'],['condo','Condo']].map(([k,l])=>`<div><span>${l}</span><b>${$m(M[k].price.now)}</b></div>`).join('')}</div></div>
     <div class="pane p2">${mid[i](v)}</div>
-    <div class="tag">Sample ${i+1} of 3 · ${v.tag} · ${part[i]}</div></div>`).join('');
+    <div class="tag">Sample ${i+1} of 3 · ${v.tag} · ${part[i]} · <a href="/r/demo?s=${['sarah','marcus','david'][i]}" target="_blank" style="color:var(--ac);font-weight:700">Open the full sample report</a></div></div>`).join('');
   document.querySelectorAll('.sm').forEach((t,i)=>{t.style.transitionDelay=i*130+'ms';new IntersectionObserver((es,o)=>es.forEach(e=>{if(e.isIntersecting){t.classList.add('in');o.disconnect()}}),{threshold:.2}).observe(t)});
   const r=M.detached.ratio,mk=r<12?"Buyer's market":r<=20?'Balanced market':"Seller's market",A=j.report.areas;
   const rows=Object.keys(A).map(a=>({a,...A[a].detached})).filter(x=>x.price>0).sort((x,y)=>y.price-x.price).slice(0,6),mx=rows[0].price;
@@ -196,6 +196,6 @@ $('f').addEventListener('submit',async e=>{e.preventDefault();const m=$('msg');m
   $('go').disabled=true;m.textContent='One moment…';
   try{const r=await fetch('/api/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,role:document.querySelector('input[name=role]:checked').value,consent:$('consent').checked,consentText:$('ctext').textContent,company:$('company').value})}),j=await r.json();
     if(!r.ok) throw new Error(j.error);
-    location.href='/app?email='+encodeURIComponent(email);
+    location.href='/app?email='+encodeURIComponent(email)+'&role='+document.querySelector('input[name=role]:checked').value;
   }catch(err){m.className='msg err';m.textContent=err.message||'Something went wrong. Please try again.';$('go').disabled=false}});
 </script></body></html>
