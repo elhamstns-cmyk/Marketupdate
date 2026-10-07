@@ -1,4 +1,4 @@
-# Market Update Pro
+# The Market Update
 
 Branded monthly Greater Vancouver market reports for REALTORS®, sold by subscription.
 
@@ -10,8 +10,8 @@ Branded monthly Greater Vancouver market reports for REALTORS®, sold by subscri
 No packages to install. Preview locally with `npm run dev` (runs in sample mode until keys are added).
 
 ## Going live
-1. **Supabase**: new project, run `supabase/schema.sql` in the SQL editor. In Authentication > URL Configuration set the Site URL to your domain and add `https://yourdomain/app` as a redirect URL. In the Magic Link email template, add `{{ .Token }}` so agents also get a code.
-2. **Stripe**: run `STRIPE_SECRET_KEY=sk_... npm run stripe:setup` and keep the four lines it prints. Add a webhook to `https://yourdomain/api/stripe-webhook` for `checkout.session.completed` and `customer.subscription.*`. Turn on the customer portal.
+1. **Supabase**: new project, run `supabase/schema.sql` in the SQL editor. In Authentication > URL Configuration set the Site URL to your domain and add `https://themarketupdate.ca/app` as a redirect URL. In the Magic Link email template, add `{{ .Token }}` so agents also get a code.
+2. **Stripe**: run `STRIPE_SECRET_KEY=sk_... npm run stripe:setup` and keep the four lines it prints. Add a webhook to `https://themarketupdate.ca/api/stripe-webhook` for `checkout.session.completed` and `customer.subscription.*`. Turn on the customer portal.
 3. **Resend**: verify your domain, create an API key.
 4. **Vercel**: import this GitHub repo, add every value from `.env.example`, connect the domain.
 
