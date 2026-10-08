@@ -76,3 +76,6 @@ input[type=text],input[type=email],input[type=tel],input[type=password],select,t
 .acts{display:grid}.act{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.act:first-child{border-top:0}
 .act b{display:block;font-size:.92rem}.act span{font-size:.8rem;color:var(--mut)}.act .btn{flex:none;min-width:112px}.act.off b,.act.off span{opacity:.55}
 #codebox[hidden]{display:none!important}
+.pw{position:relative}.pw input{padding-right:70px}.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);font:inherit;font-size:.8rem;font-weight:700;color:var(--p);background:none;border:0;padding:6px 8px;cursor:pointer}
+.gbtn{display:flex!important;align-items:center;justify-content:center;gap:10px;border-color:var(--line)!important;color:var(--ink)!important}
+.or{display:flex;align-items:center;gap:12px;color:var(--mut);font-size:.82rem}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}

@@ -13,7 +13,8 @@ const SB = cfg.supabaseUrl, H = { apikey: cfg.supabaseAnonKey, 'content-type': '
 let session = JSON.parse(localStorage.getItem('mup_session') || 'null');
 const keep = (s) => { session = s ? { access_token: s.access_token, refresh_token: s.refresh_token, expires_at: Date.now() + (s.expires_in || 3600) * 1000 } : null;
   session ? localStorage.setItem('mup_session', JSON.stringify(session)) : localStorage.removeItem('mup_session'); };
-if (location.hash.includes('access_token=')) { const h = new URLSearchParams(location.hash.slice(1));
+let recovering = false;
+if (location.hash.includes('access_token=')) { const h = new URLSearchParams(location.hash.slice(1)); recovering = h.get('type') === 'recovery';
   keep({ access_token: h.get('access_token'), refresh_token: h.get('refresh_token'), expires_in: Number(h.get('expires_in')) }); history.replaceState(null, '', '/app'); }
 async function token() {
   if (!session) return null;
@@ -33,27 +34,62 @@ async function api(path, data) {
 }
 const STEPS = ['Email', 'Verify', 'Plan', 'Payment', 'Your report'];
 const steps = (n) => `<div class="steps">${STEPS.map((s, i) => `${i ? '<i></i>' : ''}<span class="${i < n ? 'dn' : i === n ? 'on' : ''}"><b>${i < n ? '✓' : i + 1}</b>${s}</span>`).join('')}</div>`;
-const sendCode = (email) => fetch(`${SB}/auth/v1/otp?redirect_to=${encodeURIComponent(location.origin + '/app')}`, { method: 'POST', headers: H, body: JSON.stringify({ email, create_user: true }) });
+const authPost = (path, body, tok) => fetch(`${SB}/auth/v1/${path}`, { method: path === 'user' ? 'PUT' : 'POST', headers: { ...H, ...(tok ? { authorization: `Bearer ${tok}` } : {}) }, body: JSON.stringify(body) });
+const errText = async (r) => { const j = await r.json().catch(() => ({})); return (j.msg || j.error_description || j.message || '').toLowerCase(); };
+const pwField = (id, label, auto) => `<div class="field"><label for="${id}">${label}</label><div class="pw"><input type="password" id="${id}" required minlength="8" autocomplete="${auto}"><button type="button" class="eye" data-eye="${id}">Show</button></div></div>`;
+const wireEyes = () => main.querySelectorAll('[data-eye]').forEach((b) => (b.onclick = () => { const i = $('#' + b.dataset.eye); i.type = i.type === 'password' ? 'text' : 'password'; b.textContent = i.type === 'password' ? 'Show' : 'Hide'; }));
 
-function showLogin() {
-  main.innerHTML = `<div class="c">${steps(0)}<form class="box" id="f1"><h3 style="font-size:1.6rem">Log in or sign up</h3>
-    <p class="muted">Enter your email and we will send you a link to verify it. No password needed.</p>
-    <div class="field"><label for="em">Email</label><input type="email" id="em" required autocomplete="email" placeholder="you@yourbrokerage.com"></div>
-    <button class="btn wide">Verify your email</button><p class="err" id="lerr" role="status"></p></form></div>`;
-  const go = async (email) => { $('#lerr').textContent = ''; const r = await sendCode(email);
-    if (r.ok) showConfirm(email); else $('#lerr').textContent = 'We could not send the email. Please check the address and try again in a minute.'; };
-  $('#f1').onsubmit = (e) => { e.preventDefault(); go($('#em').value.trim()); };
-  if (qs.get('email')) { $('#em').value = qs.get('email'); history.replaceState(null, '', '/app'); go($('#em').value); }
+function showLogin(mode) {
+  const signup = mode ? mode === 'signup' : !!qs.get('email');
+  const pre = qs.get('email') || ''; if (pre) history.replaceState(null, '', '/app');
+  main.innerHTML = `<div class="c">${signup ? steps(0) : ''}<form class="box" id="f1"><h3 style="font-size:1.6rem">${signup ? 'Create your account' : 'Welcome back'}</h3>
+    <p class="muted">${signup ? 'Choose a password. You will use it with your email to log in.' : 'Log in with your email and password.'}</p>
+    <a class="btn ghost wide gbtn" href="${SB}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(location.origin + '/app')}"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</a>
+    <div class="or"><span>or use your email</span></div>
+    <div class="field"><label for="em">Email</label><input type="email" id="em" required autocomplete="email" value="${esc(pre)}" placeholder="you@yourbrokerage.com"></div>
+    ${pwField('pw', signup ? 'Create a password (at least 8 characters)' : 'Password', signup ? 'new-password' : 'current-password')}
+    <button class="btn wide">${signup ? 'Create account' : 'Log in'}</button>
+    ${signup ? '' : '<a href="#" id="forgot" class="small" style="color:var(--p);font-weight:700;justify-self:start">Forgot your password?</a>'}
+    <p class="err" id="lerr" role="status"></p>
+    <p class="small muted center">${signup ? 'Already have an account? <a href="#" id="swap" style="color:var(--p);font-weight:700">Log in</a>' : 'New here? <a href="#" id="swap" style="color:var(--p);font-weight:700">Create an account</a>'}</p></form></div>`;
+  wireEyes(); (pre ? $('#pw') : $('#em')).focus();
+  $('#swap').onclick = (e) => { e.preventDefault(); showLogin(signup ? 'login' : 'signup'); };
+  if ($('#forgot')) $('#forgot').onclick = (e) => { e.preventDefault(); showForgot($('#em').value.trim()); };
+  $('#f1').onsubmit = async (e) => { e.preventDefault(); const email = $('#em').value.trim(), password = $('#pw').value, btn = $('#f1 .btn'); $('#lerr').textContent = '';
+    if (password.length < 8) { $('#lerr').textContent = 'Your password needs at least 8 characters.'; return; }
+    btn.disabled = true;
+    if (signup) {
+      const r = await fetch(`${SB}/auth/v1/signup?redirect_to=${encodeURIComponent(location.origin + '/app')}`, { method: 'POST', headers: H, body: JSON.stringify({ email, password }) });
+      if (r.ok) { const j = await r.json(); if (j.access_token) { keep(j); start(); } else showVerify(email); return; }
+      const t = await errText(r); btn.disabled = false;
+      $('#lerr').textContent = t.includes('already') ? 'There is already an account with this email. Log in instead.' : t.includes('password') ? 'Please choose a stronger password.' : 'We could not create your account. Please try again in a minute.';
+    } else {
+      const r = await authPost('token?grant_type=password', { email, password });
+      if (r.ok) { keep(await r.json()); start(); return; }
+      const t = await errText(r); btn.disabled = false;
+      $('#lerr').textContent = t.includes('confirm') ? 'Please verify your email first. Check your inbox for our link.' : 'That email and password do not match. Try again, or reset your password.';
+    } };
 }
-function showConfirm(email) {
-  main.innerHTML = `<div class="c">${steps(1)}<form class="box" id="f2"><h3 style="font-size:1.6rem">Check your email</h3>
+function showVerify(email) {
+  main.innerHTML = `<div class="c">${steps(1)}<div class="box"><h3 style="font-size:1.6rem">Verify your email</h3>
     <p class="muted">We sent a link to <b style="color:var(--ink)">${esc(email)}</b>. Click it to verify your email and continue. You can close this tab.</p>
-    <div id="codebox" hidden style="display:grid;gap:12px"><input class="codein" type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" aria-label="Code from the email" placeholder="······"><button class="btn wide">Continue</button></div><p class="err" id="lerr" role="status"></p>
-    <p class="small muted center">Didn't get it? Check spam, or <a href="#" id="again" style="color:var(--p);font-weight:700">send it again</a>.</p></form></div>`;
-  $('#f2').onsubmit = async (e) => { e.preventDefault();
-    const r = await fetch(`${SB}/auth/v1/verify`, { method: 'POST', headers: H, body: JSON.stringify({ type: 'email', email, token: $('#code').value.replace(/\D/g, '') }) });
-    if (r.ok) { keep(await r.json()); start(); } else $('#lerr').textContent = 'That code did not work. Please check it or request a new one.'; };
-  $('#again').onclick = async (e) => { e.preventDefault(); const r = await sendCode(email); $('#lerr').className = r.ok ? 'ok' : 'err'; $('#lerr').textContent = r.ok ? 'Sent again. Check your inbox.' : 'Please wait a minute before asking again.'; };
+    <p class="small muted">Didn't get it? Check your spam folder, or <a href="#" id="again" style="color:var(--p);font-weight:700">send it again</a>.</p><p class="ok small" id="lerr" role="status"></p></div></div>`;
+  $('#again').onclick = async (e) => { e.preventDefault(); const r = await authPost('resend', { type: 'signup', email }); $('#lerr').className = r.ok ? 'ok small' : 'err small'; $('#lerr').textContent = r.ok ? 'Sent again. Check your inbox.' : 'Please wait a minute before asking again.'; };
+}
+function showForgot(email) {
+  main.innerHTML = `<div class="c"><form class="box" id="f3"><h3 style="font-size:1.6rem">Reset your password</h3><p class="muted">Enter your email and we will send you a link to choose a new password.</p>
+    <div class="field"><label for="em">Email</label><input type="email" id="em" required autocomplete="email" value="${esc(email || '')}"></div>
+    <button class="btn wide">Send reset link</button><p id="lerr" class="small" role="status"></p><a href="#" id="back" class="small" style="color:var(--p);font-weight:700">Back to log in</a></form></div>`;
+  $('#back').onclick = (e) => { e.preventDefault(); showLogin('login'); };
+  $('#f3').onsubmit = async (e) => { e.preventDefault(); const r = await fetch(`${SB}/auth/v1/recover?redirect_to=${encodeURIComponent(location.origin + '/app')}`, { method: 'POST', headers: H, body: JSON.stringify({ email: $('#em').value.trim() }) });
+    $('#lerr').className = r.ok ? 'ok small' : 'err small'; $('#lerr').textContent = r.ok ? 'If there is an account with this email, a reset link is on its way.' : 'Please wait a minute and try again.'; };
+}
+function showNewPassword() {
+  main.innerHTML = `<div class="c"><form class="box" id="f4"><h3 style="font-size:1.6rem">Choose a new password</h3>${pwField('pw', 'New password (at least 8 characters)', 'new-password')}
+    <button class="btn wide">Save password</button><p class="err" id="lerr" role="status"></p></form></div>`;
+  wireEyes(); $('#pw').focus();
+  $('#f4').onsubmit = async (e) => { e.preventDefault(); if ($('#pw').value.length < 8) { $('#lerr').textContent = 'Your password needs at least 8 characters.'; return; }
+    const r = await authPost('user', { password: $('#pw').value }, await token()); if (r.ok) start(); else $('#lerr').textContent = 'We could not save it. Please request a new reset link.'; };
 }
 
 /* ---------- plan ---------- */
@@ -85,6 +121,7 @@ function shrink(file, max, type) { return new Promise((ok, no) => { const i = ne
 
 async function start() {
   if (!cfg.demo && !session) return showLogin();
+  if (recovering) { recovering = false; return showNewPassword(); }
   try {
     let j = await api('/api/me');
     if (cfg.demo) { P = { plan: qs.get('plan') === 'basic' ? 'basic' : 'pro', slug: 'demo', ...JSON.parse(localStorage.getItem('mup_demo_profile') || '{}') }; if (qs.get('plan')) P.plan = qs.get('plan') === 'basic' ? 'basic' : 'pro'; D = j.report; active = true; }
