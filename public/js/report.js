@@ -11,18 +11,31 @@ export const market = (r) => (r == null ? null : r < 12 ? "Buyer's market" : r <
 export const roleLabel = (A) => (A.role === 'broker' ? 'Mortgage broker' : 'REALTOR®');
 
 /* ---------- themes ---------- */
+// label, heading font, body font, Google Fonts families to load
+const F = (label, h, b, g) => ({ label, hf: `"${h}", ${/Playfair|Lora|Cormorant|DM Serif|Baskerville/.test(h) ? 'Georgia, serif' : 'system-ui, sans-serif'}`, bf: `"${b}", system-ui, sans-serif`, g });
 export const FONTS = {
-  modern: { label: 'Modern', hf: 'Inter, system-ui, sans-serif', bf: 'Inter, system-ui, sans-serif' },
-  classic: { label: 'Classic', hf: '"Playfair Display", Georgia, serif', bf: '"DM Sans", system-ui, sans-serif' },
-  friendly: { label: 'Friendly', hf: 'Nunito, system-ui, sans-serif', bf: 'Nunito, system-ui, sans-serif' },
+  modern: F('Inter', 'Inter', 'Inter', ['Inter:wght@400;500;600;700;800']),
+  classic: F('Playfair', 'Playfair Display', 'DM Sans', ['Playfair+Display:wght@600;700', 'DM+Sans:wght@400;500;700']),
+  friendly: F('Nunito', 'Nunito', 'Nunito', ['Nunito:wght@400;600;700;800']),
+  montserrat: F('Montserrat', 'Montserrat', 'Montserrat', ['Montserrat:wght@400;500;600;700']),
+  poppins: F('Poppins', 'Poppins', 'Poppins', ['Poppins:wght@400;500;600;700']),
+  manrope: F('Manrope', 'Manrope', 'Manrope', ['Manrope:wght@400;500;700;800']),
+  worksans: F('Work Sans', 'Work Sans', 'Work Sans', ['Work+Sans:wght@400;500;600;700']),
+  raleway: F('Raleway', 'Raleway', 'Raleway', ['Raleway:wght@400;500;600;700']),
+  lora: F('Lora', 'Lora', 'Inter', ['Lora:wght@500;600;700', 'Inter:wght@400;500;600;700']),
+  cormorant: F('Cormorant', 'Cormorant Garamond', 'Jost', ['Cormorant+Garamond:wght@500;600;700', 'Jost:wght@400;500;600']),
+  dmserif: F('DM Serif', 'DM Serif Display', 'DM Sans', ['DM+Serif+Display', 'DM+Sans:wght@400;500;700']),
+  baskerville: F('Baskerville', 'Libre Baskerville', 'Source Sans 3', ['Libre+Baskerville:wght@400;700', 'Source+Sans+3:wght@400;600;700']),
 };
+export const fontHref = (keys) => 'https://fonts.googleapis.com/css2?' + [...new Set(keys.flatMap((k) => (FONTS[k] || FONTS.modern).g))].map((g) => 'family=' + g).join('&') + '&display=swap';
+// Loads the fonts a page needs (one theme's font on a report, all of them in the dashboard).
+export function loadFonts(keys) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = fontHref(keys); document.head.appendChild(l); }
 export const STYLES = {
   modern: { label: 'Modern', ac: '#0f6b4f', bg: '#ffffff', font: 'modern' },
   classic: { label: 'Classic', ac: '#14233f', bg: '#f7f4ee', font: 'classic' },
   bold: { label: 'Bold', ac: '#d0a94a', bg: '#111312', font: 'modern' },
 };
 export const BASIC_THEME = { style: 'basic', ac: '#1d4f9c', bg: '#ffffff', font: 'modern' };
-export const FONT_LINK = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;700&family=Nunito:wght@400;600;700;800&display=swap';
 const hex = (h) => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null; };
 export const lum = (h) => { const c = hex(h) || [255, 255, 255]; const [r, g, b] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
 const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
@@ -110,14 +123,14 @@ export function mountReport(root, D, A, opts = {}) {
   <div class="controls">${multi ? `<div class="field"><label>Area<select data-id="area">${AREAS.map((a) => `<option>${a}</option>`).join('')}</select></label></div>` : ''}
     <div class="field"><span class="lab">Home type</span><div class="seg" data-id="types" role="group" aria-label="Home type">${TYPES.map((t) => `<button type="button" data-t="${t}">${T1[t]}</button>`).join('')}</div></div></div>
   <div class="panel" aria-live="polite">
-    <div><p class="eyebrow" data-id="p-title"></p><div class="big" data-id="p-price"></div><p data-id="p-chg" style="margin-top:8px"></p></div>
-    <div class="gauge"><p><strong data-id="p-market"></strong> <span class="muted small" data-id="p-ratio"></span></p>
+    <div class="phead"><p class="eyebrow" data-id="p-title"></p><div class="big" data-id="p-price"></div><p class="muted small" data-id="p-sub"></p><p class="chgs" data-id="p-chg"></p></div>
+    <div class="gauge"><div class="ghead"><strong data-id="p-market"></strong><span class="muted small" data-id="p-ratio"></span></div>
       <div class="track"><span class="b1"></span><span class="b2"></span><span class="b3"></span><i class="pin" data-id="pin"></i></div>
       <div class="bands"><span>Buyer's</span><span>Balanced</span><span>Seller's</span></div>
-      <p class="small muted">Share of listed homes that sold this month. Under 12% favours buyers, over 20% favours sellers.</p></div>
+      <p class="small muted">The share of listed homes that sold this month. Under 12% favours buyers, over 20% favours sellers.</p></div>
     <div class="stats" data-id="p-stats"></div><p data-id="p-read"></p></div></section>
 ${multi ? `<section><h2>How the areas compare</h2><p class="muted small" data-id="rank-sub"></p><div class="rank" data-id="rank"></div></section>` : ''}
-<section class="ask"><h2>${ask.h}</h2><p>${ask.p}</p>
+<section class="ask"><div class="askwho">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><div class="nm">${esc(A.name || '')}</div><div class="rl">${[roleLabel(A), A.brokerage].filter(Boolean).map(esc).join(' · ')}</div></div></div><h2>${ask.h}</h2><p>${ask.p}</p>
   <div class="field"><label>${ask.lab}<input type="text" data-id="where" placeholder="${ask.ph}"></label></div>
   <div><span class="lab">I am</span><div class="chips" data-id="intent" role="group" aria-label="I am">${ask.chips.map((c) => `<button type="button">${esc(c)}</button>`).join('')}</div></div>
   <div><span class="lab">Your message to ${F}</span><p class="msg" data-id="msg"></p></div>
@@ -140,19 +153,19 @@ ${multi ? `<section><h2>How the areas compare</h2><p class="muted small" data-id
     const { area, type } = S, o = get(D, area, type);
     if ($('area')) $('area').value = area;
     $('types').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t === type));
-    $('p-title').textContent = `${area} · ${T1[type]} benchmark price`;
+    $('p-title').textContent = area; $('p-sub').textContent = `${T1[type]} benchmark price`;
     $('p-price').textContent = o.price ? money(o.price) : 'No benchmark';
     let c = o.price ? chg(o.yoy, 'vs. ' + D.month.replace(/\d+$/, (y) => y - 1)) : '<span class="muted small">Too few sales here for a reliable benchmark.</span>';
-    if (o.prev && o.price) { const m = ((o.price - o.prev) / o.prev) * 100; c += ` &nbsp; ${chg(Math.round(m * 10) / 10, 'vs. last month')}`; }
+    if (o.prev && o.price) { const m = ((o.price - o.prev) / o.prev) * 100; c = `<span>${c}</span><span>${chg(Math.round(m * 10) / 10, 'vs. last month')}</span>`; }
     $('p-chg').innerHTML = c;
     const mk = market(o.ratio);
     $('p-market').textContent = mk || 'Not enough activity to call';
-    $('p-ratio').textContent = o.ratio != null ? `${o.ratio.toFixed(1)}% sales-to-active ratio` : '';
+    $('p-ratio').textContent = o.ratio != null ? `${o.ratio.toFixed(1)}% of listings sold` : '';
     $('pin').hidden = o.ratio == null; $('pin').style.left = (Math.min(o.ratio || 0, 40) / 40) * 100 + '%';
     const st = [['Homes sold', o.sales.toLocaleString(), o.salesLy != null ? `${o.salesLy.toLocaleString()} a year ago` : ''],
       ['Homes for sale', o.active.toLocaleString(), o.activeLy != null ? `${o.activeLy.toLocaleString()} a year ago` : ''],
       ['Average days to sell', o.dom != null ? o.dom : `Ask ${F}`, o.dom != null ? `${o.domLy} a year ago` : "Not in this month's summary"]];
-    $('p-stats').innerHTML = st.map((s) => `<div><span class="lab">${s[0]}</span><span class="num">${s[1]}</span><span class="small muted">${s[2]}</span></div>`).join('');
+    $('p-stats').innerHTML = st.map((s) => `<div><span class="lab">${s[0]}</span><span class="num">${s[1]}</span><span class="sub">${s[2]}</span></div>`).join('');
     $('p-read').textContent = readout(D, area, type);
     if (multi) {
       const rows = Object.keys(D.areas).map((a) => ({ a, ...D.areas[a][type] })).filter((r) => r.price > 0).sort((x, y) => y.price - x.price);

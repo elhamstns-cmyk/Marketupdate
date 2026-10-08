@@ -1,11 +1,10 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Greater Vancouver Market Report</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;700&family=Nunito:wght@400;600;700;800&display=swap">
 <link rel="stylesheet" href="/css/report.css"><style>body{margin:0}</style></head><body>
 <div id="sample" class="sample" hidden>Sample report with a made-up person. <a href="/">Get your own</a></div>
 <div id="root"><p style="text-align:center;padding:60px 20px;font-family:system-ui">Loading the report…</p></div>
 <script type="module">
-import { mountReport, areasOf, slug, palette, SAMPLES } from '/js/report.js';
+import { mountReport, areasOf, slug, palette, SAMPLES, loadFonts } from '/js/report.js';
 const s = location.pathname.split('/')[2], q = new URLSearchParams(location.search);
 const r = await fetch('/api/report?slug=' + encodeURIComponent(s)), j = await r.json();
 const root = document.getElementById('root');
@@ -15,7 +14,7 @@ else {
   if (j.sample) { A = SAMPLES[q.get('s')] || SAMPLES.sarah; document.getElementById('sample').hidden = false; }
   const area = areasOf(j.report).find((a) => slug(a) === location.hash.slice(1));
   document.title = `${area || 'Greater Vancouver'} Market Report, ${j.report.month} | ${A.name}`;
-  document.body.style.background = palette(A.theme).bg;
+  loadFonts([A.theme?.font || 'modern']); document.body.style.background = palette(A.theme).bg;
   mountReport(root, j.report, A, { area });
 }
 </script></body></html>

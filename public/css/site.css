@@ -53,19 +53,25 @@ input[type=text],input[type=email],input[type=tel],input[type=password],select,t
 .sw label.pick{width:32px;height:32px;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);box-shadow:0 0 0 1px var(--line);border:3px solid #fff;cursor:pointer;position:relative;overflow:hidden}
 .sw label.pick input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .opt{font:inherit;border:1px solid var(--line);border-radius:10px;padding:8px;font-size:.8rem;font-weight:650;display:grid;gap:6px;background:#fff;cursor:pointer;color:var(--ink);text-align:left}
-.opt[aria-pressed=true]{border:2px solid var(--p);padding:7px}.opt i{display:block;height:34px;border-radius:6px;border:1px solid rgba(0,0,0,.08)}.opt.f{text-align:center;font-size:.95rem;padding:10px}
+.opt[aria-pressed=true]{border:2px solid var(--p);padding:7px}.opt i{display:block;height:34px;border-radius:6px;border:1px solid rgba(0,0,0,.08)}.opt.f{text-align:center;font-size:.9rem;padding:10px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .up{border:1.5px dashed var(--line);border-radius:10px;padding:8px;display:flex;gap:10px;align-items:center;font-size:.8rem;cursor:pointer;min-width:0}
 .up img{width:40px;height:40px;border-radius:8px;object-fit:contain;background:var(--tint);flex:none}.up img.round{border-radius:50%;object-fit:cover}
 .up .ph{width:40px;height:40px;border-radius:8px;background:var(--tint);display:grid;place-items:center;color:var(--p);font-weight:800;flex:none}
 .up input{display:none}.up b{color:var(--p)}
 .lockbox{background:var(--tint);border-radius:12px;padding:12px;font-size:.875rem;display:grid;gap:8px}
-.main{padding:18px clamp(14px,2.5vw,26px);display:grid;grid-template-rows:auto 1fr;gap:14px;min-width:0}
+.main{padding:16px clamp(14px,2.5vw,26px);display:flex;flex-direction:column;gap:12px;min-width:0;position:sticky;top:0;height:100vh;align-self:start}
+#pv{flex:1;min-height:0;display:flex;flex-direction:column}
 .seg{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:11px;padding:4px;font-size:.875rem;font-weight:650;flex-wrap:wrap}
 .seg button{font:inherit;font-weight:650;border:0;background:transparent;padding:7px 13px;border-radius:8px;cursor:pointer;color:var(--ink)}.seg button[aria-pressed=true]{background:var(--p);color:#fff}
 .live{font-size:.82rem;font-weight:700;color:var(--p)}.live::before{content:"● "}
-.frame{background:#fff;border-radius:18px;border:1px solid var(--line);box-shadow:0 14px 40px rgba(16,35,28,.1);overflow:auto;max-height:calc(100vh - 170px);min-height:420px}
-.frame.phone{width:390px;max-width:100%;justify-self:center;border-radius:34px;border:8px solid #10231c}
-.frame.pad{padding:20px;display:grid;place-items:center}.frame canvas{max-width:100%;height:auto;max-height:calc(100vh - 230px);width:auto;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15)}
-.frame iframe{width:100%;height:calc(100vh - 180px);border:0;display:block}
+.frame{background:#fff;border-radius:18px;border:1px solid var(--line);box-shadow:0 14px 40px rgba(16,35,28,.1);overflow:auto;flex:1;min-height:0}
+.phonewrap{flex:1;min-height:0;display:flex;justify-content:center;align-items:flex-start}
+.frame.phone{flex:none;width:375px;max-width:100%;height:min(100%,760px);border-radius:44px;border:10px solid #10231c;box-shadow:0 24px 60px rgba(16,35,28,.25);scrollbar-width:none}
+.frame.phone::-webkit-scrollbar{display:none}
+.fonts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.frame.pad{padding:20px;display:grid;place-items:center}.frame canvas{max-width:100%;height:auto;max-height:100%;width:auto;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+.frame iframe{width:100%;height:100%;border:0;display:block}
 .note{background:var(--tint);border-radius:12px;padding:12px 14px;font-size:.9rem}
-@media (max-width:900px){.app{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--line)}.frame{max-height:none}}
+@media (max-width:900px){.app{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--line)}.main{position:static;height:auto}.frame{flex:none;height:80vh}.phonewrap{height:80vh}}
+.acts{display:grid}.act{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.act:first-child{border-top:0}
+.act b{display:block;font-size:.92rem}.act span{font-size:.8rem;color:var(--mut)}.act .btn{flex:none;min-width:112px}.act.off b,.act.off span{opacity:.55}

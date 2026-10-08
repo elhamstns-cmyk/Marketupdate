@@ -1,55 +1,88 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Market Report</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;700&family=Nunito:wght@400;600;700;800&display=swap">
 <link rel="stylesheet" href="/css/report.css">
 <style>
-@page{size:letter;margin:12mm}
-body{margin:0;background:#fff}
-.sheet{max-width:780px;margin:0 auto;padding:10px 20px 24px;display:flex;flex-direction:column;gap:12px;font-size:12.5px;line-height:1.4;background:#fff!important;--bg:#fff!important;--ink:#10201a!important}
-.sheet h1{font-size:2.2rem}.sheet h2{font-size:1.2rem}
-.sheet .av{width:70px;height:70px}.sheet .who .nm{font-size:1.3rem}
-.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.col{border:1px solid #d9e0dc;border-top:3px solid var(--pa);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:3px;break-inside:avoid}
-.col .big{font-size:1.8rem}
-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-th,td{text-align:right;padding:2px 6px;border-bottom:1px solid #d9e0dc}th:first-child,td:first-child{text-align:left}
-th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#5a6b64}
-.hl{background:#eef3f0;font-weight:700}
-.foot{display:flex;justify-content:space-between;gap:16px;align-items:center;border-top:3px solid var(--pa);padding-top:10px}
-.sheet footer{border:0;padding:0;font-size:.68rem}
-.bar2{max-width:780px;margin:14px auto;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#ecf7f2;padding:10px 16px;border-radius:12px;font:500 15px Inter,system-ui,sans-serif}
+@page{size:letter;margin:0}
+body{margin:0;background:#e9eeec}
+.bar2{max-width:816px;margin:14px auto;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fff;padding:10px 16px;border-radius:12px;font:500 15px Inter,system-ui,sans-serif}
 .bar2 button{font:inherit;font-weight:700;background:#0f6b4f;color:#fff;border:0;border-radius:10px;padding:10px 16px;cursor:pointer}
-@media print{.noprint{display:none!important}.sheet{zoom:.82;padding:0}}
+.pg{width:816px;height:1056px;margin:0 auto 18px;padding:54px 58px 40px;display:flex;flex-direction:column;gap:22px;box-shadow:0 10px 40px rgba(0,0,0,.12);overflow:hidden;position:relative;break-after:page;font-size:14px;line-height:1.5}
+.pg:last-of-type{break-after:auto}
+.pg h1{font-size:30px!important;line-height:1.1}.pg h2{font-size:18px!important}
+.hdr{display:flex;justify-content:space-between;align-items:center;gap:20px;padding-bottom:18px;border-bottom:2px solid var(--ac)}
+.hdr .who .av{width:74px;height:74px}.hdr .who .nm{font-size:22px}
+.hdr .brandlogo{max-height:56px;max-width:200px}.hdr .lgtxt{font-size:13px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.cd{background:var(--tn);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.cd .pz{font-family:var(--hf);font-weight:700;font-size:30px;letter-spacing:-.02em;line-height:1}
+.cd .mk{font-weight:700;margin-top:6px}
+.g{position:relative;height:9px;border-radius:6px;background:linear-gradient(90deg,#9cc7b0 30%,#ead9a6 30% 50%,#e3a184 50%);margin:4px 0 2px}
+.g i{position:absolute;top:-4px;width:4px;height:17px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--tn)}
+.kv{display:flex;justify-content:space-between;font-size:12.5px;border-top:1px solid var(--ln);padding-top:5px}
+.reads{display:grid;gap:10px}.reads p{padding-left:14px;border-left:3px solid var(--ac)}
+.tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:12.5px}
+.tbl th{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);text-align:right;padding:6px 6px;border-bottom:1px solid var(--ln)}
+.tbl th:first-child,.tbl td:first-child{text-align:left}.tbl td{padding:4.5px 6px;border-bottom:1px solid var(--ln);text-align:right}
+.tbl .bw{width:26%}.tbl .b{height:8px;border-radius:3px;background:var(--ac)}
+.tbl tr.hl td{background:var(--tn);font-weight:700}
+.cta{margin-top:auto;background:var(--ac);color:var(--bt);border-radius:18px;padding:22px 26px;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.cta b{font-family:var(--hf);font-size:22px;line-height:1.15;display:block}.cta .ct{text-align:right;font-weight:700;white-space:nowrap}
+.src{font-size:10px;color:var(--mut)}.pn{position:absolute;right:58px;bottom:18px;font-size:10px;color:var(--mut)}
+.cover{padding:58px 58px 40px;gap:0}
+.cv-brand{display:flex;justify-content:space-between;align-items:center;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:11.5px;color:var(--act)}
+.cv-brand img{max-height:52px;max-width:200px}
+.cv-title{margin-top:120px;padding-left:22px;border-left:4px solid var(--ac);max-width:470px}
+.cv-title h1{font-size:34px!important;line-height:1.12;letter-spacing:-.02em}
+.cv-title .lede2{font-size:14.5px;color:var(--mut);margin-top:14px;line-height:1.6}
+.cv-nums{display:grid;grid-template-columns:repeat(3,1fr);margin-top:56px;background:var(--tn);border-radius:18px;padding:22px 8px}
+.cv-nums div{padding:0 20px}.cv-nums div+div{border-left:1px solid var(--ln)}
+.cv-nums .l{display:block;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.cv-nums b{display:block;font-family:var(--hf);font-size:25px;letter-spacing:-.02em;line-height:1.35}
+.cv-who{display:flex;gap:22px;align-items:center;margin-top:52px}.cv-who img{width:104px;height:104px;border-radius:50%;object-fit:cover;border:3px solid var(--ac);flex:none}
+.cv-who .n{font-family:var(--hf);font-weight:700;font-size:23px;line-height:1.1}.cv-who .r{color:var(--mut);font-size:13.5px;margin-top:4px}
+.cv-who .c{margin-top:10px;font-weight:600;font-size:13.5px;display:flex;gap:6px 18px;flex-wrap:wrap}
+.toc{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:auto;margin-bottom:18px}.toc div{border-top:2px solid var(--ac);padding-top:10px;font-size:13px}.toc b{display:block;font-size:14px}
+@media print{body{background:#fff}.noprint{display:none!important}.pg{margin:0;box-shadow:none}}
+@media screen and (max-width:860px){.pg{zoom:.45}}
 </style></head><body>
 <div class="bar2 noprint"><span>Choose <strong>Save as PDF</strong> in the print window.</span><button onclick="print()">Save as PDF / Print</button></div>
-<div id="root" class="sheet rpt">Loading…</div>
+<div id="root"><p style="text-align:center;font-family:system-ui;padding:40px">Loading…</p></div>
 <script type="module">
-import { TYPES, T1, money, get, market, chg, regionSummary, readout, whoBlock, sourceLine, esc, areasOf, themeVars, palette, lum, SAMPLES } from '/js/report.js';
+import { TYPES, T1, money, get, market, chg, regionSummary, readout, whoBlock, sourceLine, esc, areasOf, themeVars, askCopy, first, SAMPLES, loadFonts } from '/js/report.js';
 const s = location.pathname.split('/')[2], q = new URLSearchParams(location.search);
 const r = await fetch('/api/report?slug=' + encodeURIComponent(s)), j = await r.json(), root = document.getElementById('root');
 if (!r.ok) root.textContent = j.error; else {
   const D = j.report; let A = j.agent; if (j.sample) A = SAMPLES[q.get('s')] || SAMPLES.sarah;
-  // Printed on white paper: keep the agent's fonts and accent, but always dark text on white.
-  const P = palette({ ...A.theme, bg: '#ffffff' }), pa = lum(A.theme?.ac || '') > 0.8 ? '#10201a' : (A.theme?.ac || '#0f6b4f');
-  root.style.cssText = themeVars({ ...A.theme, bg: '#ffffff' }) + `;--pa:${pa}`;
-  const area = areasOf(D).includes(q.get('area')) ? q.get('area') : 'Greater Vancouver';
+  loadFonts([A.theme?.font || 'modern']);
+  const area = areasOf(D).includes(q.get('area')) ? q.get('area') : 'Greater Vancouver', ask = askCopy(A), vars = themeVars(A.theme).replaceAll('"', "'");
   document.title = `${area} Market Report ${D.month}`;
-  const col = (t) => { const o = get(D, area, t), mk = market(o.ratio);
-    return `<div class="col"><span class="eyebrow">${T1[t]}</span><div class="big">${o.price ? money(o.price) : 'No benchmark'}</div><div>${o.price ? chg(o.yoy, 'vs. last year') : ''}</div>
-      <div style="margin-top:6px"><strong>${mk || ''}</strong>${o.ratio != null ? ` <span class="muted small">${o.ratio.toFixed(1)}% sold</span>` : ''}</div>
-      <div class="small">Sold: <strong>${o.sales.toLocaleString()}</strong>${o.salesLy != null ? ` <span class="muted">(${o.salesLy.toLocaleString()} last year)</span>` : ''}</div>
-      <div class="small">For sale: <strong>${o.active.toLocaleString()}</strong>${o.activeLy != null ? ` <span class="muted">(${o.activeLy.toLocaleString()} last year)</span>` : ''}</div>
-      ${o.dom != null ? `<div class="small">Average days to sell: <strong>${o.dom}</strong> <span class="muted">(${o.domLy} last year)</span></div>` : ''}</div>`; };
-  const names = Object.keys(D.areas || {}).sort();
-  const cell = (a, t) => { const v = D.areas[a][t]; return `<td>${v.price ? money(v.price) : 'n/a'}</td><td>${v.yoy == null ? '' : chg(v.yoy)}</td>`; };
-  root.innerHTML = `<div class="mast">${whoBlock(A)}</div>
-    <div><p class="eyebrow">${esc(D.month)}</p><h1>${esc(area)} Market Report</h1></div>
-    <p>${area === 'Greater Vancouver' ? regionSummary(D) : readout(D, area, 'detached') || regionSummary(D)}</p>
-    <div class="cols">${TYPES.map(col).join('')}</div>
-    ${names.length ? `<h2>Benchmark prices by area</h2><table><thead><tr><th>Area</th><th>Detached</th><th>1 yr</th><th>Townhome</th><th>1 yr</th><th>Condo</th><th>1 yr</th></tr></thead>
-      <tbody>${names.map((a) => `<tr${a === area ? ' class="hl"' : ''}><td>${a}</td>${TYPES.map((t) => cell(a, t)).join('')}</tr>`).join('')}</tbody></table>` : ''}
-    <div class="foot"><div><strong style="font-family:var(--hf);font-size:1.25rem">${esc(A.name || '')}</strong><br><span class="muted">${esc(A.brokerage || '')}</span></div>
-      <div style="text-align:right">${[A.phone, A.contact_email, A.website].filter(Boolean).map(esc).join('<br>')}</div></div>
-    <footer>${esc(sourceLine(D))}</footer>`;
+  const logo = A.logo ? `<img class="brandlogo" src="${esc(A.logo)}" alt="">` : A.brokerage ? `<div class="lgtxt">${A.mark ? `<img src="${esc(A.mark)}" alt="">` : ''}<span>${esc(A.brokerage)}</span></div>` : '';
+  const hdr = `<div class="hdr">${whoBlock({ ...A, logo: '', brokerage: A.logo ? A.brokerage : '', mark: '' }).replace(/^<div class="lgtxt">.*?<\/div>/, '')}${logo}</div>`;
+  const card = (t) => { const o = get(D, area, t), mk = market(o.ratio);
+    return `<div class="cd"><span class="eyebrow">${T1[t]}</span><div class="pz">${o.price ? money(o.price) : 'No benchmark'}</div><div>${o.price ? chg(o.yoy, 'vs. last year') : ''}</div>
+      ${mk ? `<div class="mk">${mk}</div><div class="g"><i style="left:calc(${Math.min(o.ratio, 40) / 40 * 100}% - 2px)"></i></div><div class="small muted">${o.ratio.toFixed(1)}% of listings sold</div>` : ''}
+      <div class="kv"><span>Homes sold</span><b>${o.sales.toLocaleString()}</b></div><div class="kv"><span>Homes for sale</span><b>${o.active.toLocaleString()}</b></div>${o.dom != null ? `<div class="kv"><span>Avg. days to sell</span><b>${o.dom}</b></div>` : ''}</div>`; };
+  const cta = `<div class="cta"><div><b>${ask.h}</b><span>${A.role === 'broker' ? 'Ask me about your pre-approval, renewal or refinance.' : 'Ask me for recent sales and price ranges on your street or in your building.'}</span></div><div class="ct">${[A.phone, A.contact_email, (A.website || '').replace(/^https?:\/\//, '')].filter(Boolean).map(esc).join('<br>')}</div></div>`;
+  const names = Object.keys(D.areas || {}).sort((a, b) => D.areas[b].detached.price - D.areas[a].detached.price), mx = names.length ? D.areas[names[0]].detached.price : 1;
+  const cell = (v) => `<td>${v.price ? money(v.price) : 'n/a'}</td><td>${v.yoy == null ? '' : chg(v.yoy)}</td>`;
+  const p1 = `<div class="pg rpt" style="${vars}">${hdr}
+    <div><p class="eyebrow">${esc(D.month)} · Market Report</p><h1>${esc(area)}</h1></div>
+    <p style="font-size:15.5px">${area === 'Greater Vancouver' ? regionSummary(D) : regionSummary(D).replace('across the region', 'across Greater Vancouver')}</p>
+    <div><h2 style="margin-bottom:10px">${esc(area)} at a glance</h2><div class="cards">${TYPES.map(card).join('')}</div></div>
+    <div><h2 style="margin-bottom:10px">What this means</h2><div class="reads">${TYPES.map((t) => readout(D, area, t)).filter(Boolean).map((t) => `<p>${esc(t)}</p>`).join('')}</div></div>
+    ${cta}<p class="src">${esc(sourceLine(D))}</p><span class="pn">${names.length ? '1 / 2' : ''}</span></div>`;
+  const p2 = names.length ? `<div class="pg rpt" style="${vars}">${hdr}
+    <div><p class="eyebrow">${esc(D.month)}</p><h2>How the areas compare</h2><p class="muted" style="margin-top:4px">Benchmark price of a typical home in each area, with the change from a year ago.</p></div>
+    <table class="tbl"><thead><tr><th>Area</th><th class="bw"></th><th>Detached</th><th>1 yr</th><th>Townhome</th><th>1 yr</th><th>Condo</th><th>1 yr</th></tr></thead>
+      <tbody>${names.map((a) => `<tr${a === area ? ' class="hl"' : ''}><td>${a}</td><td><div class="b" style="width:${(D.areas[a].detached.price / mx * 100).toFixed(0)}%"></div></td>${TYPES.map((t) => cell(D.areas[a][t])).join('')}</tr>`).join('')}</tbody></table>
+    ${cta}<p class="src">${esc(sourceLine(D))}</p><span class="pn">2 / 2</span></div>` : '';
+  const M = get(D, area, 'detached'), total = names.length ? 3 : 2;
+  const p0 = `<div class="pg rpt cover" style="${vars}"><div class="cv-brand">${A.logo ? `<img src="${esc(A.logo)}" alt="">` : `<span>${esc(A.brokerage || '')}</span>`}<span>${esc(D.month)}</span></div>
+      <div class="cv-title"><p class="eyebrow">Market Report</p><h1 style="margin-top:8px">${esc(area)}</h1><p class="lede2">${area === 'Greater Vancouver' ? regionSummary(D) : esc(readout(D, area, 'detached') || regionSummary(D))}</p></div>
+      <div class="cv-nums">${TYPES.map((t) => { const o = get(D, area, t); return `<div><span class="l">${T1[t]} benchmark</span><b>${o.price ? money(o.price) : 'n/a'}</b>${o.price && o.yoy != null ? chg(o.yoy, 'vs. last year') : ''}</div>`; }).join('')}</div>
+      <div><p class="eyebrow" style="margin-top:88px">Prepared for you by</p><div class="cv-who" style="margin-top:16px">${A.photo ? `<img src="${esc(A.photo)}" alt="">` : ''}<div><div class="n">${esc(A.name || '')}</div><div class="r">${[A.role === 'broker' ? 'Mortgage broker' : 'REALTOR®', A.brokerage].filter(Boolean).map(esc).join(' · ')}</div><div class="c">${[A.phone, A.contact_email, (A.website || '').replace(/^https?:\/\//, '')].filter(Boolean).map((v) => `<span>${esc(v)}</span>`).join('')}</div></div></div></div>
+      <div class="toc"><div><b>Page 2</b>${esc(area)} at a glance: prices, sales and market balance</div>${names.length ? '<div><b>Page 3</b>How every area compares</div>' : ''}<div><b>Questions?</b>${A.role === 'broker' ? 'Ask what this means for your mortgage' : 'Ask for your own neighbourhood’s numbers'}</div></div>
+      <p class="src">${esc(sourceLine(D))}</p></div>`;
+  root.innerHTML = p0 + p1.replace("${names.length ? '1 / 2' : ''}", '').replace('>1 / 2<', `>2 / ${total}<`).replace('<span class="pn"></span>', `<span class="pn">2 / ${total}</span>`) + p2.replace('>2 / 2<', '>3 / 3<');
 }
 </script></body></html>

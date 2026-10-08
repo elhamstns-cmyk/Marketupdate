@@ -16,7 +16,7 @@ export default async function handler(req, res) {
       if (['realtor', 'broker'].includes(b.role)) patch.role = b.role;
       if (b.theme && typeof b.theme === 'object') patch.theme = { style: String(b.theme.style || 'modern').slice(0, 20),
         ac: HEX.test(b.theme.ac) ? b.theme.ac : '#0f6b4f', bg: HEX.test(b.theme.bg) ? b.theme.bg : '#ffffff',
-        font: ['modern', 'classic', 'friendly'].includes(b.theme.font) ? b.theme.font : 'modern' };
+        font: /^[a-z]{3,20}$/.test(b.theme.font || '') ? b.theme.font : 'modern' };
       if (!p.slug && patch.name) {
         let s = slugify(patch.name);
         const taken = await db(`profiles?slug=eq.${s}&select=id`);
@@ -25,6 +25,7 @@ export default async function handler(req, res) {
       }
       [p] = await db(`profiles?id=eq.${u.id}`, { method: 'PATCH', data: patch });
     }
+    if (p.name && !p.slug) { let sl = slugify(p.name); if ((await db(`profiles?slug=eq.${sl}&select=id`)).length) sl += '-' + Math.random().toString(36).slice(2, 5); [p] = await db(`profiles?id=eq.${u.id}`, { method: 'PATCH', data: { slug: sl } }); }
     const active = isActive(p);
     json(res, 200, { profile: p, active, report: active ? forPlan(await latestReport(), p.plan) : null });
   } catch (err) { console.error(err); json(res, 500, { error: 'Something went wrong. Please try again.' }); }

@@ -1,4 +1,4 @@
-import { esc, areasOf, mountReport, STYLES, FONTS, BASIC_THEME } from './report.js';
+import { esc, areasOf, mountReport, STYLES, FONTS, BASIC_THEME, loadFonts } from './report.js';
 import { reportLink, emailDraft, caption, socialImage, download } from './exports.js';
 
 const $ = (s) => document.querySelector(s), main = $('#main');
@@ -120,9 +120,9 @@ async function saveNow() {
 
 function dashboard() {
   if (!D) { main.innerHTML = `<div class="c">${steps(4)}<h2>Your first report is on its way</h2><p class="lead">We will email you as soon as this month's report is published.</p></div>`; return; }
-  main.onclick = null;
+  main.onclick = null; loadFonts(Object.keys(FONTS));
   main.innerHTML = `<div class="app"><div class="side">
-    ${cfg.demo ? '<p class="note">Preview mode: nothing is saved to a server and no payment is taken.</p>' : ''}${qs.has('welcome') ? '<p class="note ok">You are subscribed. Welcome aboard.</p>' : ''}
+    ${cfg.demo ? '<p class="note">Preview mode: nothing is saved to a server and no payment is taken.</p>' : ''}${qs.has('welcome') ? `<p class="note ok">You are subscribed${P.name ? ', ' + esc(P.name.trim().split(/\s+/)[0]) : ''}. Welcome aboard.</p>` : ''}
     <div class="sec"><div class="hd"><h3>1 · Your details</h3><span class="ok small" id="saved"></span></div>
       <div class="two">${DETAILS.map(([k, l, t, ph]) => `<input type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}" aria-label="${l}">`).join('')}
         <select data-k="role" aria-label="I am a"><option value="realtor"${P.role !== 'broker' ? ' selected' : ''}>I'm a REALTOR®</option><option value="broker"${P.role === 'broker' ? ' selected' : ''}>I'm a mortgage broker</option></select></div>
@@ -154,7 +154,7 @@ function drawLook() {
     <span class="lbl">Start from a style</span><div class="three">${Object.entries(STYLES).map(([k, s]) => `<button type="button" class="opt" data-style="${k}" aria-pressed="${t.style === k}"><i style="background:linear-gradient(135deg,${s.bg} 60%,${s.ac} 60%)"></i>${s.label}</button>`).join('')}</div>
     <span class="lbl">Theme colour</span><div class="sw">${ACCENTS.map((c) => `<button type="button" data-ac="${c}" style="background:${c}" aria-label="Colour ${c}" aria-pressed="${t.ac.toLowerCase() === c}"></button>`).join('')}<label class="pick" title="Any colour"><input type="color" data-pick="ac" value="${t.ac}" aria-label="Choose any theme colour"></label></div>
     <span class="lbl">Background</span><div class="sw">${BGS.map((c) => `<button type="button" data-bg="${c}" style="background:${c}" aria-label="Background ${c}" aria-pressed="${t.bg.toLowerCase() === c}"></button>`).join('')}<label class="pick" title="Any colour"><input type="color" data-pick="bg" value="${t.bg}" aria-label="Choose any background colour"></label></div>
-    <span class="lbl">Font</span><div class="three">${Object.entries(FONTS).map(([k, f]) => `<button type="button" class="opt f" data-font="${k}" style="font-family:${f.hf.replaceAll('"', "'")}" aria-pressed="${t.font === k}">${f.label}</button>`).join('')}</div>`;
+    <span class="lbl">Font</span><div class="fonts">${Object.entries(FONTS).map(([k, f]) => `<button type="button" class="opt f" data-font="${k}" style="font-family:${f.hf.replaceAll('"', "'")}" aria-pressed="${t.font === k}">${f.label}</button>`).join('')}</div>`;
   const set = (patch) => { P.theme = { ...theme(), ...patch }; touch('theme'); drawLook(); preview(); };
   el.onclick = (e) => { const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.style) set({ style: b.dataset.style, ...STYLES[b.dataset.style] }); else if (b.dataset.ac) set({ ac: b.dataset.ac }); else if (b.dataset.bg) set({ bg: b.dataset.bg }); else if (b.dataset.font) set({ font: b.dataset.font }); };
@@ -166,9 +166,9 @@ function drawSend() {
   if (!areas.includes(area)) area = 'Greater Vancouver';
   el.innerHTML = `<h3>3 · Send it</h3>${ok ? '' : '<p class="small muted">Add your name above and your sharing tools unlock.</p>'}
     <span class="lbl">What do you want to send?</span><select id="area" ${pro ? '' : 'disabled'}>${areas.map((a) => `<option${a === area ? ' selected' : ''}>${a}</option>`).join('')}</select>
-    <div class="two"><button class="btn sm" data-do="link" ${ok ? '' : 'disabled'}>Copy my link</button><button class="btn sm ghost" data-do="email" ${ok ? '' : 'disabled'}>Copy client email</button>
-      <button class="btn sm ghost" data-do="pdf" ${ok && pro ? '' : 'disabled'}>Download PDF</button><button class="btn sm ghost" data-do="post" ${ok && pro ? '' : 'disabled'}>Social post</button>
-      <button class="btn sm ghost" data-do="story" ${ok && pro ? '' : 'disabled'}>Social story</button><button class="btn sm ghost" data-do="caption" ${ok && pro ? '' : 'disabled'}>Copy caption</button></div>
+    <div class="acts">${[['link', 'Your report link', 'Text or email it, or put it in your bio.', 'Copy link', 1], ['email', 'Email for your clients', 'A finished message to paste into Gmail or your CRM.', 'Copy email', 1],
+      ['pdf', 'PDF', 'A three-page report to print or attach.', 'Open PDF', pro], ['post', 'Instagram post', 'Square image with your branding.', 'Download', pro], ['story', 'Instagram story', 'Tall image for stories.', 'Download', pro], ['caption', 'Caption', 'Words to paste under your post.', 'Copy caption', pro]]
+      .map(([k, t, d, b, on]) => `<div class="act${on ? '' : ' off'}"><div><b>${t}</b><span>${d}</span></div><button class="btn sm ${k === 'link' ? '' : 'ghost'}" data-do="${k}" ${ok && on ? '' : 'disabled'}>${on ? b : 'Pro'}</button></div>`).join('')}</div>
     ${pro ? '' : '<p class="small muted">Individual cities, PDF and social images are part of Pro. <a href="#" id="up2" style="color:var(--p);font-weight:700">Upgrade</a></p>'}
     ${ok ? `<a class="small" id="open" target="_blank" style="color:var(--p);font-weight:700">Open my live report ↗</a>` : ''}`;
   const link = () => reportLink(location.origin, P, area);
@@ -189,8 +189,9 @@ function drawSend() {
 async function preview() {
   const pv = $('#pv'); if (!pv) return; const A = agent(), pro = isPro();
   const locked = (what) => `<div class="frame pad"><div class="lockbox" style="max-width:360px;text-align:center"><b>${what} are part of Pro</b><span>Upgrade to download them with your branding.</span></div></div>`;
-  if (tab === 'report' || tab === 'phone') { const top = pv.firstElementChild?.scrollTop || 0;
-    pv.innerHTML = `<div class="frame${tab === 'phone' ? ' phone' : ''}"><div id="rp"></div></div>`; mountReport($('#rp'), D, A, { area, embedded: true }); pv.firstElementChild.scrollTop = top; }
+  if (tab === 'report' || tab === 'phone') { const top = pv.querySelector('.frame')?.scrollTop || 0;
+    pv.innerHTML = tab === 'phone' ? '<div class="phonewrap"><div class="frame phone"><div id="rp"></div></div></div>' : '<div class="frame"><div id="rp"></div></div>';
+    mountReport($('#rp'), D, A, { area, embedded: true }); pv.querySelector('.frame').scrollTop = top; }
   else if (tab === 'social') { if (!pro) return void (pv.innerHTML = locked('Social images')); pv.innerHTML = '<div class="frame pad"></div>'; const c = await socialImage(D, A, area, 'post'); if (tab === 'social') pv.firstElementChild.replaceChildren(c); }
   else { if (!pro) return void (pv.innerHTML = locked('PDF downloads')); if (!P.slug) return void (pv.innerHTML = '<div class="frame pad"><p class="muted">Add your name first.</p></div>');
     await saveNow(); pv.innerHTML = `<div class="frame"><iframe title="PDF preview" src="/r/${P.slug}/print?area=${encodeURIComponent(area)}"></iframe></div>`; }
