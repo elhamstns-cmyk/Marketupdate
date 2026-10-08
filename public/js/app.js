@@ -31,15 +31,15 @@ async function api(path, data) {
   if (!r.ok) throw new Error(j.error || 'Something went wrong.');
   return j;
 }
-const STEPS = ['Email', 'Confirm', 'Plan', 'Payment', 'Your report'];
+const STEPS = ['Email', 'Verify', 'Plan', 'Payment', 'Your report'];
 const steps = (n) => `<div class="steps">${STEPS.map((s, i) => `${i ? '<i></i>' : ''}<span class="${i < n ? 'dn' : i === n ? 'on' : ''}"><b>${i < n ? '✓' : i + 1}</b>${s}</span>`).join('')}</div>`;
 const sendCode = (email) => fetch(`${SB}/auth/v1/otp?redirect_to=${encodeURIComponent(location.origin + '/app')}`, { method: 'POST', headers: H, body: JSON.stringify({ email, create_user: true }) });
 
 function showLogin() {
   main.innerHTML = `<div class="c">${steps(0)}<form class="box" id="f1"><h3 style="font-size:1.6rem">Log in or sign up</h3>
-    <p class="muted">Enter your email and we will send you a sign-in code. No password needed.</p>
+    <p class="muted">Enter your email and we will send you a link to verify it. No password needed.</p>
     <div class="field"><label for="em">Email</label><input type="email" id="em" required autocomplete="email" placeholder="you@yourbrokerage.com"></div>
-    <button class="btn wide">Email me a code</button><p class="err" id="lerr" role="status"></p></form></div>`;
+    <button class="btn wide">Verify your email</button><p class="err" id="lerr" role="status"></p></form></div>`;
   const go = async (email) => { $('#lerr').textContent = ''; const r = await sendCode(email);
     if (r.ok) showConfirm(email); else $('#lerr').textContent = 'We could not send the email. Please check the address and try again in a minute.'; };
   $('#f1').onsubmit = (e) => { e.preventDefault(); go($('#em').value.trim()); };
@@ -47,15 +47,13 @@ function showLogin() {
 }
 function showConfirm(email) {
   main.innerHTML = `<div class="c">${steps(1)}<form class="box" id="f2"><h3 style="font-size:1.6rem">Check your email</h3>
-    <p class="muted">We sent a code to <b style="color:var(--ink)">${esc(email)}</b>. Enter it below, or click the link in the email.</p>
-    <input class="codein" type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" aria-label="Code from the email" placeholder="······">
-    <button class="btn wide">Continue</button><p class="err" id="lerr" role="status"></p>
-    <p class="small muted center">Didn't get it? Check spam, or <a href="#" id="again" style="color:var(--p);font-weight:700">send a new code</a>.</p></form></div>`;
-  $('#code').focus();
+    <p class="muted">We sent a link to <b style="color:var(--ink)">${esc(email)}</b>. Click it to verify your email and continue. You can close this tab.</p>
+    <div id="codebox" hidden style="display:grid;gap:12px"><input class="codein" type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" aria-label="Code from the email" placeholder="······"><button class="btn wide">Continue</button></div><p class="err" id="lerr" role="status"></p>
+    <p class="small muted center">Didn't get it? Check spam, or <a href="#" id="again" style="color:var(--p);font-weight:700">send it again</a>.</p></form></div>`;
   $('#f2').onsubmit = async (e) => { e.preventDefault();
     const r = await fetch(`${SB}/auth/v1/verify`, { method: 'POST', headers: H, body: JSON.stringify({ type: 'email', email, token: $('#code').value.replace(/\D/g, '') }) });
     if (r.ok) { keep(await r.json()); start(); } else $('#lerr').textContent = 'That code did not work. Please check it or request a new one.'; };
-  $('#again').onclick = async (e) => { e.preventDefault(); const r = await sendCode(email); $('#lerr').className = r.ok ? 'ok' : 'err'; $('#lerr').textContent = r.ok ? 'New code sent.' : 'Please wait a minute before requesting another code.'; };
+  $('#again').onclick = async (e) => { e.preventDefault(); const r = await sendCode(email); $('#lerr').className = r.ok ? 'ok' : 'err'; $('#lerr').textContent = r.ok ? 'Sent again. Check your inbox.' : 'Please wait a minute before asking again.'; };
 }
 
 /* ---------- plan ---------- */

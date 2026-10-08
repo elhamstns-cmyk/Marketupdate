@@ -75,3 +75,4 @@ input[type=text],input[type=email],input[type=tel],input[type=password],select,t
 @media (max-width:900px){.app{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--line)}.main{position:static;height:auto}.frame{flex:none;height:80vh}.phonewrap{height:80vh}}
 .acts{display:grid}.act{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.act:first-child{border-top:0}
 .act b{display:block;font-size:.92rem}.act span{font-size:.8rem;color:var(--mut)}.act .btn{flex:none;min-width:112px}.act.off b,.act.off span{opacity:.55}
+#codebox[hidden]{display:none!important}
