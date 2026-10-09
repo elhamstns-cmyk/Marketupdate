@@ -1,3 +1,4 @@
+import { priceSeries, salesSeries, trendFacts, lineChart, barChart } from './charts.js';
 // The interactive market report. mountReport(root, D, A) draws it with the agent's branding (A) and theme (A.theme).
 export const TN = { detached: 'detached homes', townhome: 'townhomes', condo: 'condos' };
 export const T1 = { detached: 'Detached', townhome: 'Townhome', condo: 'Condo' };
@@ -12,12 +13,13 @@ export const roleLabel = (A) => (A.role === 'broker' ? 'Mortgage broker' : 'REAL
 
 /* ---------- what the agent chooses to show (Pro) ---------- */
 export const SHOW_NUMBERS = [['prices', 'Benchmark prices'], ['changes', 'Price changes'], ['sold', 'Homes sold'], ['forsale', 'Homes for sale'], ['days', 'Days to sell'], ['market', 'Market type']];
-export const SHOW_SECTIONS = [['summary', 'Written summary'], ['compare', 'Area comparison']];
-export const DEFAULT_SHOW = { prices: true, changes: true, sold: true, forsale: true, days: true, market: true, detached: true, townhome: true, condo: true, summary: true, compare: true };
+export const SHOW_SECTIONS = [['summary', 'Written summary'], ['trend', '12-month trend'], ['compare', 'Area comparison']];
+export const DEFAULT_SHOW = { prices: true, changes: true, sold: true, forsale: true, days: true, market: true, detached: true, townhome: true, condo: true, summary: true, trend: true, compare: true };
 export function showOf(A) { const s = { ...DEFAULT_SHOW, ...((A && A.show) || {}) }; if (!TYPES.some((t) => s[t])) TYPES.forEach((t) => (s[t] = true)); return s; }
 export const typesOf = (sh) => TYPES.filter((t) => sh[t]);
 export const monthKey = (m) => { const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], x = /^(\w+) (\d{4})$/.exec(m || ''); return x ? `${x[2]}-${String(M.indexOf(x[1]) + 1).padStart(2, '0')}` : ''; };
-const nounOf = (ts) => (ts.length === 3 ? 'homes' : ts.map((t) => TN[t]).join(' and '));
+const monthName = (k) => { const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return k ? `${M[+k.slice(5) - 1]} ${k.slice(0, 4)}` : ''; };
+export const nounOf = (ts) => (ts.length === 3 ? 'homes' : ts.map((t) => TN[t]).join(' and '));
 
 /* ---------- themes ---------- */
 // label, heading font, body font, Google Fonts families to load
@@ -44,7 +46,10 @@ export const STYLES = {
   classic: { label: 'Classic', ac: '#14233f', bg: '#f7f4ee', font: 'classic' },
   bold: { label: 'Bold', ac: '#d0a94a', bg: '#111312', font: 'modern' },
 };
-export const BASIC_THEME = { style: 'basic', ac: '#1d4f9c', bg: '#ffffff', font: 'modern' };
+export const BASIC_THEME = { style: 'basic', ac: '#1d4f9c', bg: '#ffffff', font: 'modern', cover: 'b' };
+export const COVERS = { b: 'Portrait', a: 'Round photo', c: 'Agent on top' };
+// When some home types are hidden, totals only count the ones shown, so say which.
+export const typesNote = (sh) => { const ts = TYPES.filter((t) => sh[t]); return ts.length < 3 ? `${ts.map((t) => ({ detached: 'Detached homes', townhome: 'townhomes', condo: 'condos' })[t]).join(' and ').replace(/^./, (c) => c.toUpperCase())} only` : ''; };
 const hex = (h) => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null; };
 export const lum = (h) => { const c = hex(h) || [255, 255, 255]; const [r, g, b] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
 const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
@@ -135,6 +140,7 @@ export function mountReport(root, D, A, opts = {}) {
   const anyPrice = sh.prices || sh.changes, stats = [['sold', 'Homes sold'], ['forsale', 'Homes for sale'], ['days', 'Average days to sell']].filter(([k]) => sh[k]);
   const showRank = AREAS.length > 1 && sh.compare && anyPrice;
   const email = A.contact_email || '', phone = A.phone || '', head = city ? start : 'Greater Vancouver';
+  const endKey = monthKey(D.month), showTrend = sh.trend && D.history && (anyPrice || sh.sold);
   const lede = sh.summary ? summary(D, head, sh) + (multi ? ' Choose your city below to see where it stands.' : '') : (multi ? 'Choose your city below to see where it stands.' : '');
   root.classList.add('rpt'); root.style.cssText = themeVars(A.theme);
   root.innerHTML = `<div class="wrap">
@@ -152,6 +158,9 @@ ${anyPrice ? `<section><div class="metro" style="--n:${TS.length}">${TS.map((t) 
       <div class="bands"><span>Buyer's</span><span>Balanced</span><span>Seller's</span></div>
       <p class="small muted">The share of listed homes that sold this month. Under 12% favours buyers, over 20% favours sellers.</p></div>` : ''}
     ${stats.length ? `<div class="stats" data-id="p-stats" style="--n:${stats.length}"></div>` : ''}${sh.summary ? '<p data-id="p-read"></p>' : ''}</div></section>
+${showTrend ? `<section class="trend"><h2>The last 12 months</h2>${sh.changes ? '<div class="tfacts" data-id="tfacts"></div>' : ''}
+  ${anyPrice ? '<div class="tchart"><div class="tch"><b data-id="t1h"></b><span data-id="t1s"></span></div><div class="tcv" data-id="t1"></div></div>' : ''}
+  ${sh.sold ? '<div class="tchart"><div class="tch"><b data-id="t2h"></b><span data-id="t2s"></span></div><div class="tcv" data-id="t2"></div></div>' : ''}</section>` : ''}
 ${showRank ? `<section><h2>How the areas compare</h2><p class="muted small" data-id="rank-sub"></p><div class="rank" data-id="rank"></div></section>` : ''}
 <section class="ask"><div class="askwho">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><div class="nm">${esc(A.name || '')}</div><div class="rl">${[roleLabel(A), A.brokerage].filter(Boolean).map(esc).join(' · ')}</div></div></div><h2>${ask.h}</h2><p>${ask.p}</p>
   <div class="field"><label>${ask.lab}<input type="text" data-id="where" placeholder="${ask.ph}"></label></div>
@@ -187,14 +196,25 @@ ${showRank ? `<section><h2>How the areas compare</h2><p class="muted small" data
       days: [o.dom != null ? o.dom : `Ask ${F}`, o.dom != null ? `${o.domLy} a year ago` : "Not in this month's summary"] };
     put('p-stats', stats.map(([k, l]) => `<div><span class="lab">${l}</span><span class="num">${vals[k][0]}</span><span class="sub">${vals[k][1]}</span></div>`).join(''), true);
     put('p-read', readout(D, area, type, sh));
+    if (showTrend) drawTrend();
     if (showRank) {
       const rows = Object.keys(D.areas).map((a) => ({ a, ...D.areas[a][type] })).filter((r) => r.price > 0).sort((x, y) => (sh.prices ? y.price - x.price : y.yoy - x.yoy));
       const max = sh.prices ? rows[0].price : Math.max(...rows.map((r) => Math.abs(r.yoy))) || 1;
       put('rank-sub', `${T1[type]} ${sh.prices ? 'benchmark price by area' : 'price change by area over the past year'}${sh.prices && sh.changes ? ', with the change from a year ago' : ''}.${multi ? ' Tap an area to see its details.' : ''}`);
-      put('rank', rows.map((r) => `<${multi ? 'button type="button"' : 'div'} class="row${r.a === area ? ' on' : ''}" data-a="${r.a}"><span class="nm">${r.a}</span><span><span class="bar" style="display:block;width:${(((sh.prices ? r.price : Math.abs(r.yoy)) / max) * 100).toFixed(1)}%"></span></span><span class="v">${sh.prices ? money(r.price) : ''}${sh.changes ? (sh.prices ? `<small>${chg(r.yoy)}</small>` : chg(r.yoy)) : ''}</span></${multi ? 'button' : 'div'}>`).join(''), true);
+      const hdr = `<div class="row rh" aria-hidden="true"><span class="nm">Area</span><span></span><span class="v">${sh.prices ? `<span>${T1[type]} price</span>` : ''}${sh.changes ? `<small>1-yr change</small>` : ''}</span></div>`;
+      put('rank', hdr + rows.map((r) => `<${multi ? 'button type="button"' : 'div'} class="row${r.a === area ? ' on' : ''}" data-a="${r.a}"><span class="nm">${r.a}</span><span><span class="bar" style="display:block;width:${(((sh.prices ? r.price : Math.abs(r.yoy)) / max) * 100).toFixed(1)}%"></span></span><span class="v">${sh.prices ? money(r.price) : ''}${sh.changes ? (sh.prices ? `<small>${chg(r.yoy)}</small>` : chg(r.yoy)) : ''}</span></${multi ? 'button' : 'div'}>`).join(''), true);
     }
     msg();
   }
+  function drawTrend() {
+    const { area, type } = S, ps = priceSeries(D.history, area, type, endKey), first = ps[0]?.[0];
+    if ($('t1')) { put('t1h', `${T1[type]} benchmark price`); put('t1s', ps.length ? `${area} · ${monthName(first)} to ${monthName(endKey)}` : `${area} · not enough history yet`); lineChart($('t1'), ps, { label: `${T1[type]} benchmark price in ${area}` }); }
+    if ($('tfacts')) put('tfacts', trendFacts(ps).map(([b, t]) => `<span><b>${b}</b> ${t}</span>`).join(''), true);
+    if ($('t2')) { const ss = salesSeries(D.history, area, [type], endKey);
+      put('t2h', `${T1[type] === 'Detached' ? 'Detached homes' : T1[type] + 's'} sold each month`); put('t2s', ss.rows.length > 1 ? `${ss.group === 'Grand Totals' ? 'Greater Vancouver' : ss.group}${ss.group !== area && ss.group !== 'Grand Totals' ? ' (whole area)' : ''} · ${monthName(ss.rows[0][0])} to ${monthName(endKey)}` : 'Not enough history yet');
+      barChart($('t2'), ss.rows, { label: `${T1[type]} sales in ${ss.group}` }); }
+  }
+  if (showTrend && window.ResizeObserver) { let w = 0, tm; new ResizeObserver(() => { const cw = root.clientWidth; if (Math.abs(cw - w) > 20) { w = cw; clearTimeout(tm); tm = setTimeout(drawTrend, 120); } }).observe(root); }
   function setArea(a, scroll) { S.area = a; render(); if (scroll) $('h-city').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   if ($('area')) $('area').addEventListener('change', (e) => setArea(e.target.value));
   if ($('types')) $('types').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { S.type = b.dataset.t; render(); } });

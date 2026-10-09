@@ -1,5 +1,5 @@
 // Ready-to-send formats: client email, social images.
-import { T1, money, get, market, summary, readout, first, areasOf, slug, palette, roleLabel, showOf, typesOf } from './report.js';
+import { typesNote, T1, money, get, market, summary, readout, first, areasOf, slug, palette, roleLabel, showOf, typesOf } from './report.js';
 
 export const reportLink = (base, A, area, v) => `${base}/r/${A.slug}` + (v ? `?v=${v}` : area && area !== 'Greater Vancouver' ? `#${slug(area)}` : '');
 const sign = (A) => [A.name, A.brokerage, A.contact_email, A.phone].filter(Boolean);
@@ -23,9 +23,10 @@ const loadImg = (src) => new Promise((ok) => { if (!src) return ok(null); const 
 
 // kind: 'post' (1080x1080, Instagram square) or 'story' (1080x1920).
 // A compact header, three headline facts, then a small table of all three home types, then who to call.
+const tiles0 = (sh) => sh.sold || sh.forsale || sh.market;
 export async function socialImage(D, A, area, kind = 'post') {
   await (document.fonts?.ready || Promise.resolve());
-  const P = palette(A.theme), story = kind === 'story', W = 1080, H = story ? 1920 : 1080, M = 72, k = story ? 1.22 : 1;
+  const sh = showOf(A), P = palette(A.theme), story = kind === 'story', W = 1080, H = story ? 1920 : 1080, M = 72, k = story ? 1.22 : 1;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d'), hf = P.hf, bf = P.bf, on = P.bt;
   const [logo, photo] = await Promise.all([loadImg(A.logo), loadImg(A.photo)]);
@@ -38,7 +39,7 @@ export async function socialImage(D, A, area, kind = 'post') {
     return top + size;
   };
   const dn = (v) => `${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%`, col = (v) => (v < 0 ? '#d2553b' : '#2f9e68'), S = (n) => Math.round(n * k);
-  const sh = showOf(A), rows = typesOf(sh).map((t) => ({ t, ...get(D, area, t) }));
+  const rows = typesOf(sh).map((t) => ({ t, ...get(D, area, t) }));
   const sold = rows.reduce((n, r) => n + r.sales, 0), listed = rows.reduce((n, r) => n + r.active, 0);
   const soldLy = rows.every((r) => r.salesLy != null) ? rows.reduce((n, r) => n + r.salesLy, 0) : null, listedLy = rows.every((r) => r.activeLy != null) ? rows.reduce((n, r) => n + r.activeLy, 0) : null;
   const ratio = listed ? (sold / listed) * 100 : null, mk = market(ratio), pc = (a, b) => ((a - b) / b) * 100;
@@ -51,6 +52,7 @@ export async function socialImage(D, A, area, kind = 'post') {
   else if (A.brokerage) line(A.brokerage.toUpperCase(), y + 8, 21, { weight: 700, color: on, track: 2.5, max: 560 });
   line(D.month.toUpperCase(), y + 8, 21, { weight: 700, color: on, align: 'right', X: W - M, track: 2.5 });
   line(`${area} Market Update`, y + S(64), 56, { font: hf, weight: 700, color: on });
+  if (typesNote(sh) && tiles0(sh)) line(typesNote(sh), y + S(64) + S(66), 22, { weight: 600, color: on });
 
   /* what goes in the middle: only what the agent chose to show */
   const tiles = [sh.sold && ['HOMES SOLD', sold.toLocaleString(), soldLy ? `${dn(pc(sold, soldLy))} vs. last year` : 'this month', soldLy ? col(pc(sold, soldLy)) : P.ink],

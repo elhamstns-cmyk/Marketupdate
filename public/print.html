@@ -51,6 +51,22 @@ body{margin:0;background:#e9eeec}
 .cv-who{display:flex;gap:22px;align-items:center;margin-top:16px}.cv-who img{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--ac);flex:none}
 .cv-who .n{font-family:var(--hf);font-weight:700;font-size:23px;line-height:1.1}.cv-who .r{color:var(--mut);font-size:13.5px;margin-top:4px}
 .cv-who .c{margin-top:10px;font-weight:600;font-size:13.5px;display:flex;gap:6px 18px;flex-wrap:wrap}
+.cv-band h1,.cv-band .lede2{max-width:var(--tw,560px)}
+.cvA-who{position:absolute;right:58px;top:104px;width:200px;text-align:center;z-index:1}
+.cvA-who img{width:184px;height:184px;border-radius:50%;object-fit:cover;border:5px solid rgba(255,255,255,.92);box-shadow:0 12px 30px rgba(0,0,0,.18)}
+.cvA-who b{display:block;font-family:var(--hf);font-size:19px;margin-top:12px;line-height:1.2}.cvA-who span{display:block;font-size:12.5px;margin-top:3px}
+.cvB-who{position:absolute;right:58px;top:84px;width:200px;z-index:1}
+.cvB-who img{width:200px;height:236px;border-radius:18px;object-fit:cover;object-position:center 20%;display:block;box-shadow:0 14px 34px rgba(0,0,0,.2)}
+.cvB-who b{display:block;font-family:var(--hf);font-size:18px;margin-top:12px;line-height:1.2}.cvB-who span{display:block;font-size:12.5px;margin-top:2px}
+.cvC-top{display:flex;align-items:center;gap:22px;padding:34px 58px 30px}
+.cvC-top img.ph{width:132px;height:132px;border-radius:50%;object-fit:cover;border:4px solid var(--ac);flex:none}
+.cvC-top .n{font-family:var(--hf);font-weight:700;font-size:28px;line-height:1.1}.cvC-top .r{color:var(--mut);font-size:14px;margin-top:4px}
+.cvC-top .c{margin-top:10px;font-weight:600;font-size:13.5px;display:flex;gap:6px 18px;flex-wrap:wrap}.cvC-top .lg{margin-left:auto;max-height:54px;max-width:170px}
+.cv-contact{margin-top:46px;display:flex;justify-content:space-between;align-items:center;gap:20px;border:1px solid var(--ln);border-radius:16px;padding:18px 22px}
+.cv-contact b{font-family:var(--hf);font-size:18px;display:block}.cv-contact .c{font-weight:600;font-size:13.5px;display:flex;gap:6px 18px;flex-wrap:wrap;justify-content:flex-end}
+.tblock{display:grid;gap:4px}.tblock .tch{display:flex;justify-content:space-between;align-items:center;gap:10px}.tblock .tch>b{font-size:14px}
+.tf{display:flex;gap:6px}.tf span{background:var(--tn);border-radius:999px;padding:3px 10px;font-size:11px;color:var(--mut)}.tf b{color:var(--ink)}
+.tcv svg{display:block;overflow:visible}
 .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:auto;margin-bottom:18px}.toc div{border-top:2px solid var(--ac);padding-top:10px;font-size:13px}.toc b{display:block;font-size:14px}
 @media print{body{background:#fff}.noprint{display:none!important}.pg{margin:0;box-shadow:none}}
 @media screen and (max-width:860px){.pg{zoom:.45}}
@@ -58,7 +74,8 @@ body{margin:0;background:#e9eeec}
 <div class="bar2 noprint"><span>Choose <strong>Save as PDF</strong> in the print window.</span><button onclick="print()">Save as PDF / Print</button></div>
 <div id="root"><p style="text-align:center;font-family:system-ui;padding:40px">Loading…</p></div>
 <script type="module">
-import { T1, money, get, market, chg, summary, readout, whoBlock, sourceLine, esc, areasOf, themeVars, askCopy, SAMPLES, loadFonts, showOf, typesOf } from '/js/report.js';
+import { priceSeries, salesSeries, trendFacts, lineChart, barChart } from '/js/charts.js';
+import { monthKey, typesNote, T1, money, get, market, chg, summary, readout, whoBlock, sourceLine, esc, areasOf, themeVars, askCopy, SAMPLES, loadFonts, showOf, typesOf } from '/js/report.js';
 const s = location.pathname.split('/')[2], q = new URLSearchParams(location.search);
 const r = await fetch('/api/report?slug=' + encodeURIComponent(s) + (q.get('v') ? '&v=' + encodeURIComponent(q.get('v')) : '')), j = await r.json(), root = document.getElementById('root');
 if (!r.ok) root.textContent = j.error; else {
@@ -79,7 +96,8 @@ if (!r.ok) root.textContent = j.error; else {
   const cta = `<div class="cta"><div><b>${ask.h}</b><span>${A.role === 'broker' ? 'Ask me about your pre-approval, renewal or refinance.' : 'Ask me for recent sales and price ranges on your street or in your building.'}</span></div><div class="ct">${contact.join('<br>')}</div></div>`;
   const reads = sh.summary ? TS.map((t) => readout(D, area, t, sh)).filter(Boolean) : [];
   const names = Object.keys(D.areas || {}).sort((a, b) => D.areas[b][TS[0]].price - D.areas[a][TS[0]].price), mx = names.length ? D.areas[names[0]][TS[0]].price : 1;
-  const compare = sh.compare && names.length && anyPrice, total = compare ? 3 : 2, pn = (n) => `<span class="pn">${n} / ${total}</span>`;
+  const endKey = monthKey(D.month), trendOn = sh.trend && D.history && (anyPrice || sh.sold) && priceSeries(D.history, area, TS[0], endKey).length > 2;
+  const compare = sh.compare && names.length && anyPrice, total = 2 + (trendOn ? 1 : 0) + (compare ? 1 : 0), pn = (n) => `<span class="pn">${n} / ${total}</span>`;
 
   /* cover: key numbers in cards over the colour band */
   const facts = anyPrice ? TS.map((t) => { const o = get(D, area, t); return [`${T1[t]} ${sh.prices ? 'benchmark' : 'price change'}`, sh.prices ? (o.price ? money(o.price) : 'n/a') : (o.price ? chg(o.yoy) : 'n/a'), sh.prices && sh.changes && o.price ? chg(o.yoy, 'vs. last year') : '']; })
@@ -89,26 +107,43 @@ if (!r.ok) root.textContent = j.error; else {
   const ly = (k) => (rows.every((o) => o[k] != null) ? tot(k) : null), vs = (a, b) => (b ? `${chg(((a - b) / b) * 100, 'vs. last year')}` : D.month.split(' ')[0]);
   const more = anyPrice ? [sh.sold && ['Homes sold', tot('sales').toLocaleString(), vs(tot('sales'), ly('salesLy'))], sh.forsale && ['Homes for sale', tot('active').toLocaleString(), vs(tot('active'), ly('activeLy'))],
     sh.market && market(ratio) && ['Market', market(ratio), `${ratio.toFixed(1)}% of listings sold`, `<div class="g"><i style="left:calc(${Math.min(ratio, 40) / 40 * 100}% - 2px)"></i></div>`]].filter(Boolean) : [];
-  const p0 = `<div class="pg rpt cover" style="${vars}"><div class="cv-band"${facts.length ? '' : ' style="padding-bottom:56px"'}>
-      <div class="cv-brand">${A.logo ? `<span class="chip"><img src="${esc(A.logo)}" alt=""></span>` : `<span>${esc(A.brokerage || '')}</span>`}<span>${esc(D.month)}</span></div>
-      <p class="cv-kick">Market Report</p><h1>${esc(area)}</h1>${lede ? `<p class="lede2">${esc(lede)}</p>` : ''}</div>
-    ${facts.length ? `<div class="cv-cards" style="--n:${facts.length}">${facts.map(([l, v, sub]) => `<div><span class="l">${l}</span><b>${v}</b>${sub ? `<span class="small">${sub}</span>` : ''}</div>`).join('')}</div>` : ''}
-    <div class="cv-body">${more.length ? `<div class="cv-facts" style="--n:${more.length}">${more.map(([l, v, sub, g]) => `<div><span class="l">${l}</span><b>${v}</b><span class="small">${sub}</span>${g || ''}</div>`).join('')}</div>` : ''}
-      <p class="eyebrow" style="margin-top:46px">Prepared for you by</p><div class="cv-who">${A.photo ? `<img src="${esc(A.photo)}" alt="">` : ''}<div><div class="n">${esc(A.name || '')}</div><div class="r">${[A.role === 'broker' ? 'Mortgage broker' : 'REALTOR®', A.brokerage].filter(Boolean).map(esc).join(' · ')}</div><div class="c">${contact.map((v) => `<span>${v}</span>`).join('')}</div></div></div>
-      <div class="toc"><div><b>Page 2</b>${esc(area)} at a glance, home type by home type</div>${compare ? '<div><b>Page 3</b>How every area compares</div>' : ''}<div><b>Questions?</b>${A.role === 'broker' ? 'Ask what this means for your mortgage' : 'Ask for your own neighbourhood’s numbers'}</div></div>
-      <p class="src">${esc(sourceLine(D))}</p></div></div>`;
+  const cv = A.photo ? (q.get('cv') || A.theme?.cover || 'b') : '', roleTxt = [A.role === 'broker' ? 'Mortgage broker' : 'REALTOR®', A.brokerage].filter(Boolean).map(esc).join(' · ');
+  const fn = esc((A.name || '').split(/\s+/)[0]), cards = facts.length ? `<div class="cv-cards" style="--n:${facts.length}">${facts.map(([l, v, sub]) => `<div><span class="l">${l}</span><b>${v}</b>${sub ? `<span class="small">${sub}</span>` : ''}</div>`).join('')}</div>` : '';
+  const tnote = typesNote(sh), factsRow = more.length ? `<div class="cv-facts" style="--n:${more.length}">${more.map(([l, v, sub, g]) => `<div><span class="l">${l}</span><b>${v}</b><span class="small">${sub}</span>${g || ''}</div>`).join('')}</div>${tnote ? `<p class="small muted" style="margin-top:10px">${tnote}.</p>` : ''}` : '';
+  const toc = `<div class="toc"><div><b>Page 2</b>${esc(area)} at a glance, home type by home type</div>${trendOn ? '<div><b>Page 3</b>The last 12 months, with prices and sales</div>' : ''}${compare ? `<div><b>Page ${trendOn ? 4 : 3}</b>How every area compares</div>` : ''}<div><b>Questions?</b>${A.role === 'broker' ? 'Ask what this means for your mortgage' : 'Ask for your own neighbourhood’s numbers'}</div></div><p class="src">${esc(sourceLine(D))}</p>`;
+  const contactBox = `<div class="cv-contact"><div><span class="eyebrow">Questions about your home?</span><b>Talk to ${fn}</b></div><div class="c">${contact.map((v) => `<span>${v}</span>`).join('')}</div></div>`;
+  const brandRow = `<div class="cv-brand">${A.logo ? `<span class="chip"><img src="${esc(A.logo)}" alt=""></span>` : `<span>${esc(A.brokerage || '')}</span>`}<span>${esc(D.month)}</span></div>`;
+  const title = `<p class="cv-kick">Market Report</p><h1>${esc(area)}</h1>${lede ? `<p class="lede2">${esc(lede)}</p>` : ''}`;
+  const pad = facts.length ? '' : 'padding-bottom:56px;';
+  const p0 = cv === 'a' ? `<div class="pg rpt cover" style="${vars}"><div class="cv-band" style="${pad}--tw:420px">${brandRow}<div class="cvA-who"><img src="${esc(A.photo)}" alt=""><b>${esc(A.name || '')}</b><span>${roleTxt}</span></div>${title}</div>${cards}<div class="cv-body">${factsRow}${contactBox}${toc}</div></div>`
+    : cv === 'b' ? `<div class="pg rpt cover" style="${vars}"><div class="cv-band" style="${pad}--tw:410px">${brandRow}<div class="cvB-who"><img src="${esc(A.photo)}" alt=""><b>${esc(A.name || '')}</b><span>${roleTxt}</span></div>${title}</div>${cards}<div class="cv-body">${factsRow}${contactBox}${toc}</div></div>`
+    : cv === 'c' ? `<div class="pg rpt cover" style="${vars}"><div class="cvC-top"><img class="ph" src="${esc(A.photo)}" alt=""><div><div class="eyebrow">Prepared for you by</div><div class="n" style="margin-top:6px">${esc(A.name || '')}</div><div class="r">${roleTxt}</div><div class="c">${contact.map((v) => `<span>${v}</span>`).join('')}</div></div>${A.logo ? `<img class="lg" src="${esc(A.logo)}" alt="">` : ''}</div>
+      <div class="cv-band" style="${pad}padding-top:40px"><div class="cv-brand"><span>${esc(A.logo ? '' : A.brokerage || '')}</span><span>${esc(D.month)}</span></div><p class="cv-kick" style="margin-top:40px">Market Report</p><h1>${esc(area)}</h1>${lede ? `<p class="lede2">${esc(lede)}</p>` : ''}</div>${cards}<div class="cv-body">${factsRow}${toc}</div></div>`
+    : `<div class="pg rpt cover" style="${vars}"><div class="cv-band"${facts.length ? '' : ' style="padding-bottom:56px"'}>${brandRow}${title}</div>${cards}
+    <div class="cv-body">${factsRow}<p class="eyebrow" style="margin-top:46px">Prepared for you by</p><div class="cv-who"><div><div class="n">${esc(A.name || '')}</div><div class="r">${roleTxt}</div><div class="c">${contact.map((v) => `<span>${v}</span>`).join('')}</div></div></div>${toc}</div></div>`;
   const p1 = `<div class="pg rpt" style="${vars}">${hdr}
     <div><p class="eyebrow">${esc(D.month)} · Market Report</p><h1>${esc(area)}</h1></div>
     ${lede ? `<p style="font-size:15.5px">${esc(lede)}</p>` : ''}
     <div><h2 style="margin-bottom:10px">${esc(area)} at a glance</h2><div class="cards" style="grid-template-columns:repeat(${TS.length},1fr)">${TS.map(card).join('')}</div></div>
     ${reads.length ? `<div><h2 style="margin-bottom:10px">What this means</h2><div class="reads">${reads.map((t) => `<p>${esc(t)}</p>`).join('')}</div></div>` : ''}
     ${cta}<p class="src">${esc(sourceLine(D))}</p>${pn(2)}</div>`;
-  const cols = TS.flatMap((t) => [sh.prices && [T1[t], (v) => (v.price ? money(v.price) : 'n/a')], sh.changes && [sh.prices ? '1 yr' : `${T1[t]} 1 yr`, (v) => (v.yoy == null || !v.price ? '' : chg(v.yoy))]].filter(Boolean).map((c) => [...c, t]));
+  const cols = TS.flatMap((t) => [sh.prices && [`${T1[t]} price`, (v) => (v.price ? money(v.price) : 'n/a')], sh.changes && [sh.prices ? 'Change in 1 yr' : `${T1[t]} change in 1 yr`, (v) => (v.yoy == null || !v.price ? '' : chg(v.yoy))]].filter(Boolean).map((c) => [...c, t]));
   const p2 = compare ? `<div class="pg rpt" style="${vars}">${hdr}
     <div><p class="eyebrow">${esc(D.month)}</p><h2>How the areas compare</h2><p class="muted" style="margin-top:4px">${sh.prices ? 'Benchmark price of a typical home in each area' : 'Change in the benchmark price of a typical home in each area'}${sh.prices && sh.changes ? ', with the change from a year ago' : sh.changes ? ' over the past year' : ''}.</p></div>
     <table class="tbl"><thead><tr><th>Area</th>${sh.prices ? '<th class="bw"></th>' : ''}${cols.map((c) => `<th>${c[0]}</th>`).join('')}</tr></thead>
       <tbody>${names.map((a) => `<tr${a === area ? ' class="hl"' : ''}><td>${a}</td>${sh.prices ? `<td><div class="b" style="width:${(D.areas[a][TS[0]].price / mx * 100).toFixed(0)}%"></div></td>` : ''}${cols.map((c) => `<td>${c[1](D.areas[a][c[2]])}</td>`).join('')}</tr>`).join('')}</tbody></table>
-    ${cta}<p class="src">${esc(sourceLine(D))}</p>${pn(3)}</div>` : '';
-  root.innerHTML = p0 + p1 + p2;
+    ${cta}<p class="src">${esc(sourceLine(D))}</p>${pn(trendOn ? 4 : 3)}</div>` : '';
+  const tnote2 = typesNote(sh), pT = trendOn ? `<div class="pg rpt" style="${vars}">${hdr}
+    <div><p class="eyebrow">${esc(D.month)}</p><h2>The last 12 months in ${esc(area)}</h2><p class="muted" style="margin-top:4px">How the typical home price has moved${sh.sold ? ', and how many homes sold each month' : ''}.</p></div>
+    ${anyPrice ? TS.map((t) => `<div class="tblock"><div class="tch"><b>${T1[t]} benchmark price</b><span class="tf">${sh.changes ? trendFacts(priceSeries(D.history, area, t, endKey)).map(([b, x]) => `<span><b>${b}</b> ${x}</span>`).join('') : ''}</span></div><div class="tcv" data-line="${t}"></div></div>`).join('') : ''}
+    ${sh.sold ? `<div class="tblock"><div class="tch"><b>Homes sold each month</b><span class="small muted" data-sales-sub></span></div><div class="tcv" data-sales></div></div>` : ''}
+    <p class="src">Benchmark prices are MLS® HPI figures from Greater Vancouver REALTORS® monthly reports.${tnote2 ? ' ' + tnote2 + '.' : ''}</p>${pn(3)}</div>` : '';
+  root.innerHTML = p0 + p1 + pT + p2;
+  if (trendOn) {
+    const h = TS.length === 3 ? 140 : TS.length === 2 ? 170 : 210;
+    root.querySelectorAll('[data-line]').forEach((el) => lineChart(el, priceSeries(D.history, area, el.dataset.line, endKey), { interactive: false, width: 700, height: h, label: `${T1[el.dataset.line]} price` }));
+    const sEl = root.querySelector('[data-sales]'); if (sEl) { const ss = salesSeries(D.history, area, TS, endKey); barChart(sEl, ss.rows, { interactive: false, width: 700, height: 130, label: 'Homes sold' });
+      root.querySelector('[data-sales-sub]').textContent = `${ss.group === 'Grand Totals' ? 'Greater Vancouver' : ss.group}${ss.group !== area && ss.group !== 'Grand Totals' ? ' (whole area)' : ''}${TS.length < 3 ? ' · ' + typesNote(sh).replace(/ only$/, '').toLowerCase() : ''}`; }
+  }
 }
 </script></body></html>

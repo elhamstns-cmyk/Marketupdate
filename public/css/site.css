@@ -156,3 +156,10 @@ input[type=text],input[type=email],input[type=tel],input[type=password],select,t
 .pill input:checked+span{border:2px solid var(--p);padding:8px 5px;color:var(--ink)}
 .pill input:checked+span::before{content:"✓";color:var(--p);font-weight:800}
 .pill input:focus-visible+span{outline:2px solid var(--p);outline-offset:2px}
+.tg.dis{cursor:not-allowed}.tg.dis .sw2{opacity:.55}.lbl .hint{text-transform:none;letter-spacing:0;font-weight:600}
+.opt.cvopt{text-align:center}
+.cvp{position:relative;height:52px!important;background:#fff;overflow:hidden}
+.cvp b{position:absolute;left:0;right:0;top:0;height:58%;background:var(--a)}
+.cvp-a em{position:absolute;right:12%;top:14%;width:20px;height:20px;border-radius:50%;background:#e8d9cc;border:2px solid #fff}
+.cvp-b em{position:absolute;right:10%;top:12%;width:17px;height:24px;border-radius:4px;background:#e8d9cc}
+.cvp-c b{top:34%;height:42%}.cvp-c em{position:absolute;left:10%;top:6%;width:13px;height:13px;border-radius:50%;background:#e8d9cc;border:1.5px solid var(--a)}

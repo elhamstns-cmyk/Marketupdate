@@ -144,3 +144,11 @@
 
 .rpt [hidden]{display:none!important}
 .rpt div.row{cursor:default}
+.rpt .row.rh{cursor:default;padding-top:4px;padding-bottom:8px;border-top:0;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);font-weight:700}
+.rpt .row.rh:hover{background:transparent}.rpt .row.rh .nm,.rpt .row.rh .v{font-size:.72rem}.rpt .row.rh .v small{font-size:.72rem}
+.rpt .trend .tfacts{display:flex;gap:8px;flex-wrap:wrap}
+.rpt .trend .tfacts span{background:var(--tn);border-radius:999px;padding:7px 13px;font-size:.84rem;color:var(--mut)}.rpt .trend .tfacts b{color:var(--ink)}
+.rpt .tchart{display:grid;gap:6px}.rpt .tch{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.rpt .tch b{font-size:.95rem}.rpt .tch span{font-size:.82rem;color:var(--mut)}
+.rpt .tcv{position:relative}.rpt .tcv svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
+.rpt .ctip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;padding:6px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-118%);opacity:0;transition:opacity .12s;z-index:2}

@@ -1,4 +1,4 @@
-import { esc, areasOf, mountReport, STYLES, FONTS, BASIC_THEME, loadFonts, SHOW_NUMBERS, SHOW_SECTIONS, DEFAULT_SHOW, TYPES, T1, showOf, monthKey } from './report.js';
+import { esc, areasOf, mountReport, STYLES, FONTS, BASIC_THEME, loadFonts, SHOW_NUMBERS, SHOW_SECTIONS, DEFAULT_SHOW, TYPES, T1, showOf, monthKey, COVERS } from './report.js';
 import { reportLink, emailDraft, caption, socialImage, download } from './exports.js';
 
 const $ = (s) => document.querySelector(s), main = $('#main');
@@ -253,10 +253,11 @@ function drawLook() {
     <span class="lbl">Start from a style</span><div class="three">${Object.entries(STYLES).map(([k, s]) => `<button type="button" class="opt" data-style="${k}" aria-pressed="${t.style === k}"><i style="background:linear-gradient(135deg,${s.bg} 60%,${s.ac} 60%)"></i>${s.label}</button>`).join('')}</div>
     <span class="lbl">Theme colour</span><div class="sw">${ACCENTS.map((c) => `<button type="button" data-ac="${c}" style="background:${c}" aria-label="Colour ${c}" aria-pressed="${t.ac.toLowerCase() === c}"></button>`).join('')}<label class="pick" title="Any colour"><input type="color" data-pick="ac" value="${t.ac}" aria-label="Choose any theme colour"></label></div>
     <span class="lbl">Background</span><div class="sw">${BGS.map((c) => `<button type="button" data-bg="${c}" style="background:${c}" aria-label="Background ${c}" aria-pressed="${t.bg.toLowerCase() === c}"></button>`).join('')}<label class="pick" title="Any colour"><input type="color" data-pick="bg" value="${t.bg}" aria-label="Choose any background colour"></label></div>
-    <span class="lbl">Font</span><div class="fonts">${Object.entries(FONTS).map(([k, f]) => `<button type="button" class="opt f" data-font="${k}" style="font-family:${f.hf.replaceAll('"', "'")}" aria-pressed="${t.font === k}">${f.label}</button>`).join('')}</div>`;
+    <span class="lbl">Font</span><div class="fonts">${Object.entries(FONTS).map(([k, f]) => `<button type="button" class="opt f" data-font="${k}" style="font-family:${f.hf.replaceAll('"', "'")}" aria-pressed="${t.font === k}">${f.label}</button>`).join('')}</div>
+    <span class="lbl">PDF cover</span><div class="three">${Object.entries(COVERS).map(([k, l]) => `<button type="button" class="opt cvopt" data-cover="${k}" aria-pressed="${(t.cover || 'b') === k}"><i class="cvp cvp-${k}" style="--a:${t.ac}"><b></b><em></em></i>${l}</button>`).join('')}</div>`;
   const set = (patch) => { P.theme = { ...theme(), ...patch }; touch('theme'); drawLook(); preview(); };
   el.onclick = (e) => { const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.style) set({ style: b.dataset.style, ...STYLES[b.dataset.style] }); else if (b.dataset.ac) set({ ac: b.dataset.ac }); else if (b.dataset.bg) set({ bg: b.dataset.bg }); else if (b.dataset.font) set({ font: b.dataset.font }); };
+    if (b.dataset.style) set({ style: b.dataset.style, ...STYLES[b.dataset.style] }); else if (b.dataset.ac) set({ ac: b.dataset.ac }); else if (b.dataset.bg) set({ bg: b.dataset.bg }); else if (b.dataset.font) set({ font: b.dataset.font }); else if (b.dataset.cover) { set({ cover: b.dataset.cover }); tab = 'pdf'; $('#tabs').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x.dataset.tab === 'pdf')); preview(); } };
   el.oninput = (e) => { const k = e.target.dataset.pick; if (!k) return; P.theme = { ...theme(), [k]: e.target.value }; touch('theme'); later(); };
 }
 
@@ -266,14 +267,19 @@ function drawShow() {
   const el = $('#showsec');
   if (!isPro()) { el.innerHTML = `<h3>3 · What to show</h3><div class="lockbox"><span>With Pro you choose exactly what appears: hide price changes, show only condos, leave out the area comparison, and more.</span><button class="btn sm" id="up3">Upgrade to Pro</button></div>`; $('#up3').onclick = portal; return; }
   const sh = showOf(P), all = Object.keys(DEFAULT_SHOW).every((k) => sh[k]);
-  const tg = (k, l) => `<label class="tg"><input type="checkbox" data-sh="${k}"${sh[k] ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span><span>${l}</span></label>`;
+  const nums = SHOW_NUMBERS.filter(([k]) => sh[k]).length, noPrice = !sh.prices && !sh.changes;
+  // Locked: the last two numbers can't be turned off, and the comparison needs prices or price changes.
+  const lock = (k) => (SHOW_NUMBERS.some(([n]) => n === k) && sh[k] && nums <= 2) || (k === 'compare' && noPrice);
+  const tg = (k, l) => `<label class="tg${lock(k) ? ' dis' : ''}"${lock(k) ? ` title="${k === 'compare' ? 'Needs prices or price changes' : 'Keep at least two numbers'}"` : ''}><input type="checkbox" data-sh="${k}"${sh[k] && !(k === 'compare' && noPrice) ? ' checked' : ''}${lock(k) ? ' disabled' : ''}><span class="sw2" aria-hidden="true"></span><span>${l}</span></label>`;
   el.innerHTML = `<div class="hd"><h3>3 · What to show</h3>${all ? '<span class="small muted">Showing everything</span>' : '<button type="button" class="linkbtn" id="showall">Show everything</button>'}</div>
     <p class="small muted" style="margin-top:-4px">Applies to your report, PDF, images and email.</p>
-    <span class="lbl">Numbers</span><div class="tgs">${SHOW_NUMBERS.map(([k, l]) => tg(k, l)).join('')}</div>
+    <span class="lbl">Numbers <span class="hint">· keep at least two</span></span><div class="tgs">${SHOW_NUMBERS.map(([k, l]) => tg(k, l)).join('')}</div>
     <span class="lbl">Home types</span><div class="pills">${TYPES.map((t) => `<label class="pill"><input type="checkbox" data-sh="${t}"${sh[t] ? ' checked' : ''}><span>${{ detached: 'Detached', townhome: 'Townhomes', condo: 'Condos' }[t]}</span></label>`).join('')}</div>
-    <span class="lbl">Sections</span><div class="tgs">${SHOW_SECTIONS.map(([k, l]) => tg(k, l)).join('')}</div>`;
+    <span class="lbl">Sections</span><div class="tgs">${SHOW_SECTIONS.map(([k, l]) => tg(k, l)).join('')}</div>
+    ${noPrice ? '<p class="small muted">Area comparison needs prices or price changes, so it is hidden.</p>' : ''}`;
   el.onchange = (e) => { const k = e.target.dataset.sh; if (!k) return; const next = { ...showOf(P), [k]: e.target.checked };
     if (!TYPES.some((t) => next[t])) { e.target.checked = true; return alertMsg('Keep at least one home type.', true); }
+    if (SHOW_NUMBERS.filter(([n]) => next[n]).length < 2) { e.target.checked = true; return alertMsg('Keep at least two numbers so the report makes sense.', true); }
     P.show = next; touch('show'); drawShow(); later(); };
   if ($('#showall')) $('#showall').onclick = () => { P.show = { ...DEFAULT_SHOW }; touch('show'); drawShow(); preview(); };
 }
