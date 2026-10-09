@@ -28,17 +28,27 @@ body{margin:0;background:#e9eeec}
 .cta{margin-top:auto;background:var(--ac);color:var(--bt);border-radius:18px;padding:22px 26px;display:flex;justify-content:space-between;align-items:center;gap:20px}
 .cta b{font-family:var(--hf);font-size:22px;line-height:1.15;display:block}.cta .ct{text-align:right;font-weight:700;white-space:nowrap}
 .src{font-size:10px;color:var(--mut)}.pn{position:absolute;right:58px;bottom:18px;font-size:10px;color:var(--mut)}
-.cover{padding:58px 58px 40px;gap:0}
-.cv-brand{display:flex;justify-content:space-between;align-items:center;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:11.5px;color:var(--act)}
-.cv-brand img{max-height:52px;max-width:200px}
-.cv-title{margin-top:120px;padding-left:22px;border-left:4px solid var(--ac);max-width:470px}
-.cv-title h1{font-size:34px!important;line-height:1.12;letter-spacing:-.02em}
-.cv-title .lede2{font-size:14.5px;color:var(--mut);margin-top:14px;line-height:1.6}
-.cv-nums{display:grid;grid-template-columns:repeat(3,1fr);margin-top:56px;background:var(--tn);border-radius:18px;padding:22px 8px}
-.cv-nums div{padding:0 20px}.cv-nums div+div{border-left:1px solid var(--ln)}
-.cv-nums .l{display:block;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
-.cv-nums b{display:block;font-family:var(--hf);font-size:25px;letter-spacing:-.02em;line-height:1.35}
-.cv-who{display:flex;gap:22px;align-items:center;margin-top:52px}.cv-who img{width:104px;height:104px;border-radius:50%;object-fit:cover;border:3px solid var(--ac);flex:none}
+.cover{padding:0;gap:0}
+.cv-band{background:var(--ac);color:var(--bt);padding:48px 58px 128px;position:relative;overflow:hidden}
+.cv-band *{color:inherit!important}
+.cv-band:before,.cv-band:after{content:"";position:absolute;border-radius:50%;border:2px solid currentColor;opacity:.13}
+.cv-band:before{width:460px;height:460px;right:-150px;top:-170px}.cv-band:after{width:300px;height:300px;right:-70px;top:-90px}
+.cv-brand{display:flex;justify-content:space-between;align-items:center;font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:11.5px;position:relative}
+.cv-brand .chip{background:#fff;border-radius:10px;padding:8px 12px;display:inline-flex}.cv-brand img{max-height:40px;max-width:180px;display:block}
+.cv-band .cv-kick{margin-top:112px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:12px;position:relative}
+.cv-band h1{font-size:46px!important;line-height:1.05;letter-spacing:-.025em;margin-top:10px;position:relative}
+.cv-band .lede2{font-size:14.5px;line-height:1.6;margin-top:16px;max-width:560px;position:relative}
+.cv-cards{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:14px;margin:-74px 58px 0;position:relative}
+.cv-cards>div{background:var(--bg);border-radius:16px;padding:18px 20px;box-shadow:0 14px 34px rgba(0,0,0,.13);display:flex;flex-direction:column;gap:4px}
+.cv-cards .l{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.cv-cards b{font-family:var(--hf);font-size:26px;letter-spacing:-.02em;line-height:1.25}
+.cv-body{padding:0 58px 40px;display:flex;flex-direction:column;flex:1}
+.cv-facts{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:22px;margin-top:44px}
+.cv-facts>div{border-top:2px solid var(--ac);padding-top:12px;display:flex;flex-direction:column;gap:2px}
+.cv-facts .l{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.cv-facts b{font-family:var(--hf);font-size:24px;letter-spacing:-.02em;line-height:1.25}
+.cv-facts .g{margin-top:8px}
+.cv-who{display:flex;gap:22px;align-items:center;margin-top:16px}.cv-who img{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--ac);flex:none}
 .cv-who .n{font-family:var(--hf);font-weight:700;font-size:23px;line-height:1.1}.cv-who .r{color:var(--mut);font-size:13.5px;margin-top:4px}
 .cv-who .c{margin-top:10px;font-weight:600;font-size:13.5px;display:flex;gap:6px 18px;flex-wrap:wrap}
 .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:auto;margin-bottom:18px}.toc div{border-top:2px solid var(--ac);padding-top:10px;font-size:13px}.toc b{display:block;font-size:14px}
@@ -48,41 +58,57 @@ body{margin:0;background:#e9eeec}
 <div class="bar2 noprint"><span>Choose <strong>Save as PDF</strong> in the print window.</span><button onclick="print()">Save as PDF / Print</button></div>
 <div id="root"><p style="text-align:center;font-family:system-ui;padding:40px">Loading…</p></div>
 <script type="module">
-import { TYPES, T1, money, get, market, chg, regionSummary, readout, whoBlock, sourceLine, esc, areasOf, themeVars, askCopy, first, SAMPLES, loadFonts } from '/js/report.js';
+import { T1, money, get, market, chg, summary, readout, whoBlock, sourceLine, esc, areasOf, themeVars, askCopy, SAMPLES, loadFonts, showOf, typesOf } from '/js/report.js';
 const s = location.pathname.split('/')[2], q = new URLSearchParams(location.search);
-const r = await fetch('/api/report?slug=' + encodeURIComponent(s)), j = await r.json(), root = document.getElementById('root');
+const r = await fetch('/api/report?slug=' + encodeURIComponent(s) + (q.get('v') ? '&v=' + encodeURIComponent(q.get('v')) : '')), j = await r.json(), root = document.getElementById('root');
 if (!r.ok) root.textContent = j.error; else {
   const D = j.report; let A = j.agent; if (j.sample) A = SAMPLES[q.get('s')] || SAMPLES.sarah;
+  if (q.get('preview')) try { const o = JSON.parse(q.get('preview')); A = { ...A, theme: o.theme || A.theme, show: o.show || A.show }; } catch {}
   loadFonts([A.theme?.font || 'modern']);
-  const area = areasOf(D).includes(q.get('area')) ? q.get('area') : 'Greater Vancouver', ask = askCopy(A), vars = themeVars(A.theme).replaceAll('"', "'");
+  const want = j.view?.area || q.get('area'), area = areasOf(D).includes(want) ? want : 'Greater Vancouver';
+  const ask = askCopy(A), vars = themeVars(A.theme).replaceAll('"', "'"), sh = showOf(A), TS = typesOf(sh), anyPrice = sh.prices || sh.changes;
   document.title = `${area} Market Report ${D.month}`;
   const logo = A.logo ? `<img class="brandlogo" src="${esc(A.logo)}" alt="">` : A.brokerage ? `<div class="lgtxt">${A.mark ? `<img src="${esc(A.mark)}" alt="">` : ''}<span>${esc(A.brokerage)}</span></div>` : '';
   const hdr = `<div class="hdr">${whoBlock({ ...A, logo: '', brokerage: A.logo ? A.brokerage : '', mark: '' }).replace(/^<div class="lgtxt">.*?<\/div>/, '')}${logo}</div>`;
+  const rows = TS.map((t) => get(D, area, t)), tot = (k) => rows.reduce((n, o) => n + (o[k] || 0), 0), ratio = tot('active') ? (tot('sales') / tot('active')) * 100 : null;
+  const contact = [A.phone, A.contact_email, (A.website || '').replace(/^https?:\/\//, '')].filter(Boolean).map(esc);
   const card = (t) => { const o = get(D, area, t), mk = market(o.ratio);
-    return `<div class="cd"><span class="eyebrow">${T1[t]}</span><div class="pz">${o.price ? money(o.price) : 'No benchmark'}</div><div>${o.price ? chg(o.yoy, 'vs. last year') : ''}</div>
-      ${mk ? `<div class="mk">${mk}</div><div class="g"><i style="left:calc(${Math.min(o.ratio, 40) / 40 * 100}% - 2px)"></i></div><div class="small muted">${o.ratio.toFixed(1)}% of listings sold</div>` : ''}
-      <div class="kv"><span>Homes sold</span><b>${o.sales.toLocaleString()}</b></div><div class="kv"><span>Homes for sale</span><b>${o.active.toLocaleString()}</b></div>${o.dom != null ? `<div class="kv"><span>Avg. days to sell</span><b>${o.dom}</b></div>` : ''}</div>`; };
-  const cta = `<div class="cta"><div><b>${ask.h}</b><span>${A.role === 'broker' ? 'Ask me about your pre-approval, renewal or refinance.' : 'Ask me for recent sales and price ranges on your street or in your building.'}</span></div><div class="ct">${[A.phone, A.contact_email, (A.website || '').replace(/^https?:\/\//, '')].filter(Boolean).map(esc).join('<br>')}</div></div>`;
-  const names = Object.keys(D.areas || {}).sort((a, b) => D.areas[b].detached.price - D.areas[a].detached.price), mx = names.length ? D.areas[names[0]].detached.price : 1;
-  const cell = (v) => `<td>${v.price ? money(v.price) : 'n/a'}</td><td>${v.yoy == null ? '' : chg(v.yoy)}</td>`;
+    return `<div class="cd"><span class="eyebrow">${T1[t]}</span>${sh.prices ? `<div class="pz">${o.price ? money(o.price) : 'No benchmark'}</div>` : ''}${sh.changes ? `<div>${o.price ? chg(o.yoy, 'vs. last year') : ''}</div>` : ''}
+      ${sh.market && mk ? `<div class="mk">${mk}</div><div class="g"><i style="left:calc(${Math.min(o.ratio, 40) / 40 * 100}% - 2px)"></i></div><div class="small muted">${o.ratio.toFixed(1)}% of listings sold</div>` : ''}
+      ${sh.sold ? `<div class="kv"><span>Homes sold</span><b>${o.sales.toLocaleString()}</b></div>` : ''}${sh.forsale ? `<div class="kv"><span>Homes for sale</span><b>${o.active.toLocaleString()}</b></div>` : ''}${sh.days && o.dom != null ? `<div class="kv"><span>Avg. days to sell</span><b>${o.dom}</b></div>` : ''}</div>`; };
+  const cta = `<div class="cta"><div><b>${ask.h}</b><span>${A.role === 'broker' ? 'Ask me about your pre-approval, renewal or refinance.' : 'Ask me for recent sales and price ranges on your street or in your building.'}</span></div><div class="ct">${contact.join('<br>')}</div></div>`;
+  const reads = sh.summary ? TS.map((t) => readout(D, area, t, sh)).filter(Boolean) : [];
+  const names = Object.keys(D.areas || {}).sort((a, b) => D.areas[b][TS[0]].price - D.areas[a][TS[0]].price), mx = names.length ? D.areas[names[0]][TS[0]].price : 1;
+  const compare = sh.compare && names.length && anyPrice, total = compare ? 3 : 2, pn = (n) => `<span class="pn">${n} / ${total}</span>`;
+
+  /* cover: key numbers in cards over the colour band */
+  const facts = anyPrice ? TS.map((t) => { const o = get(D, area, t); return [`${T1[t]} ${sh.prices ? 'benchmark' : 'price change'}`, sh.prices ? (o.price ? money(o.price) : 'n/a') : (o.price ? chg(o.yoy) : 'n/a'), sh.prices && sh.changes && o.price ? chg(o.yoy, 'vs. last year') : '']; })
+    : [sh.sold && ['Homes sold', tot('sales').toLocaleString(), D.month.split(' ')[0]], sh.forsale && ['Homes for sale', tot('active').toLocaleString(), 'right now'], sh.market && market(ratio) && ['Market', market(ratio).replace(' market', ''), `${ratio.toFixed(1)}% of listings sold`]].filter(Boolean);
+  const lede = sh.summary ? summary(D, area, sh) : '';
+  // a second row of this month's activity, when the cards above are prices
+  const ly = (k) => (rows.every((o) => o[k] != null) ? tot(k) : null), vs = (a, b) => (b ? `${chg(((a - b) / b) * 100, 'vs. last year')}` : D.month.split(' ')[0]);
+  const more = anyPrice ? [sh.sold && ['Homes sold', tot('sales').toLocaleString(), vs(tot('sales'), ly('salesLy'))], sh.forsale && ['Homes for sale', tot('active').toLocaleString(), vs(tot('active'), ly('activeLy'))],
+    sh.market && market(ratio) && ['Market', market(ratio), `${ratio.toFixed(1)}% of listings sold`, `<div class="g"><i style="left:calc(${Math.min(ratio, 40) / 40 * 100}% - 2px)"></i></div>`]].filter(Boolean) : [];
+  const p0 = `<div class="pg rpt cover" style="${vars}"><div class="cv-band"${facts.length ? '' : ' style="padding-bottom:56px"'}>
+      <div class="cv-brand">${A.logo ? `<span class="chip"><img src="${esc(A.logo)}" alt=""></span>` : `<span>${esc(A.brokerage || '')}</span>`}<span>${esc(D.month)}</span></div>
+      <p class="cv-kick">Market Report</p><h1>${esc(area)}</h1>${lede ? `<p class="lede2">${esc(lede)}</p>` : ''}</div>
+    ${facts.length ? `<div class="cv-cards" style="--n:${facts.length}">${facts.map(([l, v, sub]) => `<div><span class="l">${l}</span><b>${v}</b>${sub ? `<span class="small">${sub}</span>` : ''}</div>`).join('')}</div>` : ''}
+    <div class="cv-body">${more.length ? `<div class="cv-facts" style="--n:${more.length}">${more.map(([l, v, sub, g]) => `<div><span class="l">${l}</span><b>${v}</b><span class="small">${sub}</span>${g || ''}</div>`).join('')}</div>` : ''}
+      <p class="eyebrow" style="margin-top:46px">Prepared for you by</p><div class="cv-who">${A.photo ? `<img src="${esc(A.photo)}" alt="">` : ''}<div><div class="n">${esc(A.name || '')}</div><div class="r">${[A.role === 'broker' ? 'Mortgage broker' : 'REALTOR®', A.brokerage].filter(Boolean).map(esc).join(' · ')}</div><div class="c">${contact.map((v) => `<span>${v}</span>`).join('')}</div></div></div>
+      <div class="toc"><div><b>Page 2</b>${esc(area)} at a glance, home type by home type</div>${compare ? '<div><b>Page 3</b>How every area compares</div>' : ''}<div><b>Questions?</b>${A.role === 'broker' ? 'Ask what this means for your mortgage' : 'Ask for your own neighbourhood’s numbers'}</div></div>
+      <p class="src">${esc(sourceLine(D))}</p></div></div>`;
   const p1 = `<div class="pg rpt" style="${vars}">${hdr}
     <div><p class="eyebrow">${esc(D.month)} · Market Report</p><h1>${esc(area)}</h1></div>
-    <p style="font-size:15.5px">${area === 'Greater Vancouver' ? regionSummary(D) : regionSummary(D).replace('across the region', 'across Greater Vancouver')}</p>
-    <div><h2 style="margin-bottom:10px">${esc(area)} at a glance</h2><div class="cards">${TYPES.map(card).join('')}</div></div>
-    <div><h2 style="margin-bottom:10px">What this means</h2><div class="reads">${TYPES.map((t) => readout(D, area, t)).filter(Boolean).map((t) => `<p>${esc(t)}</p>`).join('')}</div></div>
-    ${cta}<p class="src">${esc(sourceLine(D))}</p><span class="pn">${names.length ? '1 / 2' : ''}</span></div>`;
-  const p2 = names.length ? `<div class="pg rpt" style="${vars}">${hdr}
-    <div><p class="eyebrow">${esc(D.month)}</p><h2>How the areas compare</h2><p class="muted" style="margin-top:4px">Benchmark price of a typical home in each area, with the change from a year ago.</p></div>
-    <table class="tbl"><thead><tr><th>Area</th><th class="bw"></th><th>Detached</th><th>1 yr</th><th>Townhome</th><th>1 yr</th><th>Condo</th><th>1 yr</th></tr></thead>
-      <tbody>${names.map((a) => `<tr${a === area ? ' class="hl"' : ''}><td>${a}</td><td><div class="b" style="width:${(D.areas[a].detached.price / mx * 100).toFixed(0)}%"></div></td>${TYPES.map((t) => cell(D.areas[a][t])).join('')}</tr>`).join('')}</tbody></table>
-    ${cta}<p class="src">${esc(sourceLine(D))}</p><span class="pn">2 / 2</span></div>` : '';
-  const M = get(D, area, 'detached'), total = names.length ? 3 : 2;
-  const p0 = `<div class="pg rpt cover" style="${vars}"><div class="cv-brand">${A.logo ? `<img src="${esc(A.logo)}" alt="">` : `<span>${esc(A.brokerage || '')}</span>`}<span>${esc(D.month)}</span></div>
-      <div class="cv-title"><p class="eyebrow">Market Report</p><h1 style="margin-top:8px">${esc(area)}</h1><p class="lede2">${area === 'Greater Vancouver' ? regionSummary(D) : esc(readout(D, area, 'detached') || regionSummary(D))}</p></div>
-      <div class="cv-nums">${TYPES.map((t) => { const o = get(D, area, t); return `<div><span class="l">${T1[t]} benchmark</span><b>${o.price ? money(o.price) : 'n/a'}</b>${o.price && o.yoy != null ? chg(o.yoy, 'vs. last year') : ''}</div>`; }).join('')}</div>
-      <div><p class="eyebrow" style="margin-top:88px">Prepared for you by</p><div class="cv-who" style="margin-top:16px">${A.photo ? `<img src="${esc(A.photo)}" alt="">` : ''}<div><div class="n">${esc(A.name || '')}</div><div class="r">${[A.role === 'broker' ? 'Mortgage broker' : 'REALTOR®', A.brokerage].filter(Boolean).map(esc).join(' · ')}</div><div class="c">${[A.phone, A.contact_email, (A.website || '').replace(/^https?:\/\//, '')].filter(Boolean).map((v) => `<span>${esc(v)}</span>`).join('')}</div></div></div></div>
-      <div class="toc"><div><b>Page 2</b>${esc(area)} at a glance: prices, sales and market balance</div>${names.length ? '<div><b>Page 3</b>How every area compares</div>' : ''}<div><b>Questions?</b>${A.role === 'broker' ? 'Ask what this means for your mortgage' : 'Ask for your own neighbourhood’s numbers'}</div></div>
-      <p class="src">${esc(sourceLine(D))}</p></div>`;
-  root.innerHTML = p0 + p1.replace("${names.length ? '1 / 2' : ''}", '').replace('>1 / 2<', `>2 / ${total}<`).replace('<span class="pn"></span>', `<span class="pn">2 / ${total}</span>`) + p2.replace('>2 / 2<', '>3 / 3<');
+    ${lede ? `<p style="font-size:15.5px">${esc(lede)}</p>` : ''}
+    <div><h2 style="margin-bottom:10px">${esc(area)} at a glance</h2><div class="cards" style="grid-template-columns:repeat(${TS.length},1fr)">${TS.map(card).join('')}</div></div>
+    ${reads.length ? `<div><h2 style="margin-bottom:10px">What this means</h2><div class="reads">${reads.map((t) => `<p>${esc(t)}</p>`).join('')}</div></div>` : ''}
+    ${cta}<p class="src">${esc(sourceLine(D))}</p>${pn(2)}</div>`;
+  const cols = TS.flatMap((t) => [sh.prices && [T1[t], (v) => (v.price ? money(v.price) : 'n/a')], sh.changes && [sh.prices ? '1 yr' : `${T1[t]} 1 yr`, (v) => (v.yoy == null || !v.price ? '' : chg(v.yoy))]].filter(Boolean).map((c) => [...c, t]));
+  const p2 = compare ? `<div class="pg rpt" style="${vars}">${hdr}
+    <div><p class="eyebrow">${esc(D.month)}</p><h2>How the areas compare</h2><p class="muted" style="margin-top:4px">${sh.prices ? 'Benchmark price of a typical home in each area' : 'Change in the benchmark price of a typical home in each area'}${sh.prices && sh.changes ? ', with the change from a year ago' : sh.changes ? ' over the past year' : ''}.</p></div>
+    <table class="tbl"><thead><tr><th>Area</th>${sh.prices ? '<th class="bw"></th>' : ''}${cols.map((c) => `<th>${c[0]}</th>`).join('')}</tr></thead>
+      <tbody>${names.map((a) => `<tr${a === area ? ' class="hl"' : ''}><td>${a}</td>${sh.prices ? `<td><div class="b" style="width:${(D.areas[a][TS[0]].price / mx * 100).toFixed(0)}%"></div></td>` : ''}${cols.map((c) => `<td>${c[1](D.areas[a][c[2]])}</td>`).join('')}</tr>`).join('')}</tbody></table>
+    ${cta}<p class="src">${esc(sourceLine(D))}</p>${pn(3)}</div>` : '';
+  root.innerHTML = p0 + p1 + p2;
 }
 </script></body></html>

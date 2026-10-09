@@ -1,20 +1,23 @@
 // Ready-to-send formats: client email, social images.
-import { TYPES, T1, money, get, market, regionSummary, readout, first, areasOf, slug, palette, roleLabel } from './report.js';
+import { T1, money, get, market, summary, readout, first, areasOf, slug, palette, roleLabel, showOf, typesOf } from './report.js';
 
-export const reportLink = (base, A, area) => `${base}/r/${A.slug}` + (area && area !== 'Greater Vancouver' ? `#${slug(area)}` : '');
+export const reportLink = (base, A, area, v) => `${base}/r/${A.slug}` + (v ? `?v=${v}` : area && area !== 'Greater Vancouver' ? `#${slug(area)}` : '');
 const sign = (A) => [A.name, A.brokerage, A.contact_email, A.phone].filter(Boolean);
 const pct = (v) => (v == null ? '' : `${v > 0 ? 'up' : 'down'} ${Math.abs(v).toFixed(1)}% from last year`);
 
+const priceLines = (D, A, area) => { const sh = showOf(A); return sh.prices || sh.changes ? typesOf(sh).map((t) => { const o = get(D, area, t); if (!o.price) return null;
+  return { t: T1[t], price: sh.prices ? money(o.price) : '', chg: sh.changes ? pct(o.yoy) : '', yoy: o.yoy }; }).filter(Boolean) : []; };
 export function emailDraft(D, A, area, link) {
-  const subject = `${area} market update: ${D.month}`;
-  const lines = TYPES.map((t) => { const o = get(D, area, t); return o.price ? `${T1[t]}: ${money(o.price)} (${pct(o.yoy)})` : null; }).filter(Boolean);
-  const intro = area === 'Greater Vancouver' ? regionSummary(D) : readout(D, area, 'detached') || regionSummary(D);
-  const text = `Hi,\n\nHere is the ${D.month} market update for ${area}.\n\n${intro}\n\nBenchmark prices:\n${lines.join('\n')}\n\nSee the full interactive report, including every city and home type:\n${link}\n\n${A.role === 'broker' ? 'If you would like to know what this means for your pre-approval, renewal or refinance, just reply and I will walk you through it.' : 'If you would like the numbers for your own neighbourhood or building, just reply and I will send them.'}\n\n${sign(A).join('\n')}`;
-  const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.6;color:#181614;max-width:560px">${A.logo ? `<p><img src="${A.logo}" alt="" style="max-height:60px"></p>` : ''}<p>Hi,</p><p>Here is the <strong>${D.month}</strong> market update for ${area}.</p><p>${intro}</p><table style="border-collapse:collapse;margin:8px 0">${TYPES.map((t) => { const o = get(D, area, t); return o.price ? `<tr><td style="padding:6px 18px 6px 0;color:#6b635a">${T1[t]}</td><td style="padding:6px 18px 6px 0;font-weight:bold">${money(o.price)}</td><td style="padding:6px 0;color:${o.yoy < 0 ? '#a24a33' : '#3f6b45'}">${pct(o.yoy)}</td></tr>` : ''; }).join('')}</table><p><a href="${link}" style="display:inline-block;background:${palette(A.theme).ac};color:${palette(A.theme).bt};padding:12px 20px;border-radius:8px;text-decoration:none">Open the interactive report</a></p><p>${A.role === 'broker' ? 'If you would like to know what this means for your pre-approval, renewal or refinance, just reply and I will walk you through it.' : 'If you would like the numbers for your own neighbourhood or building, just reply and I will send them.'}</p><p>${sign(A).join('<br>')}</p></div>`;
+  const sh = showOf(A), subject = `${area} market update: ${D.month}`, lines = priceLines(D, A, area);
+  const intro = summary(D, area, sh) || `Here are this month's numbers for ${area}.`;
+  const more = A.role === 'broker' ? 'If you would like to know what this means for your pre-approval, renewal or refinance, just reply and I will walk you through it.' : 'If you would like the numbers for your own neighbourhood or building, just reply and I will send them.';
+  const head = sh.prices ? 'Benchmark prices' : 'Price change over the past year';
+  const text = `Hi,\n\nHere is the ${D.month} market update for ${area}.\n\n${intro}\n\n${lines.length ? `${head}:\n${lines.map((l) => `${l.t}: ${[l.price, l.price && l.chg ? `(${l.chg})` : l.chg].filter(Boolean).join(' ')}`).join('\n')}\n\n` : ''}See the full interactive report:\n${link}\n\n${more}\n\n${sign(A).join('\n')}`;
+  const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.6;color:#181614;max-width:560px">${A.logo ? `<p><img src="${A.logo}" alt="" style="max-height:60px"></p>` : ''}<p>Hi,</p><p>Here is the <strong>${D.month}</strong> market update for ${area}.</p><p>${intro}</p>${lines.length ? `<table style="border-collapse:collapse;margin:8px 0">${lines.map((l) => `<tr><td style="padding:6px 18px 6px 0;color:#6b635a">${l.t}</td>${l.price ? `<td style="padding:6px 18px 6px 0;font-weight:bold">${l.price}</td>` : ''}${l.chg ? `<td style="padding:6px 0;color:${l.yoy < 0 ? '#a24a33' : '#3f6b45'}">${l.chg}</td>` : ''}</tr>`).join('')}</table>` : ''}<p><a href="${link}" style="display:inline-block;background:${palette(A.theme).ac};color:${palette(A.theme).bt};padding:12px 20px;border-radius:8px;text-decoration:none">Open the interactive report</a></p><p>${more}</p><p>${sign(A).join('<br>')}</p></div>`;
   return { subject, text, html };
 }
-export const caption = (D, A, area, link) =>
-  `${area} market update, ${D.month}\n\n${TYPES.map((t) => { const o = get(D, area, t); return o.price ? `${T1[t]}: ${money(o.price)}, ${pct(o.yoy)}` : null; }).filter(Boolean).join('\n')}\n\nFull interactive report: ${link}\n\n${sign(A).join(' | ')}`;
+export const caption = (D, A, area, link) => { const lines = priceLines(D, A, area), sh = showOf(A);
+  return `${area} market update, ${D.month}\n\n${lines.length ? lines.map((l) => `${l.t}: ${[l.price, l.chg].filter(Boolean).join(', ')}`).join('\n') + '\n\n' : sh.summary ? summary(D, area, sh) + '\n\n' : ''}Full interactive report: ${link}\n\n${sign(A).join(' | ')}`; };
 
 const loadImg = (src) => new Promise((ok) => { if (!src) return ok(null); const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
 
@@ -35,43 +38,53 @@ export async function socialImage(D, A, area, kind = 'post') {
     return top + size;
   };
   const dn = (v) => `${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%`, col = (v) => (v < 0 ? '#d2553b' : '#2f9e68'), S = (n) => Math.round(n * k);
-  const rows = TYPES.map((t) => ({ t, ...get(D, area, t) }));
+  const sh = showOf(A), rows = typesOf(sh).map((t) => ({ t, ...get(D, area, t) }));
   const sold = rows.reduce((n, r) => n + r.sales, 0), listed = rows.reduce((n, r) => n + r.active, 0);
   const soldLy = rows.every((r) => r.salesLy != null) ? rows.reduce((n, r) => n + r.salesLy, 0) : null, listedLy = rows.every((r) => r.activeLy != null) ? rows.reduce((n, r) => n + r.activeLy, 0) : null;
   const ratio = listed ? (sold / listed) * 100 : null, mk = market(ratio), pc = (a, b) => ((a - b) / b) * 100;
 
   /* header band in the agent's colour */
   x.fillStyle = P.bg; x.fillRect(0, 0, W, H);
-  const bandTop = 0, bandH = story ? 520 : 236; let y = story ? 296 : 64;
+  const bandH = story ? 520 : 236; let y = story ? 296 : 64;
   x.fillStyle = P.ac; x.fillRect(0, 0, W, bandH);
   if (logo) { const h = S(44), w = Math.min(240, (logo.width / logo.height) * h); rr(M, y - 10, w + 28, h + 20, 12, '#ffffff'); x.drawImage(logo, M + 14, y, w, h); }
   else if (A.brokerage) line(A.brokerage.toUpperCase(), y + 8, 21, { weight: 700, color: on, track: 2.5, max: 560 });
   line(D.month.toUpperCase(), y + 8, 21, { weight: 700, color: on, align: 'right', X: W - M, track: 2.5 });
   line(`${area} Market Update`, y + S(64), 56, { font: hf, weight: 700, color: on });
 
-  /* three headline facts */
-  y = bandTop + bandH + (story ? 56 : 36);
-  const gap = 18, tw = (W - M * 2 - gap * 2) / 3, th = S(168);
-  [['HOMES SOLD', sold.toLocaleString(), soldLy ? `${dn(pc(sold, soldLy))} vs. last year` : 'this month', soldLy ? col(pc(sold, soldLy)) : P.ink],
-   ['HOMES FOR SALE', listed.toLocaleString(), listedLy ? `${dn(pc(listed, listedLy))} vs. last year` : 'right now', P.ink],
-   ['MARKET', mk ? mk.replace(' market', '') : 'n/a', ratio != null ? `${ratio.toFixed(1)}% of listings sold` : '', P.ink]]
-    .forEach(([l, v, sub, sc], i) => { const X = M + i * (tw + gap); rr(X, y, tw, th, 24, P.tn);
+  /* what goes in the middle: only what the agent chose to show */
+  const tiles = [sh.sold && ['HOMES SOLD', sold.toLocaleString(), soldLy ? `${dn(pc(sold, soldLy))} vs. last year` : 'this month', soldLy ? col(pc(sold, soldLy)) : P.ink],
+    sh.forsale && ['HOMES FOR SALE', listed.toLocaleString(), listedLy ? `${dn(pc(listed, listedLy))} vs. last year` : 'right now', P.ink],
+    sh.market && ['MARKET', mk ? mk.replace(' market', '') : 'n/a', ratio != null ? `${ratio.toFixed(1)}% of listings sold` : '', P.ink]].filter(Boolean);
+  const cols = [sh.prices && ['TYPICAL HOME', 'price'], sh.changes && ['1 YEAR', 'yoy'], sh.sold && ['SOLD', 'sales']].filter(Boolean);
+  const gap = 18, th = S(168), rh = S(story ? 98 : 86), sp = story ? 70 : 44, gauge = story && sh.market && ratio != null;
+  const blocks = [tiles.length && th, cols.length && S(19) + S(16) + rh * rows.length + 2, gauge && 150].filter(Boolean);
+  const top = bandH + (story ? 56 : 36), bottom = story ? H - 470 - 34 - 40 : H - 196 - 24;
+  y = Math.max(top, top + (bottom - top - (blocks.reduce((a, b) => a + b, 0) + sp * (blocks.length - 1))) / 2);
+
+  if (tiles.length) { const tw = (W - M * 2 - gap * (tiles.length - 1)) / tiles.length;
+    tiles.forEach(([l, v, sub, sc], i) => { const X = M + i * (tw + gap); rr(X, y, tw, th, 24, P.tn);
       let yy = line(l, y + S(26), 19, { weight: 700, track: 2, X: X + 24, max: tw - 48 }); yy = line(v, yy + S(14), 56, { font: hf, weight: 700, X: X + 24, max: tw - 48 }); line(sub, yy + S(12), 21, { weight: 600, color: sc, X: X + 24, max: tw - 48 }); });
-  y += th + (story ? 70 : 44);
+    y += th + sp; }
 
-  /* benchmark price table: every home type */
-  const cPrice = M + (W - M * 2) * 0.62, cChg = M + (W - M * 2) * 0.82, cSold = W - M, hasSold = true;
-  line('BENCHMARK PRICE', y, 19, { weight: 700, track: 2 }); line('TYPICAL HOME', y, 19, { weight: 700, track: 2, align: 'right', X: cPrice }); line('1 YEAR', y, 19, { weight: 700, track: 2, align: 'right', X: cChg }); line('SOLD', y, 19, { weight: 700, track: 2, align: 'right', X: cSold });
-  y += S(19) + S(16);
-  const rh = S(story ? 98 : 86);
-  rows.forEach((r) => { x.fillStyle = P.ln; x.fillRect(M, y, W - M * 2, 2); const t = y + (rh - S(38)) / 2;
-    line(T1[r.t], t + S(4), 32, { weight: 600 }); line(r.price ? money(r.price) : 'n/a', t, 38, { font: hf, weight: 700, align: 'right', X: cPrice });
-    if (r.price && r.yoy != null) line(dn(r.yoy), t + S(6), 28, { weight: 700, color: col(r.yoy), align: 'right', X: cChg });
-    line(r.sales.toLocaleString(), t + S(4), 32, { weight: 600, align: 'right', X: cSold }); y += rh; });
-  x.fillStyle = P.ln; x.fillRect(M, y, W - M * 2, 2);
+  /* table: one row per home type, one column per number shown */
+  if (cols.length) {
+    const span = W - M * 2, xs = cols.length === 3 ? [0.62, 0.82, 1] : cols.length === 2 ? [0.72, 1] : [1];
+    line(sh.prices ? 'BENCHMARK PRICE' : 'HOME TYPE', y, 19, { weight: 700, track: 2 });
+    cols.forEach(([h], i) => line(h, y, 19, { weight: 700, track: 2, align: 'right', X: M + span * xs[i] }));
+    y += S(19) + S(16);
+    rows.forEach((r) => { x.fillStyle = P.ln; x.fillRect(M, y, span, 2); const t = y + (rh - S(38)) / 2;
+      line(T1[r.t], t + S(4), 32, { weight: 600 });
+      cols.forEach(([, k], i) => { const X = M + span * xs[i];
+        if (k === 'price') line(r.price ? money(r.price) : 'n/a', t, 38, { font: hf, weight: 700, align: 'right', X });
+        else if (k === 'yoy') { if (r.price && r.yoy != null) line(dn(r.yoy), t + S(6), 28, { weight: 700, color: col(r.yoy), align: 'right', X }); }
+        else line(r.sales.toLocaleString(), t + S(4), 32, { weight: 600, align: 'right', X }); });
+      y += rh; });
+    x.fillStyle = P.ln; x.fillRect(M, y, span, 2); y += sp;
+  }
 
-  if (story && ratio != null) { // market balance gauge
-    y += 60; line(mk, y, 30, { font: hf, weight: 700 }); line(`${ratio.toFixed(1)}% of listings sold`, y + 6, 22, { weight: 600, align: 'right', X: W - M });
+  if (gauge) { // market balance gauge
+    line(mk, y, 30, { font: hf, weight: 700 }); line(`${ratio.toFixed(1)}% of listings sold`, y + 6, 22, { weight: 600, align: 'right', X: W - M });
     const gy = y + 62, gw = W - M * 2; rr(M, gy, gw * 0.3, 22, [11, 0, 0, 11], '#9cc7b0'); rr(M + gw * 0.3, gy, gw * 0.2, 22, 0, '#ead9a6'); rr(M + gw * 0.5, gy, gw * 0.5, 22, [0, 11, 11, 0], '#e3a184');
     rr(M + (Math.min(ratio, 40) / 40) * gw - 5, gy - 10, 10, 42, 5, P.ink);
     line("Buyer's", gy + 40, 18, { weight: 600 }); line('Balanced', gy + 40, 18, { weight: 600, align: 'center', X: M + gw * 0.4 }); line("Seller's", gy + 40, 18, { weight: 600, align: 'right', X: W - M }); }

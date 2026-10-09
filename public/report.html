@@ -6,15 +6,17 @@
 <script type="module">
 import { mountReport, areasOf, slug, palette, SAMPLES, loadFonts } from '/js/report.js';
 const s = location.pathname.split('/')[2], q = new URLSearchParams(location.search);
-const r = await fetch('/api/report?slug=' + encodeURIComponent(s)), j = await r.json();
+const r = await fetch('/api/report?slug=' + encodeURIComponent(s) + (q.get('v') ? '&v=' + encodeURIComponent(q.get('v')) : '')), j = await r.json();
 const root = document.getElementById('root');
 if (!r.ok) root.innerHTML = `<p style="text-align:center;padding:60px 20px;font-family:system-ui">${j.error || 'This report is not available right now.'}</p>`;
 else {
   let A = j.agent;
   if (j.sample) { A = SAMPLES[q.get('s')] || SAMPLES.sarah; document.getElementById('sample').hidden = false; }
-  const area = areasOf(j.report).find((a) => slug(a) === location.hash.slice(1));
+  // The dashboard's live preview passes the agent's unsaved choices.
+  if (q.get('preview')) try { const o = JSON.parse(q.get('preview')); A = { ...A, theme: o.theme || A.theme, show: o.show || A.show }; } catch {}
+  const area = j.view?.area || q.get('area') || areasOf(j.report).find((a) => slug(a) === location.hash.slice(1));
   document.title = `${area || 'Greater Vancouver'} Market Report, ${j.report.month} | ${A.name}`;
   loadFonts([A.theme?.font || 'modern']); document.body.style.background = palette(A.theme).bg;
-  mountReport(root, j.report, A, { area });
+  mountReport(root, j.report, A, { area, city: !!(j.view || q.get('area')) });
 }
 </script></body></html>

@@ -36,3 +36,17 @@ alter table leads enable row level security;
 -- Report look (Pro) and whether the subscriber is a REALTOR or a mortgage broker
 alter table profiles add column if not exists theme jsonb;
 alter table profiles add column if not exists role text default 'realtor';
+
+-- October 2026: what to show on the report (Pro), and the history of everything an agent creates
+alter table profiles add column if not exists show jsonb;
+create table if not exists exports (
+  id text primary key,                -- short id used in the link, e.g. /r/jane-smith?v=Ab3dE9xY
+  user_id uuid not null references auth.users(id) on delete cascade,
+  kind text not null,                 -- link, email, pdf, post, story, caption
+  area text not null,
+  month_key text, month text,         -- which month's numbers
+  settings jsonb,                     -- look and what to show, when it was made
+  created_at timestamptz default now()
+);
+create index if not exists exports_user_time on exports (user_id, created_at desc);
+alter table exports enable row level security;

@@ -10,6 +10,15 @@ export const areasOf = (D) => ['Greater Vancouver', ...Object.keys(D.areas || {}
 export const market = (r) => (r == null ? null : r < 12 ? "Buyer's market" : r <= 20 ? 'Balanced market' : "Seller's market");
 export const roleLabel = (A) => (A.role === 'broker' ? 'Mortgage broker' : 'REALTOR®');
 
+/* ---------- what the agent chooses to show (Pro) ---------- */
+export const SHOW_NUMBERS = [['prices', 'Benchmark prices'], ['changes', 'Price changes'], ['sold', 'Homes sold'], ['forsale', 'Homes for sale'], ['days', 'Days to sell'], ['market', 'Market type']];
+export const SHOW_SECTIONS = [['summary', 'Written summary'], ['compare', 'Area comparison']];
+export const DEFAULT_SHOW = { prices: true, changes: true, sold: true, forsale: true, days: true, market: true, detached: true, townhome: true, condo: true, summary: true, compare: true };
+export function showOf(A) { const s = { ...DEFAULT_SHOW, ...((A && A.show) || {}) }; if (!TYPES.some((t) => s[t])) TYPES.forEach((t) => (s[t] = true)); return s; }
+export const typesOf = (sh) => TYPES.filter((t) => sh[t]);
+export const monthKey = (m) => { const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], x = /^(\w+) (\d{4})$/.exec(m || ''); return x ? `${x[2]}-${String(M.indexOf(x[1]) + 1).padStart(2, '0')}` : ''; };
+const nounOf = (ts) => (ts.length === 3 ? 'homes' : ts.map((t) => TN[t]).join(' and '));
+
 /* ---------- themes ---------- */
 // label, heading font, body font, Google Fonts families to load
 const F = (label, h, b, g) => ({ label, hf: `"${h}", ${/Playfair|Lora|Cormorant|DM Serif|Baskerville/.test(h) ? 'Georgia, serif' : 'system-ui, sans-serif'}`, bf: `"${b}", system-ui, sans-serif`, g });
@@ -75,19 +84,29 @@ export function chg(v, suffix) {
   const c = v > 0 ? 'up' : v < 0 ? 'down' : '';
   return `<span class="chg ${c}">${v > 0 ? '▲' : v < 0 ? '▼' : '●'} ${Math.abs(v).toFixed(1)}%</span>${suffix ? ` <span class="muted small">${suffix}</span>` : ''}`;
 }
-export function regionSummary(D) {
-  const M = D.cities['Greater Vancouver'];
-  const all = TYPES.reduce((s, t) => ({ n: s.n + M[t].sales.now, l: s.l + M[t].sales.ly, a: s.a + M[t].active.now, al: s.al + M[t].active.ly }), { n: 0, l: 0, a: 0, al: 0 });
-  const ys = TYPES.map((t) => M[t].price.yoy);
-  const pw = ys.every((y) => y < 0) ? 'benchmark prices are lower than a year ago for every home type' : ys.every((y) => y > 0) ? 'benchmark prices are higher than a year ago for every home type' : 'price changes are mixed across home types';
-  return `${all.n.toLocaleString()} homes sold across the region in ${D.month.split(' ')[0]}, compared with ${all.l.toLocaleString()} a year earlier. There are ${all.a.toLocaleString()} homes for sale, ${Math.abs(((all.a - all.al) / all.al) * 100).toFixed(0)}% ${all.a < all.al ? 'fewer' : 'more'} than last year, and ${pw}.`;
+// A plain-English summary of an area, using only what the agent chose to show.
+export function summary(D, area = 'Greater Vancouver', sh = DEFAULT_SHOW) {
+  const ts = typesOf(sh), rows = ts.map((t) => get(D, area, t)), noun = nounOf(ts), mon = D.month.split(' ')[0], where = area === 'Greater Vancouver' ? 'across the region' : `in ${area}`;
+  const sum = (k) => (rows.every((r) => r[k] != null) ? rows.reduce((n, r) => n + r[k], 0) : null);
+  const n = sum('sales'), l = sum('salesLy'), a = sum('active'), al = sum('activeLy'), out = [];
+  if (sh.sold) out.push(`${n.toLocaleString()} ${noun} sold ${where} in ${mon}${l ? `, compared with ${l.toLocaleString()} a year earlier` : ''}.`);
+  if (sh.forsale) out.push(`There ${a === 1 ? 'is' : 'are'} ${a.toLocaleString()} ${noun} for sale${al ? `, ${Math.abs(((a - al) / al) * 100).toFixed(0)}% ${a < al ? 'fewer' : 'more'} than last year` : ''}.`);
+  if (sh.changes) { const ys = rows.filter((r) => r.price && r.yoy != null).map((r) => r.yoy);
+    if (ys.length) out.push(ts.length === 1 ? `The benchmark price for ${noun} is ${ys[0] < 0 ? 'lower' : ys[0] > 0 ? 'higher' : 'unchanged'}${ys[0] ? ' than' : ' from'} a year ago.`
+      : ys.every((y) => y < 0) ? 'Benchmark prices are lower than a year ago for every home type.' : ys.every((y) => y > 0) ? 'Benchmark prices are higher than a year ago for every home type.' : 'Price changes are mixed across home types.'); }
+  if (!out.length && sh.market) { const r = n != null && a ? (n / a) * 100 : null; if (market(r)) out.push(`Overall, ${area} is a ${market(r).toLowerCase()} this month.`); }
+  return out.join(' ');
 }
-export function readout(D, area, type) {
-  const o = get(D, area, type), mk = market(o.ratio);
-  if (!o.price || !mk) return '';
-  const dir = o.yoy < 0 ? `down ${Math.abs(o.yoy)}%` : o.yoy > 0 ? `up ${o.yoy}%` : 'unchanged';
-  return `In ${area}, the typical ${type === 'detached' ? 'detached home' : T1[type].toLowerCase()} is ${dir} from a year ago, and ${o.sales.toLocaleString()} of ${o.active.toLocaleString()} listed ${TN[type]} sold in ${D.month.split(' ')[0]}. ` +
-    (o.ratio < 12 ? 'Buyers have room to negotiate, and sellers need sharp pricing to stand out.' : o.ratio <= 20 ? 'Neither side has a clear advantage, so well-priced homes still sell.' : 'Sellers have the advantage, and buyers should be ready to move quickly.');
+export const regionSummary = (D, sh) => summary(D, 'Greater Vancouver', sh);
+export function readout(D, area, type, sh = DEFAULT_SHOW) {
+  const o = get(D, area, type), mk = market(o.ratio), mon = D.month.split(' ')[0], bits = [];
+  if (sh.changes && o.price && o.yoy != null) bits.push(`the typical ${type === 'detached' ? 'detached home' : T1[type].toLowerCase()} is ${o.yoy < 0 ? `down ${Math.abs(o.yoy)}%` : o.yoy > 0 ? `up ${o.yoy}%` : 'unchanged'} from a year ago`);
+  if (sh.sold && sh.forsale) bits.push(`${o.sales.toLocaleString()} of ${o.active.toLocaleString()} listed ${TN[type]} sold in ${mon}`);
+  else if (sh.sold) bits.push(`${o.sales.toLocaleString()} ${TN[type]} sold in ${mon}`);
+  else if (sh.forsale) bits.push(`${o.active.toLocaleString()} ${TN[type]} are listed for sale`);
+  let t = bits.length ? `In ${area}, ${bits.join(', and ')}. ` : '';
+  if (sh.market && mk) t += o.ratio < 12 ? 'Buyers have room to negotiate, and sellers need sharp pricing to stand out.' : o.ratio <= 20 ? 'Neither side has a clear advantage, so well-priced homes still sell.' : 'Sellers have the advantage, and buyers should be ready to move quickly.';
+  return t.trim();
 }
 export const sourceLine = (D) => `Source: Greater Vancouver REALTORS® monthly report, ${D.month}, current as of ${D.asof}. Benchmark prices are MLS® HPI figures. Ratios for areas without a detailed report are calculated from sales and active listings. This is not intended to solicit properties already listed for sale.`;
 
@@ -108,28 +127,32 @@ export function askCopy(A) {
         msg: (w, type, intent) => `Hi ${first(A)}, could you send me the latest market numbers for ${w} (${TN[type]})?` + (intent ? ` I'm ${intent}.` : '') };
 }
 
+// opts.area: open on this area. opts.city: lock the report to that one city (a city report).
 export function mountReport(root, D, A, opts = {}) {
-  const AREAS = areasOf(D), multi = AREAS.length > 1, F = esc(first(A)), ask = askCopy(A);
-  const S = { area: AREAS.includes(opts.area) ? opts.area : 'Greater Vancouver', type: 'detached', intent: null };
-  const email = A.contact_email || '', phone = A.phone || '';
+  const AREAS = areasOf(D), F = esc(first(A)), ask = askCopy(A), sh = showOf(A), TS = typesOf(sh);
+  const start = AREAS.includes(opts.area) ? opts.area : 'Greater Vancouver', city = opts.city && start !== 'Greater Vancouver';
+  const multi = AREAS.length > 1 && !city, S = { area: start, type: TS[0], intent: null };
+  const anyPrice = sh.prices || sh.changes, stats = [['sold', 'Homes sold'], ['forsale', 'Homes for sale'], ['days', 'Average days to sell']].filter(([k]) => sh[k]);
+  const showRank = AREAS.length > 1 && sh.compare && anyPrice;
+  const email = A.contact_email || '', phone = A.phone || '', head = city ? start : 'Greater Vancouver';
+  const lede = sh.summary ? summary(D, head, sh) + (multi ? ' Choose your city below to see where it stands.' : '') : (multi ? 'Choose your city below to see where it stands.' : '');
   root.classList.add('rpt'); root.style.cssText = themeVars(A.theme);
   root.innerHTML = `<div class="wrap">
 <div class="mast">${whoBlock(A)}</div>
-<header class="title"><p class="eyebrow">${esc(D.month)}</p><h1>Greater Vancouver Market Report</h1>
-  <p class="lede">${regionSummary(D)}${multi ? ' Choose your city below to see where it stands.' : ''}</p></header>
-<section><div class="metro">${TYPES.map((t) => { const m = D.cities['Greater Vancouver'][t]; return `<div><span class="lab">${T1[t]}</span><span class="num">${money(m.price.now)}</span><span>${chg(m.price.yoy, 'in a year')}</span></div>`; }).join('')}</div>
-  <p class="small muted">Benchmark price is the MLS® HPI price of a typical home, compared with the same month last year.</p></section>
+<header class="title"><p class="eyebrow">${esc(D.month)}</p><h1>${esc(head)} Market Report</h1>${lede ? `<p class="lede">${esc(lede)}</p>` : ''}</header>
+${anyPrice ? `<section><div class="metro" style="--n:${TS.length}">${TS.map((t) => { const m = get(D, head, t); return `<div><span class="lab">${T1[t]}</span>${sh.prices ? `<span class="num">${m.price ? money(m.price) : 'n/a'}</span>` : ''}<span>${sh.changes && m.price ? chg(m.yoy, 'in a year') : ''}</span></div>`; }).join('')}</div>
+  <p class="small muted">${sh.prices ? 'Benchmark price is the MLS® HPI price of a typical home' : 'Change in the MLS® HPI benchmark price of a typical home'}${sh.changes && sh.prices ? ', compared with the same month last year' : sh.changes ? ' over the past year' : ''}.</p></section>` : ''}
 <section><h2 data-id="h-city">${multi ? 'Pick your city' : 'A closer look'}</h2>
   <div class="controls">${multi ? `<div class="field"><label>Area<select data-id="area">${AREAS.map((a) => `<option>${a}</option>`).join('')}</select></label></div>` : ''}
-    <div class="field"><span class="lab">Home type</span><div class="seg" data-id="types" role="group" aria-label="Home type">${TYPES.map((t) => `<button type="button" data-t="${t}">${T1[t]}</button>`).join('')}</div></div></div>
+    ${TS.length > 1 ? `<div class="field"><span class="lab">Home type</span><div class="seg" data-id="types" role="group" aria-label="Home type">${TS.map((t) => `<button type="button" data-t="${t}">${T1[t]}</button>`).join('')}</div></div>` : ''}</div>
   <div class="panel" aria-live="polite">
-    <div class="phead"><p class="eyebrow" data-id="p-title"></p><div class="big" data-id="p-price"></div><p class="muted small" data-id="p-sub"></p><p class="chgs" data-id="p-chg"></p></div>
-    <div class="gauge"><div class="ghead"><strong data-id="p-market"></strong><span class="muted small" data-id="p-ratio"></span></div>
+    <div class="phead"><p class="eyebrow" data-id="p-title"></p>${sh.prices ? '<div class="big" data-id="p-price"></div>' : ''}<p class="muted small" data-id="p-sub"></p>${sh.changes ? '<p class="chgs" data-id="p-chg"></p>' : ''}</div>
+    ${sh.market ? `<div class="gauge"><div class="ghead"><strong data-id="p-market"></strong><span class="muted small" data-id="p-ratio"></span></div>
       <div class="track"><span class="b1"></span><span class="b2"></span><span class="b3"></span><i class="pin" data-id="pin"></i></div>
       <div class="bands"><span>Buyer's</span><span>Balanced</span><span>Seller's</span></div>
-      <p class="small muted">The share of listed homes that sold this month. Under 12% favours buyers, over 20% favours sellers.</p></div>
-    <div class="stats" data-id="p-stats"></div><p data-id="p-read"></p></div></section>
-${multi ? `<section><h2>How the areas compare</h2><p class="muted small" data-id="rank-sub"></p><div class="rank" data-id="rank"></div></section>` : ''}
+      <p class="small muted">The share of listed homes that sold this month. Under 12% favours buyers, over 20% favours sellers.</p></div>` : ''}
+    ${stats.length ? `<div class="stats" data-id="p-stats" style="--n:${stats.length}"></div>` : ''}${sh.summary ? '<p data-id="p-read"></p>' : ''}</div></section>
+${showRank ? `<section><h2>How the areas compare</h2><p class="muted small" data-id="rank-sub"></p><div class="rank" data-id="rank"></div></section>` : ''}
 <section class="ask"><div class="askwho">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><div class="nm">${esc(A.name || '')}</div><div class="rl">${[roleLabel(A), A.brokerage].filter(Boolean).map(esc).join(' · ')}</div></div></div><h2>${ask.h}</h2><p>${ask.p}</p>
   <div class="field"><label>${ask.lab}<input type="text" data-id="where" placeholder="${ask.ph}"></label></div>
   <div><span class="lab">I am</span><div class="chips" data-id="intent" role="group" aria-label="I am">${ask.chips.map((c) => `<button type="button">${esc(c)}</button>`).join('')}</div></div>
@@ -138,7 +161,7 @@ ${multi ? `<section><h2>How the areas compare</h2><p class="muted small" data-id
   <div class="contact">${email ? `<span>${esc(email)}</span>` : ''}${phone ? `<span>${esc(phone)}</span>` : ''}${A.website ? `<span>${esc(A.website.replace(/^https?:\/\//, ''))}</span>` : ''}</div></section>
 <div class="sign">${whoBlock(A)}</div>
 <footer>${esc(sourceLine(D))}</footer></div>`;
-  const $ = (id) => root.querySelector(`[data-id="${id}"]`);
+  const $ = (id) => root.querySelector(`[data-id="${id}"]`), put = (id, v, html) => { const e = $(id); if (e) e[html ? 'innerHTML' : 'textContent'] = v; };
 
   function text() {
     const w = $('where').value.trim() || (S.area === 'Greater Vancouver' ? 'my area' : S.area);
@@ -152,33 +175,30 @@ ${multi ? `<section><h2>How the areas compare</h2><p class="muted small" data-id
   function render() {
     const { area, type } = S, o = get(D, area, type);
     if ($('area')) $('area').value = area;
-    $('types').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t === type));
-    $('p-title').textContent = area; $('p-sub').textContent = `${T1[type]} benchmark price`;
-    $('p-price').textContent = o.price ? money(o.price) : 'No benchmark';
+    if ($('types')) $('types').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t === type));
+    put('p-title', area); put('p-sub', anyPrice ? `${T1[type]} benchmark price` : T1[type]);
+    put('p-price', o.price ? money(o.price) : 'No benchmark');
     let c = o.price ? chg(o.yoy, 'vs. ' + D.month.replace(/\d+$/, (y) => y - 1)) : '<span class="muted small">Too few sales here for a reliable benchmark.</span>';
     if (o.prev && o.price) { const m = ((o.price - o.prev) / o.prev) * 100; c = `<span>${c}</span><span>${chg(Math.round(m * 10) / 10, 'vs. last month')}</span>`; }
-    $('p-chg').innerHTML = c;
-    const mk = market(o.ratio);
-    $('p-market').textContent = mk || 'Not enough activity to call';
-    $('p-ratio').textContent = o.ratio != null ? `${o.ratio.toFixed(1)}% of listings sold` : '';
-    $('pin').hidden = o.ratio == null; $('pin').style.left = (Math.min(o.ratio || 0, 40) / 40) * 100 + '%';
-    const st = [['Homes sold', o.sales.toLocaleString(), o.salesLy != null ? `${o.salesLy.toLocaleString()} a year ago` : ''],
-      ['Homes for sale', o.active.toLocaleString(), o.activeLy != null ? `${o.activeLy.toLocaleString()} a year ago` : ''],
-      ['Average days to sell', o.dom != null ? o.dom : `Ask ${F}`, o.dom != null ? `${o.domLy} a year ago` : "Not in this month's summary"]];
-    $('p-stats').innerHTML = st.map((s) => `<div><span class="lab">${s[0]}</span><span class="num">${s[1]}</span><span class="sub">${s[2]}</span></div>`).join('');
-    $('p-read').textContent = readout(D, area, type);
-    if (multi) {
-      const rows = Object.keys(D.areas).map((a) => ({ a, ...D.areas[a][type] })).filter((r) => r.price > 0).sort((x, y) => y.price - x.price);
-      const max = rows[0].price;
-      $('rank-sub').textContent = `${T1[type]} benchmark price by area, with the change from a year ago. Tap an area to see its details.`;
-      $('rank').innerHTML = rows.map((r) => `<button type="button" class="row${r.a === area ? ' on' : ''}" data-a="${r.a}"><span class="nm">${r.a}</span><span><span class="bar" style="display:block;width:${((r.price / max) * 100).toFixed(1)}%"></span></span><span class="v">${money(r.price)}<small>${chg(r.yoy)}</small></span></button>`).join('');
+    put('p-chg', c, true);
+    if (sh.market) { const mk = market(o.ratio); put('p-market', mk || 'Not enough activity to call'); put('p-ratio', o.ratio != null ? `${o.ratio.toFixed(1)}% of listings sold` : '');
+      $('pin').hidden = o.ratio == null; $('pin').style.left = (Math.min(o.ratio || 0, 40) / 40) * 100 + '%'; }
+    const vals = { sold: [o.sales.toLocaleString(), o.salesLy != null ? `${o.salesLy.toLocaleString()} a year ago` : ''], forsale: [o.active.toLocaleString(), o.activeLy != null ? `${o.activeLy.toLocaleString()} a year ago` : ''],
+      days: [o.dom != null ? o.dom : `Ask ${F}`, o.dom != null ? `${o.domLy} a year ago` : "Not in this month's summary"] };
+    put('p-stats', stats.map(([k, l]) => `<div><span class="lab">${l}</span><span class="num">${vals[k][0]}</span><span class="sub">${vals[k][1]}</span></div>`).join(''), true);
+    put('p-read', readout(D, area, type, sh));
+    if (showRank) {
+      const rows = Object.keys(D.areas).map((a) => ({ a, ...D.areas[a][type] })).filter((r) => r.price > 0).sort((x, y) => (sh.prices ? y.price - x.price : y.yoy - x.yoy));
+      const max = sh.prices ? rows[0].price : Math.max(...rows.map((r) => Math.abs(r.yoy))) || 1;
+      put('rank-sub', `${T1[type]} ${sh.prices ? 'benchmark price by area' : 'price change by area over the past year'}${sh.prices && sh.changes ? ', with the change from a year ago' : ''}.${multi ? ' Tap an area to see its details.' : ''}`);
+      put('rank', rows.map((r) => `<${multi ? 'button type="button"' : 'div'} class="row${r.a === area ? ' on' : ''}" data-a="${r.a}"><span class="nm">${r.a}</span><span><span class="bar" style="display:block;width:${(((sh.prices ? r.price : Math.abs(r.yoy)) / max) * 100).toFixed(1)}%"></span></span><span class="v">${sh.prices ? money(r.price) : ''}${sh.changes ? (sh.prices ? `<small>${chg(r.yoy)}</small>` : chg(r.yoy)) : ''}</span></${multi ? 'button' : 'div'}>`).join(''), true);
     }
     msg();
   }
   function setArea(a, scroll) { S.area = a; render(); if (scroll) $('h-city').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   if ($('area')) $('area').addEventListener('change', (e) => setArea(e.target.value));
-  $('types').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { S.type = b.dataset.t; render(); } });
-  if ($('rank')) $('rank').addEventListener('click', (e) => { const b = e.target.closest('.row'); if (b) setArea(b.dataset.a, !opts.embedded); });
+  if ($('types')) $('types').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { S.type = b.dataset.t; render(); } });
+  if ($('rank') && multi) $('rank').addEventListener('click', (e) => { const b = e.target.closest('.row'); if (b) setArea(b.dataset.a, !opts.embedded); });
   $('where').addEventListener('input', msg);
   $('intent').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const on = b.getAttribute('aria-pressed') === 'true';
     $('intent').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', String(!on)); S.intent = on ? null : b.textContent; msg(); });
