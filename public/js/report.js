@@ -11,6 +11,9 @@ export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&a
 export const first = (A) => (A.name || 'me').trim().split(/\s+/)[0];
 export const areasOf = (D) => ['Greater Vancouver', ...Object.keys(D.areas || {}).sort()];
 export const market = (r) => (r == null ? null : r < 12 ? "Buyer's market" : r <= 20 ? 'Balanced market' : "Seller's market");
+// Any saved phone shows as +1 604-555-0100.
+export const phoneFmt = (v) => { let d = String(v || '').replace(/\D/g, ''); if (d.length === 11 && d[0] === '1') d = d.slice(1); return d.length === 10 ? `+1 ${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : String(v || ''); };
+const withPhone = (A) => (A && A.phone ? { ...A, phone: phoneFmt(A.phone) } : A);
 export const roleLabel = (A) => (A.role === 'broker' ? 'Mortgage broker' : 'REALTOR®');
 
 /* ---------- what the agent chooses to show (Pro) ---------- */
@@ -128,6 +131,7 @@ export const sourceLine = (D) => `Source: Greater Vancouver REALTORS® monthly r
 
 // Logo (or brokerage name) plus photo, name, role and phone.
 export function whoBlock(A) {
+  A = withPhone(A);
   const logo = A.logo ? `<img class="brandlogo" src="${esc(A.logo)}" alt="${esc(A.brokerage || '')}">`
     : A.brokerage ? `<div class="lgtxt">${A.mark ? `<img src="${esc(A.mark)}" alt="">` : ''}<span>${esc(A.brokerage)}</span></div>` : '';
   return `${logo}<div class="who">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><div class="nm">${esc(A.name || 'Your Name')}</div><div class="rl">${[roleLabel(A), A.phone].filter(Boolean).map(esc).join(' · ')}</div>${A.logo && A.brokerage ? `<div class="rl">${esc(A.brokerage)}</div>` : ''}</div></div>`;
@@ -145,6 +149,7 @@ export function askCopy(A) {
 
 // opts.area: open on this area. opts.city: lock the report to that one city (a city report).
 export function mountReport(root, D, A, opts = {}) {
+  A = withPhone(A);
   const AREAS = areasOf(D), F = esc(first(A)), ask = askCopy(A), sh = showOf(A), TS = typesOf(sh);
   const start = AREAS.includes(opts.area) ? opts.area : 'Greater Vancouver', city = opts.city && start !== 'Greater Vancouver';
   const multi = AREAS.length > 1 && !city && sh.picker !== false, TX = TS.length > 1 ? ['all', ...TS] : TS, S = { area: start, type: TX[0], intent: null };
@@ -161,7 +166,7 @@ ${anyPrice ? `<section><div class="metro" data-id="metro" style="--n:${TS.length
   <p class="small muted">${sh.prices ? 'Benchmark price is the MLS® HPI price of a typical home' : 'Change in the MLS® HPI benchmark price of a typical home'}${sh.changes && sh.prices ? ', compared with the same month last year' : sh.changes ? ' over the past year' : ''}.</p></section>` : ''}
 <section><h2 data-id="h-city">${multi ? 'Pick your city' : 'A closer look'}</h2>
   <div class="controls">${multi ? `<div class="field"><label>Area<select data-id="area">${AREAS.map((a) => `<option>${a}</option>`).join('')}</select></label></div>` : ''}
-    ${TX.length > 1 ? `<div class="field"><span class="lab">Home type</span><div class="seg" data-id="types" role="group" aria-label="Home type">${TX.map((t) => `<button type="button" data-t="${t}">${t === 'all' ? 'All' : T1[t]}</button>`).join('')}</div></div>` : ''}</div>
+    ${TX.length > 1 ? `<div class="field"><label>Home type<select data-id="types">${TX.map((t) => `<option value="${t}">${t === 'all' ? 'All home types' : T1[t]}</option>`).join('')}</select></label></div>` : ''}</div>
   <div class="panel" aria-live="polite">
     <div class="phead"><p class="eyebrow" data-id="p-title"></p>${sh.prices ? '<div class="big" data-id="p-price"></div>' : ''}<p class="muted small" data-id="p-sub"></p>${sh.changes ? '<p class="chgs" data-id="p-chg"></p>' : ''}</div>
     ${sh.market ? `<div class="gauge"><div class="ghead"><strong data-id="p-market"></strong><span class="muted small" data-id="p-ratio"></span></div>
@@ -195,7 +200,7 @@ ${showRank ? `<section><h2>How the areas compare</h2><p class="muted small" data
   function render() {
     const { area, type } = S, o = get(D, area, type);
     if ($('area')) $('area').value = area;
-    if ($('types')) $('types').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t === type));
+    if ($('types')) $('types').value = type;
     put('h1', `${area} Market Report`);
     if (sh.summary && area !== head) put('lede', summary(D, area, sh)); else if (sh.summary) put('lede', lede);
     if ($('metro')) put('metro', TS.map((t) => { const m = get(D, area, t); return `<div><span class="lab">${T1[t]}</span>${sh.prices ? `<span class="num">${m.price ? money(m.price) : 'n/a'}</span>` : ''}<span>${sh.changes && m.price ? chg(m.yoy, 'in a year') : ''}</span></div>`; }).join(''), true);
@@ -232,7 +237,7 @@ ${showRank ? `<section><h2>How the areas compare</h2><p class="muted small" data
   if (showTrend && window.ResizeObserver) { let w = 0, tm; new ResizeObserver(() => { const cw = root.clientWidth; if (Math.abs(cw - w) > 20) { w = cw; clearTimeout(tm); tm = setTimeout(drawTrend, 120); } }).observe(root); }
   function setArea(a, scroll) { S.area = a; render(); if (scroll) $('h-city').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   if ($('area')) $('area').addEventListener('change', (e) => setArea(e.target.value));
-  if ($('types')) $('types').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { S.type = b.dataset.t; render(); } });
+  if ($('types')) $('types').addEventListener('change', (e) => { S.type = e.target.value; render(); });
   if ($('rank') && multi) $('rank').addEventListener('click', (e) => { const b = e.target.closest('.row'); if (b) setArea(b.dataset.a, !opts.embedded); });
   $('where').addEventListener('input', msg);
   $('intent').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const on = b.getAttribute('aria-pressed') === 'true';

@@ -1,0 +1,42 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Share to Instagram | The Market Update</title>
+<link rel="stylesheet" href="/css/site.css">
+<style>
+body{background:var(--tint);margin:0}
+.sh{max-width:460px;margin:0 auto;padding:20px 16px 36px;display:grid;gap:16px}
+.sh h1{font-size:1.35rem;margin:0}.sh .who{font-size:.9rem;color:var(--mut);margin:2px 0 0}
+.img{background:#fff;border-radius:18px;padding:10px;box-shadow:0 8px 30px rgba(16,35,28,.08);line-height:0}.img canvas{width:100%;height:auto;border-radius:10px}
+.story .img{max-width:300px;justify-self:center;width:100%}
+.btns{display:grid;gap:10px}.btns .btn{display:flex;align-items:center;justify-content:center;gap:2px}
+.ig{background:linear-gradient(135deg,#f58529,#dd2a7b 55%,#8134af);border-color:transparent}
+.how{background:#fff;border-radius:16px;padding:14px 18px;font-size:.92rem;line-height:1.65;color:var(--ink)}.how ol{margin:6px 0 0;padding-left:20px}
+.msg{text-align:center;padding:60px 20px;color:var(--mut)}
+</style></head><body>
+<div class="sh" id="root"><p class="msg">Getting your image ready…</p></div>
+<div id="toast" role="status"></div>
+<script type="module">
+import { loadFonts, areasOf } from '/js/report.js';
+import { socialImage, caption, reportLink } from '/js/exports.js';
+import { sv, toFile, canShareFiles } from '/js/share.js';
+const slug = location.pathname.split('/')[2], q = new URLSearchParams(location.search), root = document.getElementById('root');
+const toast = (t) => { const m = document.getElementById('toast'); m.textContent = t; m.className = 'on'; clearTimeout(toast.t); toast.t = setTimeout(() => (m.className = ''), 3000); };
+const r = await fetch('/api/report?slug=' + encodeURIComponent(slug) + (q.get('v') ? '&v=' + encodeURIComponent(q.get('v')) : '')), j = await r.json();
+if (!r.ok) root.innerHTML = `<p class="msg">${j.error || 'This image is not available right now.'}</p>`;
+else {
+  const A = { ...j.agent, slug }, D = j.report, kind = j.view?.kind === 'story' || (!j.view && q.get('k') === 'story') ? 'story' : 'post';
+  let area = j.view?.area || q.get('area') || 'Greater Vancouver'; if (!areasOf(D).includes(area)) area = 'Greater Vancouver';
+  loadFonts([A.theme?.font || 'modern']);
+  const c = await socialImage(D, A, area, kind), name = `${area.replace(/\s+/g, '-')}-${D.month.replace(' ', '-')}-${kind}.png`;
+  const cap = caption(D, A, area, reportLink(location.origin, A, area, j.view ? q.get('v') : '')), file = await toFile(c, name), can = canShareFiles(file);
+  root.className = 'sh ' + kind;
+  root.innerHTML = `<div><h1>Your ${area} ${kind}</h1><p class="who">${D.month} market update${A.name ? ' · ' + A.name.replace(/[<>&]/g, '') : ''}</p></div><div class="img"></div>
+    <div class="btns">${can ? `<button class="btn wide ig" id="ig">${sv('ig')}Share to Instagram</button>` : ''}<button class="btn wide ${can ? 'ghost' : ''}" id="save">${sv('dl')}Save image</button><button class="btn wide ghost" id="cap">${sv('cap')}Copy caption</button></div>
+    <div class="how"><b>How to post it</b><ol>${can ? `<li>Tap <b>Share to Instagram</b>. Your caption is copied at the same time.</li><li>Pick <b>Instagram</b>, then <b>${kind === 'story' ? 'Stories' : 'Feed'}</b>.</li><li>Paste the caption and share.</li>`
+      : '<li>Tap <b>Save image</b>.</li><li>Open Instagram and choose the image.</li><li>Tap <b>Copy caption</b>, paste it and share.</li>'}</ol></div>`;
+  root.querySelector('.img').appendChild(c);
+  const copyCap = () => navigator.clipboard?.writeText(cap).then(() => true, () => false) || Promise.resolve(false);
+  document.getElementById('cap').onclick = async () => toast((await copyCap()) ? 'Caption copied.' : 'Copying was blocked. Press and hold to copy instead.');
+  document.getElementById('save').onclick = () => { if (can) return navigator.share({ files: [file] }).catch(() => {}); const a = document.createElement('a'); a.download = name; a.href = c.toDataURL('image/png'); a.click(); };
+  if (can) document.getElementById('ig').onclick = () => { copyCap().then((ok) => ok && toast('Caption copied. Paste it in Instagram.')); navigator.share({ files: [file] }).catch(() => {}); };
+}
+</script></body></html>

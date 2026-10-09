@@ -1,5 +1,6 @@
 import { esc, areasOf, mountReport, STYLES, FONTS, BASIC_THEME, loadFonts, SHOW_NUMBERS, SHOW_SECTIONS, DEFAULT_SHOW, TYPES, T1, showOf, monthKey, COVERS } from './report.js';
 import { reportLink, emailDraft, caption, socialImage, download } from './exports.js';
+import { sv, isPhone, canShareFiles, toFile, shareMenu, closeMenu, qrModal } from './share.js';
 
 const $ = (s) => document.querySelector(s), main = $('#main');
 const cfg = await (await fetch('/api/config')).json();
@@ -272,6 +273,7 @@ async function start() {
   if (!active) return sessionStorage.getItem('mup_previewed') && P.name ? showPlans() : showPreview();
   sessionStorage.removeItem('mup_want'); sessionStorage.removeItem('mup_went'); sessionStorage.removeItem('mup_previewed');
   await loadHistory(); show(qs.get('view') || 'create');
+  const igs = qs.get('ig'); if (igs) { alertMsg({ connected: 'Instagram connected.', cancelled: 'Instagram was not connected.', failed: 'We could not connect Instagram. Please try again.' }[igs] || '', igs !== 'connected'); history.replaceState(null, '', '/app?view=account'); }
 }
 $('#logout').onclick = () => { keep(null); location.href = '/'; };
 const portal = async () => { try { location.href = (await api('/api/portal', {})).url; } catch (e) { alertMsg(e.message, true); } };
@@ -311,7 +313,7 @@ function dashboard() {
       <div class="two">${DETAILS.map(([k, l, t, ph]) => `<input type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}" aria-label="${l}">`).join('')}
         <div class="phonef"><span>+1</span><input type="tel" data-k="phone" value="${esc(localPhone(P.phone))}" placeholder="604-555-0100" aria-label="Phone"></div>
         <select data-k="role" aria-label="I am a"><option value="realtor"${P.role !== 'broker' ? ' selected' : ''}>I'm a REALTOR®</option><option value="broker"${P.role === 'broker' ? ' selected' : ''}>I'm a mortgage broker</option></select></div>
-      <div id="dlic">${licFields('d')}</div>
+
       <div class="two">${['photo', 'logo'].map((k) => `<div class="upw"><label class="up"><span id="ph-${k}"></span><span>Your ${k}<br><b id="lb-${k}"></b></span><input type="file" accept="image/*" data-img="${k}"></label><button type="button" class="rm" data-rm="${k}" aria-label="Remove your ${k}" title="Remove" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>`).join('')}</div></div>
     <div class="sec" id="look"></div>
     <div class="sec" id="showsec"></div>
@@ -323,7 +325,7 @@ function dashboard() {
   if ($('#cfmagain')) $('#cfmagain').onclick = async (e) => { e.preventDefault(); const ok = await sendConfirm(P.email); alertMsg(ok ? 'Sent. Check your inbox.' : 'Please wait a minute and try again.', !ok); };
   const side = $('.side');
   side.addEventListener('input', (e) => { const k = e.target.dataset.k; if (!k || k === 'gvr_member') return; let v = e.target.value.trim();
-    if (k === 'website' && v && !/^https?:\/\//.test(v)) v = 'https://' + v; if (k === 'phone') v = fullPhone(v); P[k] = v; touch(k); later(); if (k === 'name') drawSend(); if (k === 'role') $('#dlic').innerHTML = licFields('d'); });
+    if (k === 'website' && v && !/^https?:\/\//.test(v)) v = 'https://' + v; if (k === 'phone') v = fullPhone(v); P[k] = v; touch(k); later(); if (k === 'name') drawSend();  });
   side.addEventListener('change', async (e) => { if (e.target.dataset.k === 'gvr_member') { P.gvr_member = e.target.checked; return touch('gvr_member'); } if (e.target.dataset.k === 'phone') e.target.value = localPhone(e.target.value);
     const k = e.target.dataset.img; if (!k || !e.target.files[0]) return;
     try { const v = await pickImage(k, e.target.files[0]); if (v) { P[k] = v; touch(k); thumbs(); preview(); } } catch (err) { alertMsg(err.message, true); } e.target.value = ''; });
@@ -331,7 +333,8 @@ function dashboard() {
   const app = $('.app'); try { if (localStorage.getItem('mup_side') === 'closed') app.classList.add('closed'); } catch {}
   $('#sidetog').onclick = () => { app.classList.toggle('closed'); try { localStorage.setItem('mup_side', app.classList.contains('closed') ? 'closed' : 'open'); } catch {} setTimeout(preview, 260); };
   $('#pvact').onchange = (e) => { if (e.target.id !== 'area2') return; area = e.target.value; if ($('#area')) $('#area').value = area; preview(); };
-  $('#pvact').onclick = (e) => { const b = e.target.closest('[data-do]'); if (!b || b.disabled) return; saveNow(); act(b.dataset.do, record(b.dataset.do), b.dataset.verb); };
+  $('#pvact').onclick = (e) => { const s2 = e.target.closest('[data-share]'); if (s2 && !s2.disabled) return s2.dataset.share === 'link' ? shareLink(s2) : shareImage(s2, s2.dataset.share === 'ig');
+    const b = e.target.closest('[data-do]'); if (!b || b.disabled) return; saveNow(); act(b.dataset.do, record(b.dataset.do), b.dataset.verb); };
   $('#tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; $('#tabs').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b)); preview(); };
   if (dirty.size) touch([...dirty][0]);
 }
@@ -393,14 +396,40 @@ function drawSend() {
     const b = e.target.closest('[data-do]'); if (!b || b.disabled) return; saveNow(); act(b.dataset.do, record(b.dataset.do), b.dataset.verb); };
 }
 
-// Quick actions right above the preview: copy the link, download the image, open the PDF.
+// Quick actions right above the preview: open, copy, share, download, Instagram.
 function drawActs() {
-  const el = $('#pvact'); if (!el) return; const ok = !!(P.name && P.slug), pro = isPro();
+  const el = $('#pvact'); if (!el) return; const ok = !!(P.name && P.slug), pro = isPro(); closeMenu();
   const where = pro ? `<select class="pa-where" id="area2" aria-label="Area">${areasOf(D).map((a) => `<option${a === area ? ' selected' : ''}>${a}</option>`).join('')}</select>` : `<span class="pa-where">${esc(area)}</span>`;
-  const b = (k, label, verb, ghost) => `<button class="btn sm${ghost ? ' ghost' : ''}" data-do="${k}"${verb ? ` data-verb="${verb}"` : ''}${ok ? '' : ' disabled'}>${label}</button>`;
-  el.innerHTML = tab === 'report' || tab === 'phone' ? `${where}${b('link', 'Open', 'open', 1)}${b('link', 'Copy link')}`
-    : tab === 'post' || tab === 'story' ? (pro ? `${where}${b(tab, tab === 'post' ? 'Download post' : 'Download story')}${b('caption', 'Copy caption', '', 1)}` : '')
-    : pro ? `${where}${b('pdf', 'Open PDF to save or print')}` : '';
+  const b = (k, label, verb, ghost, ic) => `<button class="btn sm${ghost ? ' ghost' : ''}" data-do="${k}"${verb ? ` data-verb="${verb}"` : ''}${ok ? '' : ' disabled'}>${ic ? sv(ic) : ''}${label}</button>`;
+  const sh = (what, label, ghost, ic) => `<button class="btn sm${ghost ? ' ghost' : ''}" data-share="${what}"${ok ? '' : ' disabled'}>${sv(ic)}${label}</button>`;
+  el.innerHTML = tab === 'report' || tab === 'phone' ? `${where}<span class="pa-btns">${b('link', 'Open', 'open', 1, 'open')}${b('link', 'Copy link', '', 1, 'link')}<span class="shwrap">${sh('link', 'Share', 0, 'share')}</span></span>`
+    : tab === 'post' || tab === 'story' ? (pro ? `${where}<span class="pa-btns">${b(tab, 'Download', '', 1, 'dl')}${b('caption', 'Copy caption', '', 1, 'cap')}${sh('image', 'Share', 1, 'share')}${sh('ig', '<span class="lg">Share to </span>Instagram', 0, 'ig')}</span>` : '')
+    : pro ? `${where}<span class="pa-btns">${b('pdf', 'Open PDF to save or print', '', 0, 'dl')}</span>` : '';
+}
+// What the phone needs ready before the tap (phones only allow sharing straight from a tap).
+let ready = { file: null, cap: '' };
+const plainLink = () => reportLink(location.origin, P, area);
+const shareText = (link) => ({ url: link, subject: `${area} market update: ${D.month}`, short: `Here is the ${D.month} market update for ${area}: ${link}`, body: emailDraft(D, agent(), area, link).text });
+function shareLink(btn) {
+  saveNow();
+  if (isPhone()) { const t = shareText(plainLink()); navigator.share({ title: t.subject, text: t.short.replace(/: \S+$/, '.'), url: t.url }).catch(() => {}); record('link').catch(() => {}); return; }
+  if (btn.parentElement.querySelector('.shmenu')) return closeMenu();
+  record('link').then((it) => { const link = linkOf(it), t = shareText(link);
+    shareMenu(btn.parentElement, t, { onCopy: () => copy(Promise.resolve(link)).then(() => alertMsg('Link copied.')), onQr: () => qrModal({ title: 'Your report QR code', text: 'Anyone who scans this with a phone camera opens your report. Great for open houses, flyers and signs.', url: link, file: `${P.slug}-${area.replace(/\s+/g, '-')}-QR.png` }) }); })
+    .catch((e) => alertMsg(e.message, true));
+}
+function shareImage(btn, ig) {
+  saveNow(); const kind = tab, f = ready.file;
+  if (isPhone() && canShareFiles(f)) {
+    if (ig) navigator.clipboard?.writeText(ready.cap).catch(() => {});
+    navigator.share(ig ? { files: [f] } : { files: [f], text: ready.cap }).then(() => ig && alertMsg('Caption copied. Paste it in Instagram.')).catch(() => {});
+    record(kind).catch(() => {}); return;
+  }
+  if (!ig && !isPhone() && canShareFiles(f)) { navigator.share({ files: [f], text: ready.cap }).catch(() => {}); record(kind).catch(() => {}); return; }
+  record(kind).then((it) => qrModal(ig ? { title: 'Post it from your phone', text: 'Instagram only takes posts and stories from a phone. Scan this with your phone camera.', url: `${location.origin}/s/${P.slug}?v=${it.id}&k=${kind}${cfg.demo ? `&area=${encodeURIComponent(it.area)}` : ""}`,
+      steps: [`Your ${kind} opens on your phone. Tap <b>Share to Instagram</b>.`, `Choose <b>${kind === 'story' ? 'Story' : 'Post'}</b> in Instagram.`, 'Your caption is copied for you. Paste it and publish.'] }
+    : { title: 'Send it to your phone', text: 'Scan this with your phone camera to open the image there, then share it anywhere.', url: `${location.origin}/s/${P.slug}?v=${it.id}&k=${kind}${cfg.demo ? `&area=${encodeURIComponent(it.area)}` : ""}` }))
+    .catch((e) => alertMsg(e.message, true));
 }
 async function preview() {
   drawActs();
@@ -409,7 +438,8 @@ async function preview() {
   if (tab === 'report' || tab === 'phone') { const top = pv.querySelector('.frame')?.scrollTop || 0;
     pv.innerHTML = tab === 'phone' ? '<div class="phonewrap"><div class="frame phone"><div id="rp"></div></div></div>' : '<div class="frame"><div id="rp"></div></div>';
     mountReport($('#rp'), D, A, { area, city, embedded: true }); pv.querySelector('.frame').scrollTop = top; }
-  else if (tab === 'post' || tab === 'story') { if (!pro) return void (pv.innerHTML = locked('Social images')); pv.innerHTML = `<div class="frame pad ${tab}"></div>`; const c = await socialImage(D, A, area, tab); if (tab === 'post' || tab === 'story') pv.firstElementChild.replaceChildren(c); }
+  else if (tab === 'post' || tab === 'story') { if (!pro) return void (pv.innerHTML = locked('Social images')); pv.innerHTML = `<div class="frame pad ${tab}"></div>`; const kind = tab, c = await socialImage(D, A, area, kind); if (tab !== kind) return; pv.firstElementChild.replaceChildren(c);
+    ready = { file: null, cap: caption(D, A, area, plainLink()) }; toFile(c, `${area.replace(/\s+/g, '-')}-${D.month.replace(' ', '-')}-${kind}.png`).then((f) => { if (tab === kind) ready.file = f; }); }
   else { if (!pro) return void (pv.innerHTML = locked('PDF downloads')); if (!P.slug) return void (pv.innerHTML = '<div class="frame pad"><p class="muted">Add your name first.</p></div>');
     pv.innerHTML = `<div class="frame"><iframe title="PDF preview" src="/r/${P.slug}/print?area=${encodeURIComponent(area)}&preview=${encodeURIComponent(JSON.stringify(current()))}"></iframe></div>`; }
 }
@@ -448,14 +478,16 @@ async function drawAccount() {
   const prov = u.app_metadata?.providers || [], google = prov.includes('google'), hasPw = prov.includes('email') || !!u.user_metadata?.has_password;
   const plan = cfg.plans[P.plan]?.name || 'None', ends = P.period_end ? new Date(P.period_end).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
   pg.innerHTML = `<div class="acct"><h2>Account</h2>
-    <div class="card2"><h3>Log in</h3><div class="kv2"><span>Email</span><b>${esc(u.email)}</b></div><div class="kv2"><span>You log in with</span><b>${[google && 'Google', hasPw && 'Email and password'].filter(Boolean).join(' or ') || 'Email'}</b></div></div>
+    <div class="card2"><h3>Log in</h3><div class="kv2"><span>Email</span><b>${esc(u.email)}</b></div><div class="kv2"><span>You log in with</span><b>${[google && 'Google', hasPw && 'Email and password'].filter(Boolean).join(' or ') || 'Email'}</b></div>${P.licence ? `<div class="kv2"><span>${P.role === 'broker' ? 'BCFSA licence' : 'Licence (V number)'}</span><b>${esc(P.licence)} ${licStatus()}</b></div>` : ''}</div>
     <form class="card2" id="pwf"><h3>${hasPw ? 'Change your password' : 'Add a password'}</h3>
       <p class="small muted">${hasPw ? 'Enter your current password, then choose a new one.' : 'You signed up with Google. Add a password if you would also like to log in with your email.'}</p>
       ${hasPw ? pwField('cur', 'Current password', 'current-password') : ''}${pwField('npw', 'New password (at least 8 characters)', 'new-password')}
       <div class="row2"><button class="btn">Save password</button>${hasPw ? '<a href="#" id="fg" class="small">Forgot your current password?</a>' : ''}</div><p id="pmsg" class="small" role="status"></p></form>
     <div class="card2"><h3>Plan and billing</h3><div class="kv2"><span>Plan</span><b>${esc(plan)}</b></div>${ends ? `<div class="kv2"><span>${P.status === 'canceled' ? 'Ends' : 'Renews'}</span><b>${ends}</b></div>` : ''}
       <p class="small muted">Change plans, update your card, download receipts or cancel.</p><div><button class="btn ghost" id="bill"${P.stripe_customer_id || cfg.demo ? '' : ' disabled'}>Manage billing</button></div></div>
+    <h3 class="acct-h">Connections</h3><div class="card2 igc" id="igc"><p class="muted small">Loading…</p></div>
     <div><button class="btn ghost" id="lo">Log out</button></div></div>`;
+  drawIg();
   main.querySelectorAll('[data-eye]').forEach((b) => (b.onclick = () => { const i = $('#' + b.dataset.eye); i.type = i.type === 'password' ? 'text' : 'password'; b.textContent = i.type === 'password' ? 'Show' : 'Hide'; }));
   $('#bill').onclick = portal; $('#lo').onclick = () => { keep(null); location.href = '/'; };
   const say = (t, ok) => { $('#pmsg').className = (ok ? 'ok' : 'err') + ' small'; $('#pmsg').textContent = t; };
@@ -469,5 +501,49 @@ async function drawAccount() {
     const r = await authPost('user', { password: npw, data: { has_password: true } }, await token()); btn.disabled = false;
     if (r.ok) { say('Saved. Use your new password next time you log in.', true); $('#pwf').reset(); return; }
     const t = await errText(r); say(t.includes('different') ? 'Your new password must be different from the old one.' : t.includes('weak') || t.includes('password') ? 'Please choose a stronger password.' : 'We could not save it. Please try again.'); };
+}
+
+/* ---------- Instagram: connect, auto-post every month, post now ---------- */
+const IGDEMO = 'mup_demo_ig';
+async function igApi(data) {
+  if (cfg.demo) { let c = null; try { c = JSON.parse(localStorage.getItem(IGDEMO) || 'null'); } catch {}
+    if (data.action === 'start') { c = { connected: true, username: (P.name || 'you').toLowerCase().replace(/[^a-z]+/g, '') + '.realty', auto: true, story: false, area: 'Greater Vancouver' }; }
+    if (data.action === 'settings' && c) for (const k of ['auto', 'story', 'area']) if (k in data) c[k] = data[k];
+    if (data.action === 'disconnect') c = null;
+    if (data.action === 'post' && c) c.last_month = D.month;
+    try { localStorage.setItem(IGDEMO, JSON.stringify(c)); } catch {}
+    return { configured: true, ...(c || { connected: false }) };
+  }
+  return api('/api/instagram', data);
+}
+const igLogo = (s = 22) => `<span class="iglogo">${sv('ig', s)}</span>`;
+async function drawIg(c) {
+  const el = $('#igc'); if (!el) return;
+  if (!isPro()) { el.innerHTML = `<div class="ighd">${igLogo()}<div><b>Instagram</b><div class="small muted">Post your report image to Instagram every month, automatically.</div></div></div><div class="lockbox"><span>Instagram posting is part of Pro.</span><button class="btn sm" id="upig">Upgrade to Pro</button></div>`; $('#upig').onclick = portal; return; }
+  if (!c) try { c = await igApi({ action: 'status' }); } catch (e) { el.innerHTML = `<p class="err small">${esc(e.message)}</p>`; return; }
+  if (!c.connected) {
+    el.innerHTML = `<div class="ighd">${igLogo()}<div><b>Instagram</b><div class="small muted">We post your new image the day each report comes out. You can also post any time.</div></div></div>
+      <div class="small muted">Needs an Instagram Business or Creator account. It is free to switch: in Instagram go to Settings, then Account type and tools.</div>
+      <div><button class="btn sm" id="igcon"${c.configured === false ? ' disabled' : ''}>${sv('ig')}Connect Instagram</button>${c.configured === false ? ' <span class="small muted">Coming soon</span>' : ''}</div>`;
+    $('#igcon').onclick = async () => { try { const j = await igApi({ action: 'start' }); if (j.url) location.href = j.url; else { alertMsg('Instagram connected.'); drawIg(j); } } catch (e) { alertMsg(e.message, true); } };
+    return;
+  }
+  const areas = areasOf(D);
+  el.innerHTML = `<div class="ighd">${igLogo()}<div><b>Instagram</b><div class="small muted">Connected as @${esc(c.username)}</div></div><span class="igok">Connected</span></div>
+    <label class="tg"><input type="checkbox" id="igauto"${c.auto ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span><span><b>Post it for me every month.</b> Your new post goes up the day the report comes out.</span></label>
+    <label class="tg"><input type="checkbox" id="igstory"${c.story ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span><span>Also post the story</span></label>
+    <label class="igarea"><span class="lbl">Area to post</span><select id="igarea">${areas.map((a) => `<option${a === c.area ? ' selected' : ''}>${a}</option>`).join('')}</select></label>
+    <p class="small muted">Uses your current colours, font and what-to-show choices.${c.last_month ? ` Last posted: ${esc(c.last_month)}.` : ''}</p>
+    <div class="igbtns" id="igbtns"><button class="btn sm" id="ignow">${sv('ig')}Post to Instagram now</button><button class="btn sm ghost" id="igoff">Disconnect</button></div>`;
+  const set = async (patch) => { try { drawIg(await igApi({ action: 'settings', ...patch })); alertMsg('Saved.'); } catch (e) { alertMsg(e.message, true); } };
+  $('#igauto').onchange = (e) => set({ auto: e.target.checked }); $('#igstory').onchange = (e) => set({ story: e.target.checked }); $('#igarea').onchange = (e) => set({ area: e.target.value });
+  $('#igoff').onclick = async () => { try { drawIg(await igApi({ action: 'disconnect' })); alertMsg('Instagram disconnected.'); } catch (e) { alertMsg(e.message, true); } };
+  $('#ignow').onclick = () => { const what = c.story ? 'post and story' : 'post';
+    $('#igbtns').innerHTML = `<div class="igask"><span>Post your ${esc(c.area)} ${what} to <b>@${esc(c.username)}</b> now? Everyone who follows you will see it.</span><div><button class="btn sm" id="igyes">Post it</button><button class="btn sm ghost" id="igno">Cancel</button></div></div>`;
+    $('#igno').onclick = () => drawIg(c);
+    $('#igyes').onclick = async (ev) => { ev.target.disabled = true; ev.target.textContent = 'Posting…';
+      try { await saveNow(); const A = agent(), jpg = async (k) => (await socialImage(D, A, c.area, k)).toDataURL('image/jpeg', 0.9);
+        const n = await igApi({ action: 'post', post: await jpg('post'), story: c.story ? await jpg('story') : undefined, caption: caption(D, A, c.area, reportLink(location.origin, P, c.area)) });
+        alertMsg('Posted to Instagram.'); drawIg(n); } catch (e) { alertMsg(e.message, true); drawIg(c); } }; };
 }
 start();

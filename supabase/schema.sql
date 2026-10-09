@@ -57,3 +57,22 @@ alter table profiles add column if not exists email_verified boolean default fal
 -- Licence check: V number (REALTOR®) or BCFSA number (mortgage broker), confirmed by the agent, verified by admin
 alter table profiles add column if not exists licence_status text default 'pending';
 alter table profiles add column if not exists licence_confirmed_at timestamptz;
+
+-- Instagram connection (Pro). Only the server (service key) can read it: tokens never reach the browser.
+create table if not exists instagram (
+  user_id uuid primary key references profiles(id) on delete cascade,
+  ig_user_id text not null,
+  username text,
+  token text not null,
+  expires_at timestamptz,
+  refreshed_at timestamptz,
+  auto boolean default false,
+  story boolean default false,
+  area text default 'Greater Vancouver',
+  last_month text,
+  last_posted_at timestamptz,
+  created_at timestamptz default now()
+);
+alter table instagram enable row level security;
+-- Public image bucket Instagram fetches the post and story from.
+insert into storage.buckets (id, name, public) values ('social', 'social', true) on conflict (id) do nothing;

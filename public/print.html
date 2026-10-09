@@ -82,7 +82,8 @@ const r = await fetch('/api/report?slug=' + encodeURIComponent(s) + (q.get('v') 
 if (!r.ok) root.textContent = j.error; else {
   const D = j.report; let A = j.agent; if (j.sample) A = SAMPLES[q.get('s')] || SAMPLES.sarah;
   if (q.get('preview')) try { const o = JSON.parse(q.get('preview')); A = { ...A, theme: o.theme || A.theme, show: o.show || A.show }; } catch {}
-  loadFonts([A.theme?.font || 'modern']);
+  A = { ...A, phone: phoneFmt(A.phone) };
+  A = { ...A, phone: phoneFmt(A.phone) }; loadFonts([A.theme?.font || 'modern']);
   const want = j.view?.area || q.get('area'), area = areasOf(D).includes(want) ? want : 'Greater Vancouver';
   const ask = askCopy(A), vars = themeVars(A.theme).replaceAll('"', "'"), sh = showOf(A), TS = typesOf(sh), anyPrice = sh.prices || sh.changes;
   document.title = `${area} Market Report ${D.month}`;

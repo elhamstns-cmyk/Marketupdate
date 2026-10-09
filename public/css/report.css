@@ -154,3 +154,5 @@
 .rpt .ctip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;padding:6px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-118%);opacity:0;transition:opacity .12s;z-index:2}
 .rpt .monthpill{display:inline-flex;align-items:center;gap:8px;background:var(--tn);color:var(--act);font-weight:800;font-size:.92rem;padding:7px 14px;border-radius:999px;width:max-content;letter-spacing:.01em;margin-bottom:4px}
 .rpt .chg.neu{color:var(--ink)}
+.rpt .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;align-items:end}.rpt .controls .field{flex-basis:auto}
+.rpt select{-webkit-appearance:none;appearance:none;padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23777' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;background-size:12px 8px}

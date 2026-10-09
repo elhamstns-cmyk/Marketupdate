@@ -8,6 +8,8 @@
 <div class="card"><h2 style="font-size:1.5rem">Campaign email list</h2><p class="muted">Everyone who started sign-up, whether they ticked the marketing box, and whether they are paying.</p><div class="row"><button class="btn ghost" id="dl">Download the list</button><span id="lout" role="status"></span></div></div>
 <div class="card"><h2 style="font-size:1.5rem">Licence checks</h2><p class="muted">Look up each number on the BCFSA public register (bcfsa.ca, "Find a licensee"), then mark it. A rejected agent's report link stops working.</p>
 <div class="row"><button class="btn ghost" id="la">Show agents</button><select id="lf" style="width:auto"><option value="pending">Waiting to check</option><option value="all">Everyone</option></select></div><div id="ag" style="display:grid;gap:8px;margin-top:12px"></div></div>
+<div class="card"><h2 style="font-size:1.5rem">Instagram auto-post</h2><p class="muted">After you publish a new month, press this once. It makes each agent's image here in your browser and posts it to their Instagram. Keep this page open until it says done. Agents already posted this month are skipped.</p>
+<div class="row"><button class="btn ghost" id="igl">Show who is waiting</button><button class="btn" id="igp">Post for everyone waiting</button></div><div id="igout" style="display:grid;gap:6px;margin-top:12px" role="status"></div></div>
 </main></div><script>
 const $=i=>document.getElementById(i);
 async function go(body){ $('out').className='';$('out').textContent='Working…'; let report; try{report=JSON.parse($('data').value)}catch{ $('out').className='err';$('out').textContent='The report data is not valid.';return}
@@ -24,4 +26,20 @@ async function agents(){const r=await fetch('/api/admin-agents',{headers:{author
 $('la').onclick=agents;$('lf').onchange=agents;
 $('ag').onclick=async e=>{const b=e.target.closest('[data-s]');if(!b)return;if(b.dataset.s==='rejected'&&!confirm('Mark as not found? Their report link will stop working.'))return;
   const r=await fetch('/api/admin-agents',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+$('tok').value},body:JSON.stringify({id:b.dataset.id,status:b.dataset.s})});if(r.ok)agents();};
+</script>
+<script type="module">
+import { socialImage, caption, reportLink } from '/js/exports.js';
+import { loadFonts } from '/js/report.js';
+const $=i=>document.getElementById(i), H=()=>({'content-type':'application/json',authorization:'Bearer '+$('tok').value});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function list(){ const r=await fetch('/api/instagram',{method:'POST',headers:H(),body:JSON.stringify({action:'autolist'})}),j=await r.json(); if(!r.ok) throw new Error(j.error); return j; }
+const line=(t,cls='')=>{ const p=document.createElement('p'); p.className='small '+cls; p.style.margin='0'; p.innerHTML=t; $('igout').appendChild(p); };
+$('igl').onclick=async()=>{ $('igout').innerHTML=''; try{ const j=await list(); line(j.agents.length?`${j.agents.length} waiting for ${esc(j.report.month)}: `+j.agents.map(a=>esc(a.agent.name)+' ('+esc(a.area)+(a.story?', post and story':'')+')').join(', '):'Nobody is waiting. Everyone with auto-post is done for '+esc(j.report.month)+'.'); }catch(e){ line(esc(e.message),'err'); } };
+$('igp').onclick=async()=>{ if(!confirm('Post to Instagram for every agent waiting?')) return; $('igout').innerHTML=''; $('igp').disabled=true;
+  try{ const {report:D,agents}=await list(); if(!agents.length) line('Nobody is waiting.');
+    loadFonts([...new Set(agents.map(a=>a.agent.theme?.font||'modern'))]); await new Promise(r=>setTimeout(r,800));
+    let ok=0; for(const a of agents){ try{ const jpg=async k=>(await socialImage(D,a.agent,a.area,k)).toDataURL('image/jpeg',0.9);
+        const r=await fetch('/api/instagram',{method:'POST',headers:H(),body:JSON.stringify({action:'autopost',id:a.id,post:await jpg('post'),story:a.story?await jpg('story'):undefined,caption:caption(D,a.agent,a.area,reportLink(location.origin,a.agent,a.area))})}),j=await r.json();
+        if(!r.ok) throw new Error(j.error); ok++; line('✓ '+esc(a.agent.name),'ok'); }catch(e){ line('✗ '+esc(a.agent.name)+': '+esc(e.message),'err'); } }
+    line(`Done. Posted for ${ok} of ${agents.length}.`); }catch(e){ line(esc(e.message),'err'); } $('igp').disabled=false; };
 </script></body></html>

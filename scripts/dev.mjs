@@ -5,7 +5,7 @@ http.createServer(async (req, res) => {
   let p = new URL(req.url, 'http://x').pathname;
   if (p.startsWith('/api/')) { const m = await import(path.resolve('api', p.slice(5) + '.js')).catch(() => null);
     if (!m) { res.statusCode = 404; return res.end('not found'); } return m.default(req, res); }
-  if (/^\/r\/[^/]+\/print$/.test(p)) p = '/print.html'; else if (/^\/r\/[^/]+$/.test(p)) p = '/report.html';
+  if (/^\/r\/[^/]+\/print$/.test(p)) p = '/print.html'; else if (/^\/r\/[^/]+$/.test(p)) p = '/report.html'; else if (/^\/s\/[^/]+$/.test(p)) p = '/share.html';
   else if (p === '/') p = '/index.html'; else if (!path.extname(p)) p += '.html';
   const f = path.join(root, p);
   if (!f.startsWith(root) || !fs.existsSync(f)) { res.statusCode = 404; return res.end('not found'); }

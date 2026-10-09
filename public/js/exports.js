@@ -1,8 +1,8 @@
 // Ready-to-send formats: client email, social images.
-import { typesNote, T1, money, get, market, summary, readout, first, areasOf, slug, palette, roleLabel, showOf, typesOf } from './report.js';
+import { phoneFmt, typesNote, T1, money, get, market, summary, readout, first, areasOf, slug, palette, roleLabel, showOf, typesOf } from './report.js';
 
 export const reportLink = (base, A, area, v) => `${base}/r/${A.slug}` + (v ? `?v=${v}` : area && area !== 'Greater Vancouver' ? `#${slug(area)}` : '');
-const sign = (A) => [A.name, A.brokerage, A.contact_email, A.phone].filter(Boolean);
+const sign = (A) => [A.name, A.brokerage, A.contact_email, phoneFmt(A.phone)].filter(Boolean);
 const pct = (v) => (v == null ? '' : `${v > 0 ? 'up' : 'down'} ${Math.abs(v).toFixed(1)}% from last year`);
 
 const priceLines = (D, A, area) => { const sh = showOf(A); return sh.prices || sh.changes ? typesOf(sh).map((t) => { const o = get(D, area, t); if (!o.price) return null;
@@ -97,7 +97,7 @@ export async function socialImage(D, A, area, kind = 'post') {
   if (photo) { x.save(); x.beginPath(); x.arc(M + R, cy, R, 0, Math.PI * 2); x.clip(); const s = Math.max((2 * R) / photo.width, (2 * R) / photo.height); x.drawImage(photo, M + R - (photo.width * s) / 2, cy - (photo.height * s) / 2, photo.width * s, photo.height * s); x.restore();
     x.strokeStyle = P.fill || P.ac; x.lineWidth = 4; x.beginPath(); x.arc(M + R, cy, R, 0, Math.PI * 2); x.stroke(); fx = M + R * 2 + 24; }
   line(A.name || '', cy - S(36), 34, { font: hf, weight: 700, X: fx, max: 470 }); line([roleLabel(A), A.brokerage].filter(Boolean).join(' · '), cy + S(8), 22, { weight: 500, X: fx, max: 470 });
-  line(A.phone || '', cy - S(34), 30, { weight: 700, align: 'right', X: W - M, max: 380 }); line(A.contact_email || '', cy + S(8), 22, { weight: 500, align: 'right', X: W - M, max: 400 });
+  line(phoneFmt(A.phone), cy - S(34), 30, { weight: 700, align: 'right', X: W - M, max: 380 }); line(A.contact_email || '', cy + S(8), 22, { weight: 500, align: 'right', X: W - M, max: 400 });
   x.font = `400 15px ${bf}`; x.fillStyle = P.ink; x.textAlign = 'center'; x.fillText(`Source: Greater Vancouver REALTORS®, ${D.month}. Benchmark prices are MLS® HPI figures.`, W / 2, story ? H - 268 : H - 34);
   return c;
 }

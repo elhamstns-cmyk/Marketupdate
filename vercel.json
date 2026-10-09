@@ -1,7 +1,17 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/r/:slug/print", "destination": "/print" },
-    { "source": "/r/:slug", "destination": "/report" }
+    {
+      "source": "/r/:slug/print",
+      "destination": "/print"
+    },
+    {
+      "source": "/r/:slug",
+      "destination": "/report"
+    },
+    {
+      "source": "/s/:slug",
+      "destination": "/share"
+    }
   ]
 }
