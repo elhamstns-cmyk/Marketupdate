@@ -7,7 +7,9 @@ export default async function handler(req, res) {
     const u = await getUser(req);
     if (!u) return json(res, 401, { error: 'Please sign in.' });
     let [p] = await db(`profiles?id=eq.${u.id}`);
-    if (!p) [p] = await db('profiles', { method: 'POST', data: { id: u.id, email: u.email, contact_email: u.email } });
+    const google = (u.app_metadata?.providers || [u.app_metadata?.provider]).includes('google');
+    if (!p) [p] = await db('profiles', { method: 'POST', data: { id: u.id, email: u.email, contact_email: u.email, email_verified: google } });
+    else if (google && !p.email_verified) [p] = await db(`profiles?id=eq.${u.id}`, { method: 'PATCH', data: { email_verified: true } });
 
     if (req.method === 'POST') {
       const b = await body(req), patch = {};
@@ -25,6 +27,7 @@ export default async function handler(req, res) {
     }
     if (p.name && !p.slug) { let sl = slugify(p.name); if ((await db(`profiles?slug=eq.${sl}&select=id`)).length) sl += '-' + Math.random().toString(36).slice(2, 5); [p] = await db(`profiles?id=eq.${u.id}`, { method: 'PATCH', data: { slug: sl } }); }
     const active = isActive(p);
-    json(res, 200, { profile: p, active, report: active ? forPlan(await latestReport(), p.plan) : null });
+    // Not subscribed yet: they still get the Greater Vancouver report, to preview it with their own branding.
+    json(res, 200, { profile: p, active, report: forPlan(await latestReport(), active ? p.plan : 'basic') });
   } catch (err) { console.error(err); json(res, 500, { error: 'Something went wrong. Please try again.' }); }
 }

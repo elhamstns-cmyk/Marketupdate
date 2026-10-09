@@ -163,3 +163,17 @@ input[type=text],input[type=email],input[type=tel],input[type=password],select,t
 .cvp-a em{position:absolute;right:12%;top:14%;width:20px;height:20px;border-radius:50%;background:#e8d9cc;border:2px solid #fff}
 .cvp-b em{position:absolute;right:10%;top:12%;width:17px;height:24px;border-radius:4px;background:#e8d9cc}
 .cvp-c b{top:34%;height:42%}.cvp-c em{position:absolute;left:10%;top:6%;width:13px;height:13px;border-radius:50%;background:#e8d9cc;border:1.5px solid var(--a)}
+/* before paying: build your report */
+.pvlay{max-width:1240px;margin:0 auto;padding:6px clamp(14px,3vw,24px) 40px;display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start;text-align:left}
+.pvpanel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;display:grid;gap:14px;position:sticky;top:16px}
+.pvpanel h2{font-size:1.5rem}.pvpanel>p.muted{margin-top:-6px}
+.pvframe{position:relative;background:#fff;border-radius:20px;border:1px solid var(--line);box-shadow:0 14px 40px rgba(16,35,28,.1);overflow:hidden;min-height:600px}
+.pvframe .wm{position:absolute;inset:0;pointer-events:none;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
+.pvframe .wm span{position:sticky;top:30vh;transform:rotate(-24deg);font-size:min(110px,12vw);font-weight:900;letter-spacing:.08em;color:rgba(16,35,28,.06);white-space:nowrap;margin-top:200px}
+.ptag{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:.8rem;font-weight:700;padding:6px 14px;border-radius:20px;z-index:3;white-space:nowrap}
+.mine{display:flex;align-items:center;gap:14px;background:var(--tint);border-radius:18px;padding:14px 18px;text-align:left;width:min(620px,100%)}
+.mine img{width:52px;height:52px;border-radius:50%;object-fit:cover;flex:none}.mine b{display:block}.mine span{font-size:.86rem;color:var(--mut)}.mine a{color:var(--p);font-weight:700}
+.note.warn{background:#fff6e5;border:1px solid #f0dcae}.note.warn a{color:var(--p);font-weight:700}
+@media (max-width:900px){.pvlay{grid-template-columns:1fr}.pvpanel{position:static}}
+.pvsee{display:none;text-align:center;color:var(--p);font-weight:700;font-size:.92rem}
+@media (max-width:900px){.pvsee{display:block}.steps{font-size:.78rem;gap:6px}.steps i{width:12px}}

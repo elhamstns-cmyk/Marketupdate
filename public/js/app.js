@@ -17,7 +17,15 @@ let recovering = false;
 if (location.hash.includes('access_token=')) { const h = new URLSearchParams(location.hash.slice(1)); recovering = h.get('type') === 'recovery';
   keep({ access_token: h.get('access_token'), refresh_token: h.get('refresh_token'), expires_in: Number(h.get('expires_in')) }); history.replaceState(null, '', '/app'); }
 // Email links (verify email, reset password) come to our own site with a one-time code, never to the sign-in provider's address.
-let notice = '';
+let notice = '', noticeOk = '';
+// Ask for a "Confirm your email" link. It doesn't block anything; it unlocks sending to clients later.
+const sendConfirm = (email) => fetch(`${SB}/auth/v1/otp`, { method: 'POST', headers: H, body: JSON.stringify({ email, create_user: false }) }).then((r) => r.ok).catch(() => false);
+if (qs.get('confirm')) {
+  const r = await fetch('/api/confirm', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token_hash: qs.get('confirm') }) });
+  const j = await r.json().catch(() => ({}));
+  if (r.ok && j.session) { keep(j.session); noticeOk = 'Thanks, your email is confirmed.'; } else notice = j.error || 'That link has expired. You can ask for a new one from your dashboard.';
+  history.replaceState(null, '', '/app');
+}
 if (qs.get('token_hash')) {
   const type = ['email', 'signup', 'recovery', 'email_change', 'invite', 'magiclink'].includes(qs.get('type')) ? qs.get('type') : 'email';
   const r = await fetch(`${SB}/auth/v1/verify`, { method: 'POST', headers: H, body: JSON.stringify({ type, token_hash: qs.get('token_hash') }) });
@@ -40,7 +48,7 @@ async function api(path, data) {
   if (!r.ok) throw new Error(j.error || 'Something went wrong.');
   return j;
 }
-const STEPS = ['Email', 'Verify', 'Plan', 'Payment', 'Your report'];
+const STEPS = ['Account', 'Your report', 'Plan', 'Payment'];
 const steps = (n) => `<div class="steps">${STEPS.map((s, i) => `${i ? '<i></i>' : ''}<span class="${i < n ? 'dn' : i === n ? 'on' : ''}"><b>${i < n ? '✓' : i + 1}</b>${s}</span>`).join('')}</div>`;
 const authPost = (path, body, tok) => fetch(`${SB}/auth/v1/${path}`, { method: path === 'user' ? 'PUT' : 'POST', headers: { ...H, ...(tok ? { authorization: `Bearer ${tok}` } : {}) }, body: JSON.stringify(body) });
 const errText = async (r) => { const j = await r.json().catch(() => ({})); return (j.msg || j.error_description || j.message || '').toLowerCase(); };
@@ -68,7 +76,7 @@ function showLogin(mode) {
     btn.disabled = true;
     if (signup) {
       const r = await fetch(`${SB}/auth/v1/signup?redirect_to=${encodeURIComponent(location.origin + '/app')}`, { method: 'POST', headers: H, body: JSON.stringify({ email, password }) });
-      if (r.ok) { const j = await r.json(); if (j.access_token) { keep(j); start(); } else showVerify(email); return; }
+      if (r.ok) { const j = await r.json(); if (j.access_token) { keep(j); sendConfirm(email); start(); } else showVerify(email); return; }
       const t = await errText(r); btn.disabled = false;
       $('#lerr').textContent = t.includes('already') ? 'There is already an account with this email. Log in instead.' : t.includes('password') ? 'Please choose a stronger password.' : 'We could not create your account. Please try again in a minute.';
     } else {
@@ -79,7 +87,7 @@ function showLogin(mode) {
     } };
 }
 function showVerify(email) {
-  main.innerHTML = `<div class="c">${steps(1)}<div class="box"><h3 style="font-size:1.6rem">Verify your email</h3>
+  main.innerHTML = `<div class="c">${steps(0)}<div class="box"><h3 style="font-size:1.6rem">Verify your email</h3>
     <p class="muted">We sent a link to <b style="color:var(--ink)">${esc(email)}</b>. Click it to verify your email and continue. You can close this tab.</p>
     <p class="small muted">Didn't get it? Check your spam folder, or <a href="#" id="again" style="color:var(--p);font-weight:700">send it again</a>.</p><p class="ok small" id="lerr" role="status"></p></div></div>`;
   $('#again').onclick = async (e) => { e.preventDefault(); const r = await authPost('resend', { type: 'signup', email }); $('#lerr').className = r.ok ? 'ok small' : 'err small'; $('#lerr').textContent = r.ok ? 'Sent again. Check your inbox.' : 'Please wait a minute before asking again.'; };
@@ -105,16 +113,40 @@ function showPlans() {
   let cycle = want?.cycle || 'yearly'; const pl = cfg.plans;
   const checkout = async (plan, btn) => { if (btn) { btn.disabled = true; btn.textContent = 'Opening secure checkout…'; }
     try { location.href = (await api('/api/checkout', { plan, cycle })).url; } catch (err) { paint(); $('#plerr').textContent = err.message; } };
-  const paint = () => { main.innerHTML = `<div class="c">${steps(2)}<h2>Choose your plan</h2>
+  const mine = P.name ? `<div class="mine">${P.photo ? `<img src="${P.photo}" alt="">` : ''}<div><b>${esc(P.name)}'s market report</b><span>Share it the moment you subscribe. Your link, PDF and posts are waiting.</span></div><a href="#" data-back style="margin-left:auto">Edit</a></div>` : '';
+  const paint = () => { main.innerHTML = `<div class="c">${steps(2)}<h2>${P.name ? 'Your report is ready. Unlock it.' : 'Choose your plan'}</h2>${mine}
     <div class="tog" role="group" aria-label="Billing"><button type="button" data-c="monthly" aria-pressed="${cycle === 'monthly'}">Monthly</button><button type="button" data-c="yearly" aria-pressed="${cycle === 'yearly'}">Yearly<span class="save">2 months free</span></button></div>
     <div class="plans">
       <div class="card plan"><h3>${pl.basic.name}</h3><div class="pr">$${pl.basic[cycle]}<small> / ${cycle === 'yearly' ? 'year' : 'month'}</small></div><p class="muted">Greater Vancouver report with your name, photo and logo, in a clean white and blue design.</p><button class="btn ghost wide" data-p="basic">Choose ${pl.basic.name}</button></div>
       <div class="card plan rec"><h3>${pl.pro.name}</h3><div class="pr">$${pl.pro[cycle]}<small> / ${cycle === 'yearly' ? 'year' : 'month'}</small></div><p class="muted">Your own colours, fonts and styles, every city, PDF and social images.</p><button class="btn wide" data-p="pro">Choose ${pl.pro.name}</button></div>
     </div><p class="err" id="plerr" role="status"></p><p class="small muted">Prices in Canadian dollars, plus GST. Have a promo code? Enter it at checkout.</p></div>`; };
   paint();
-  main.onclick = (e) => { const c = e.target.closest('[data-c]'), p = e.target.closest('[data-p]'); if (c) { cycle = c.dataset.c; paint(); } if (p) checkout(p.dataset.p, p); };
+  main.onclick = (e) => { if (e.target.closest('[data-back]')) { e.preventDefault(); return showPreview(); } const c = e.target.closest('[data-c]'), p = e.target.closest('[data-p]'); if (c) { cycle = c.dataset.c; paint(); } if (p) checkout(p.dataset.p, p); };
   // Came from the pricing page with a plan already chosen: go straight to payment, once.
   if (want && ['basic', 'pro'].includes(want.plan) && !sessionStorage.getItem('mup_went')) { sessionStorage.setItem('mup_went', '1'); checkout(want.plan, $(`[data-p=${want.plan}]`)); }
+}
+
+/* ---------- your report, before paying ---------- */
+function showPreview() {
+  main.onclick = null;
+  main.innerHTML = `<div class="c" style="padding-bottom:0">${steps(1)}</div><div class="pvlay"><div class="pvpanel"><h2>Let's make it yours</h2><p class="muted small">Add your details and watch your report update. This is exactly what your clients will see.</p>
+    ${[['name', 'Your name', 'text', 'Jane Smith', 'name'], ['brokerage', 'Brokerage', 'text', 'Your brokerage', 'organization'], ['phone', 'Phone', 'tel', '604-555-0100', 'tel']].map(([k, l, t, ph, ac]) => `<div class="field"><label for="pv-${k}">${l}</label><input id="pv-${k}" type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}" autocomplete="${ac}"></div>`).join('')}
+    <div class="two">${['photo', 'logo'].map((k) => `<div class="upw"><label class="up"><span id="ph-${k}"></span><span>Your ${k}<br><b id="lb-${k}"></b></span><input type="file" accept="image/*" data-img="${k}"></label><button type="button" class="rm" data-rm="${k}" aria-label="Remove your ${k}" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>`).join('')}</div>
+    <a href="#" class="pvsee" id="pvsee">See your report preview ↓</a><button class="btn wide" id="pvgo">Looks great. Choose my plan</button><p class="err small" id="pverr" role="status"></p><p class="small muted center" style="margin-top:-6px">You can change everything later.</p></div>
+    <div class="pvframe"><div id="rp"></div><div class="wm" aria-hidden="true"><span>PREVIEW</span></div><span class="ptag">Your report · preview</span></div></div>`;
+  thumbs(); loadFonts(['modern']);
+  const draw = () => mountReport($('#rp'), D, { ...P, theme: { style: 'modern', ...STYLES.modern } }, { embedded: true });
+  if (D) draw(); else $('#rp').innerHTML = '<p class="muted" style="padding:40px;text-align:center">Your first report is on its way.</p>';
+  const panel = $('.pvpanel'); let t;
+  panel.addEventListener('input', (e) => { const k = e.target.dataset.k; if (!k) return; P[k] = e.target.value.trim(); touch(k); clearTimeout(t); t = setTimeout(() => D && draw(), 150); });
+  panel.addEventListener('change', async (e) => { const k = e.target.dataset.img; if (!k || !e.target.files[0]) return;
+    try { P[k] = await shrink(e.target.files[0], k === 'logo' ? 520 : 400, k === 'logo' ? 'image/png' : 'image/jpeg'); touch(k); thumbs(); D && draw(); } catch { alertMsg('That image could not be read. Try a JPG or PNG.', true); } e.target.value = ''; });
+  panel.addEventListener('click', async (e) => { const r = e.target.closest('[data-rm]'); if (r) { P[r.dataset.rm] = ''; touch(r.dataset.rm); thumbs(); D && draw(); return; }
+    if (e.target.id === 'pvsee') { e.preventDefault(); return $('.pvframe').scrollIntoView({ behavior: 'smooth' }); }
+    if (e.target.id !== 'pvgo') return;
+    if (!P.name) { $('#pverr').textContent = 'Add your name so it shows on your report.'; return $('#pv-name').focus(); }
+    e.target.disabled = true; await saveNow(); sessionStorage.setItem('mup_previewed', '1'); showPlans(); });
+  if (!P.name) $('#pv-name').focus();
 }
 
 /* ---------- dashboard ---------- */
@@ -176,15 +208,15 @@ async function start() {
   if (recovering) { recovering = false; return showNewPassword(); }
   try {
     let j = await api('/api/me');
-    if (cfg.demo) { P = { plan: qs.get('plan') === 'basic' ? 'basic' : 'pro', slug: 'demo', ...JSON.parse(localStorage.getItem('mup_demo_profile') || '{}') }; if (qs.get('plan')) P.plan = qs.get('plan') === 'basic' ? 'basic' : 'pro'; D = j.report; active = true; $('#logout').hidden = false; }
+    if (cfg.demo) { P = { plan: qs.get('plan') === 'basic' ? 'basic' : 'pro', slug: 'demo', ...JSON.parse(localStorage.getItem('mup_demo_profile') || '{}') }; if (qs.get('plan')) P.plan = qs.get('plan') === 'basic' ? 'basic' : 'pro'; D = j.report; active = !qs.has('newuser'); $('#logout').hidden = false; }
     else {
       for (let i = 0; qs.has('welcome') && !j.active && i < 8; i++) { main.innerHTML = `<div class="c">${steps(3)}<p class="lead">Confirming your payment…</p></div>`; await new Promise((r) => setTimeout(r, 1500)); j = await api('/api/me'); }
       P = j.profile; D = j.report; active = j.active; $('#logout').hidden = false;
     }
   } catch (e) { if (e.message !== 'signed out') main.innerHTML = `<div class="c"><p class="err">${esc(e.message)}</p></div>`; return; }
-  if (!active) return showPlans();
-  sessionStorage.removeItem('mup_want'); sessionStorage.removeItem('mup_went');
   if (!P.role && sessionStorage.getItem('mup_role')) { P.role = sessionStorage.getItem('mup_role') === 'broker' ? 'broker' : 'realtor'; dirty.add('role'); }
+  if (!active) return sessionStorage.getItem('mup_previewed') && P.name ? showPlans() : showPreview();
+  sessionStorage.removeItem('mup_want'); sessionStorage.removeItem('mup_went'); sessionStorage.removeItem('mup_previewed');
   await loadHistory(); show(qs.get('view') || 'create');
 }
 $('#logout').onclick = () => { keep(null); location.href = '/'; };
@@ -204,7 +236,7 @@ function show(v) {
 }
 /* saving: only what changed, shortly after the last change */
 const dirty = new Set(); let saveT, saving = null;
-function touch(k) { dirty.add(k); $('#saved').textContent = 'Saving…'; clearTimeout(saveT); saveT = setTimeout(saveNow, 900); }
+function touch(k) { dirty.add(k); if ($('#saved')) $('#saved').textContent = 'Saving…'; clearTimeout(saveT); saveT = setTimeout(saveNow, 900); }
 async function saveNow() {
   clearTimeout(saveT); if (saving) await saving; if (!dirty.size) return;
   const data = {}; for (const k of dirty) data[k] = P[k]; dirty.clear();
@@ -220,7 +252,7 @@ function dashboard() {
   if (!D) { pg.innerHTML = `<div class="c">${steps(4)}<h2>Your first report is on its way</h2><p class="lead">We will email you as soon as this month's report is published.</p></div>`; return; }
   loadFonts(Object.keys(FONTS));
   pg.innerHTML = `<div class="app"><div class="side">
-    ${cfg.demo ? '<p class="note">Preview mode: nothing is saved to a server and no payment is taken.</p>' : ''}${qs.has('welcome') ? `<p class="note ok">You are subscribed${P.name ? ', ' + esc(P.name.trim().split(/\s+/)[0]) : ''}. Welcome aboard.</p>` : ''}
+    ${cfg.demo ? '<p class="note">Preview mode: nothing is saved to a server and no payment is taken.</p>' : ''}${noticeOk ? `<p class="note ok">${esc(noticeOk)}</p>` : ''}${!cfg.demo && P.email_verified === false ? `<p class="note warn" id="cfm">Please confirm your email. We sent a link to <b>${esc(P.email || '')}</b>. <a href="#" id="cfmagain">Send it again</a></p>` : ''}${qs.has('welcome') ? `<p class="note ok">You are subscribed${P.name ? ', ' + esc(P.name.trim().split(/\s+/)[0]) : ''}. Welcome aboard.</p>` : ''}
     <div class="sec"><div class="hd"><h3>1 · Your details</h3><span class="ok small" id="saved"></span></div>
       <div class="two">${DETAILS.map(([k, l, t, ph]) => `<input type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}" aria-label="${l}">`).join('')}
         <select data-k="role" aria-label="I am a"><option value="realtor"${P.role !== 'broker' ? ' selected' : ''}>I'm a REALTOR®</option><option value="broker"${P.role === 'broker' ? ' selected' : ''}>I'm a mortgage broker</option></select></div>
@@ -231,7 +263,8 @@ function dashboard() {
     <div class="main"><div class="hd"><div><h3 style="font-size:1.35rem">Your ${esc(D.month)} report</h3><span class="live">Live preview. Changes show instantly.</span></div>
       <div class="seg" id="tabs" role="group" aria-label="Preview">${[['report', 'Report'], ['phone', 'Phone'], ['post', 'Post'], ['story', 'Story'], ['pdf', 'PDF']].map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${k === tab}">${l}</button>`).join('')}</div></div>
       <div id="pv"></div></div></div>`;
-  thumbs(); drawLook(); drawShow(); drawSend(); preview();
+  thumbs(); drawLook(); drawShow(); drawSend(); preview(); noticeOk = '';
+  if ($('#cfmagain')) $('#cfmagain').onclick = async (e) => { e.preventDefault(); const ok = await sendConfirm(P.email); alertMsg(ok ? 'Sent. Check your inbox.' : 'Please wait a minute and try again.', !ok); };
   const side = $('.side');
   side.addEventListener('input', (e) => { const k = e.target.dataset.k; if (!k) return; let v = e.target.value.trim();
     if (k === 'website' && v && !/^https?:\/\//.test(v)) v = 'https://' + v; P[k] = v; touch(k); later(); if (k === 'name') drawSend(); });

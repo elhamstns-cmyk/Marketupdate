@@ -50,3 +50,6 @@ create table if not exists exports (
 );
 create index if not exists exports_user_time on exports (user_id, created_at desc);
 alter table exports enable row level security;
+
+-- Email confirmed by clicking our link (Google sign-ins count as confirmed)
+alter table profiles add column if not exists email_verified boolean default false;
