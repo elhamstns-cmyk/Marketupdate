@@ -5,7 +5,7 @@
 body{background:var(--tint);margin:0}
 .sh{max-width:460px;margin:0 auto;padding:20px 16px 36px;display:grid;gap:16px}
 .sh h1{font-size:1.35rem;margin:0}.sh .who{font-size:.9rem;color:var(--mut);margin:2px 0 0}
-.img{background:#fff;border-radius:18px;padding:10px;box-shadow:0 8px 30px rgba(16,35,28,.08);line-height:0}.img canvas{width:100%;height:auto;border-radius:10px}
+.img{background:#fff;border-radius:18px;padding:10px;box-shadow:0 8px 30px rgba(16,35,28,.08);line-height:0;display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory}.img canvas{width:100%;flex:none;height:auto;border-radius:10px;scroll-snap-align:center}
 .story .img{max-width:300px;justify-self:center;width:100%}
 .btns{display:grid;gap:10px}.btns .btn{display:flex;align-items:center;justify-content:center;gap:2px}
 .ig{background:linear-gradient(135deg,#f58529,#dd2a7b 55%,#8134af);border-color:transparent}
@@ -15,7 +15,7 @@ body{background:var(--tint);margin:0}
 <div class="sh" id="root"><p class="msg">Getting your image ready…</p></div>
 <div id="toast" role="status"></div>
 <script type="module">
-import { loadFonts, areasOf } from '/js/report.js';
+import { loadFonts, areaList } from '/js/report.js';
 import { socialImage, caption, reportLink } from '/js/exports.js';
 import { sv, toFile, canShareFiles } from '/js/share.js';
 const slug = location.pathname.split('/')[2], q = new URLSearchParams(location.search), root = document.getElementById('root');
@@ -24,19 +24,21 @@ const r = await fetch('/api/report?slug=' + encodeURIComponent(slug) + (q.get('v
 if (!r.ok) root.innerHTML = `<p class="msg">${j.error || 'This image is not available right now.'}</p>`;
 else {
   const A = { ...j.agent, slug }, D = j.report, kind = j.view?.kind === 'story' || (!j.view && q.get('k') === 'story') ? 'story' : 'post';
-  let area = j.view?.area || q.get('area') || 'Greater Vancouver'; if (!areasOf(D).includes(area)) area = 'Greater Vancouver';
-  loadFonts([A.theme?.font || 'modern']);
-  const c = await socialImage(D, A, area, kind), name = `${area.replace(/\s+/g, '-')}-${D.month.replace(' ', '-')}-${kind}.png`;
-  const cap = caption(D, A, area, reportLink(location.origin, A, area, j.view ? q.get('v') : '')), file = await toFile(c, name), can = canShareFiles(file);
+  const L = areaList(j.view?.area || q.get('area'), D), area = L.join(', ');
+  loadFonts([A.theme?.font || 'modern']); await new Promise((r) => setTimeout(r, 300));
+  const cs = []; for (const a of L) cs.push(await socialImage(D, A, a, kind));
+  const names = L.map((a) => `${a.replace(/\s+/g, '-')}-${D.month.replace(' ', '-')}-${kind}.png`), c = cs[0], name = names[0];
+  const cap = caption(D, A, L.join('|'), reportLink(location.origin, A, L, j.view ? q.get('v') : '')), files = await Promise.all(cs.map((x, i) => toFile(x, names[i]))), file = files[0];
+  const can = canShareFiles(file) && (!navigator.canShare || navigator.canShare({ files }));
   root.className = 'sh ' + kind;
-  root.innerHTML = `<div><h1>Your ${area} ${kind}</h1><p class="who">${D.month} market update${A.name ? ' · ' + A.name.replace(/[<>&]/g, '') : ''}</p></div><div class="img"></div>
+  root.innerHTML = `<div><h1>Your ${area} ${kind}${L.length > 1 ? (kind === 'post' ? ` (${L.length} slides)` : `s`) : ''}</h1><p class="who">${D.month} market update${A.name ? ' · ' + A.name.replace(/[<>&]/g, '') : ''}</p></div><div class="img"></div>
     <div class="btns">${can ? `<button class="btn wide ig" id="ig">${sv('ig')}Share to Instagram</button>` : ''}<button class="btn wide ${can ? 'ghost' : ''}" id="save">${sv('dl')}Save image</button><button class="btn wide ghost" id="cap">${sv('cap')}Copy caption</button></div>
     <div class="how"><b>How to post it</b><ol>${can ? `<li>Tap <b>Share to Instagram</b>. Your caption is copied at the same time.</li><li>Pick <b>Instagram</b>, then <b>${kind === 'story' ? 'Stories' : 'Feed'}</b>.</li><li>Paste the caption and share.</li>`
       : '<li>Tap <b>Save image</b>.</li><li>Open Instagram and choose the image.</li><li>Tap <b>Copy caption</b>, paste it and share.</li>'}</ol></div>`;
-  root.querySelector('.img').appendChild(c);
+  cs.forEach((x) => root.querySelector('.img').appendChild(x));
   const copyCap = () => navigator.clipboard?.writeText(cap).then(() => true, () => false) || Promise.resolve(false);
   document.getElementById('cap').onclick = async () => toast((await copyCap()) ? 'Caption copied.' : 'Copying was blocked. Press and hold to copy instead.');
-  document.getElementById('save').onclick = () => { if (can) return navigator.share({ files: [file] }).catch(() => {}); const a = document.createElement('a'); a.download = name; a.href = c.toDataURL('image/png'); a.click(); };
-  if (can) document.getElementById('ig').onclick = () => { copyCap().then((ok) => ok && toast('Caption copied. Paste it in Instagram.')); navigator.share({ files: [file] }).catch(() => {}); };
+  document.getElementById('save').onclick = () => { if (can) return navigator.share({ files }).catch(() => {}); cs.forEach((x, i) => { const a = document.createElement('a'); a.download = names[i]; a.href = x.toDataURL('image/png'); a.click(); }); };
+  if (can) document.getElementById('ig').onclick = () => { copyCap().then((ok) => ok && toast('Caption copied. Paste it in Instagram.')); navigator.share({ files }).catch(() => {}); };
 }
 </script></body></html>

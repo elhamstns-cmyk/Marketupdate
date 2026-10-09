@@ -84,3 +84,38 @@ export function barChart(el, rows, { label = '', interactive = true, width, heig
     g.addEventListener('pointerenter', on); g.addEventListener('pointerdown', on); g.addEventListener('pointerleave', () => (tip.style.opacity = 0)); });
 }
 export { monthLong };
+
+// Several areas on one chart, one coloured line each. mode 'pct' starts every line at 0% (fair to compare
+// areas with very different prices); mode 'price' shows dollars. list: [{ name, color, rows: [[month, value]] }]
+export function multiChart(el, list, { mode = 'pct', interactive = true, width, height, label = '' } = {}) {
+  list = list.filter((s) => s.rows.length > 1);
+  if (!list.length) { el.innerHTML = ''; return; }
+  const keys = [...new Set(list.flatMap((s) => s.rows.map((r) => r[0])))].sort(), n = keys.length;
+  const ser = list.map((s) => { const m = Object.fromEntries(s.rows), base = s.rows[0][1];
+    return { ...s, v: keys.map((k) => (m[k] == null ? null : mode === 'pct' ? ((m[k] - base) / base) * 100 : m[k])) }; });
+  const all = ser.flatMap((s) => s.v.filter((v) => v != null)), mn = Math.min(...all, mode === 'pct' ? 0 : Infinity), mx = Math.max(...all, mode === 'pct' ? 0 : -Infinity);
+  const W = Math.max(300, width || el.clientWidth || 640), H = height || (W < 500 ? 210 : 250), l = 4, r = 58, t = 18, b = 26, pad = (mx - mn || 1) * 0.12, lo = mn - pad, hi = mx + pad;
+  const x = (i) => l + (i * (W - l - r)) / Math.max(1, n - 1), y = (v) => t + ((hi - v) / (hi - lo)) * (H - t - b);
+  const dp = Math.abs(hi - lo) < 6 ? 1 : 0, fmt = (v) => { if (mode !== 'pct') return short(v); const t = Math.abs(v).toFixed(dp); return +t === 0 ? '0%' : `${v > 0 ? '+' : '−'}${t}%`; };
+  let g = ''; for (let i = 0; i < 4; i++) { const v = lo + ((hi - lo) * (i + 0.5)) / 4; g += `<line x1="${l}" x2="${W - r + 6}" y1="${y(v)}" y2="${y(v)}" stroke="var(--ln)"/><text x="${W - 2}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--mut)">${fmt(v)}</text>`; }
+  if (mode === 'pct') g += `<line x1="${l}" x2="${W - r + 6}" y1="${y(0)}" y2="${y(0)}" stroke="var(--mut)" stroke-dasharray="4 4" opacity=".6"/>`;
+  const step = W < 500 ? 3 : 2; g += keys.map((k, i) => ((n - 1 - i) % step === 0 ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--mut)">${SPAN(k)}</text>` : '')).join('');
+  ser.forEach((s, j) => { let d = '', pen = false; s.v.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(v).toFixed(1); pen = true; });
+    g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${j ? 2.3 : 3}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const li = s.v.length - 1 - [...s.v].reverse().findIndex((v) => v != null); g += `<circle cx="${x(li)}" cy="${y(s.v[li])}" r="4.5" fill="${s.color}" stroke="var(--bg)" stroke-width="2"/>`; });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}"${width ? ` width="${width}"` : ''} role="img" aria-label="${label}">${g}${interactive ? `<line class="hx" y1="${t}" y2="${H - b}" stroke="var(--mut)" stroke-dasharray="3 3" opacity="0"/><rect width="${W}" height="${H}" fill="transparent"/>` : ''}</svg>${interactive ? '<div class="ctip mtip"></div>' : ''}`;
+  if (!interactive) return;
+  const sv = el.querySelector('svg'), tip = el.querySelector('.ctip'), hx = sv.querySelector('.hx');
+  const show = (e) => { const bb = sv.getBoundingClientRect(), px = ((e.clientX - bb.left) / bb.width) * W, i = Math.max(0, Math.min(n - 1, Math.round(((px - l) / (W - l - r)) * (n - 1))));
+    hx.setAttribute('x1', x(i)); hx.setAttribute('x2', x(i)); hx.setAttribute('opacity', 1);
+    tip.innerHTML = `<b>${monthLong(keys[i])}</b>` + ser.map((s) => (s.v[i] == null ? '' : `<span><i style="background:${s.color}"></i>${s.name}: ${mode === 'pct' ? fmt(s.v[i]) : money(s.v[i])}</span>`)).join('');
+    tip.style.left = Math.min(Math.max((x(i) / W) * 100, 18), 82) + '%'; tip.style.top = '8px'; tip.style.opacity = 1; };
+  sv.addEventListener('pointermove', show); sv.addEventListener('pointerdown', show);
+  sv.addEventListener('pointerleave', () => { tip.style.opacity = 0; hx.setAttribute('opacity', 0); });
+}
+// Colours for compared areas: the agent's colour first, then ones that stand apart from it.
+export function areaColours(ac) {
+  const h = (c) => { const m = /^#?([0-9a-f]{6})$/i.exec(c || ''); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [0, 0, 0]; };
+  const far = (a, b) => { const p = h(a), q = h(b); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) > 110; };
+  return [ac, ...['#e0882f', '#3b6fd8', '#9b4fc4', '#2a9d8f', '#c2452d'].filter((c) => far(c, ac))].slice(0, 4);
+}

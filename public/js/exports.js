@@ -1,22 +1,28 @@
 // Ready-to-send formats: client email, social images.
 import { phoneFmt, typesNote, T1, money, get, market, summary, readout, first, areasOf, slug, palette, roleLabel, showOf, typesOf } from './report.js';
 
-export const reportLink = (base, A, area, v) => `${base}/r/${A.slug}` + (v ? `?v=${v}` : area && area !== 'Greater Vancouver' ? `#${slug(area)}` : '');
+// A link to the report. Several areas (array or "A|B") are kept in the address after #.
+export const reportLink = (base, A, area, v) => { const L = (Array.isArray(area) ? area : String(area || '').split('|')).filter(Boolean);
+  return `${base}/r/${A.slug}` + (v ? `?v=${v}` : L.length > 1 || (L[0] && L[0] !== 'Greater Vancouver') ? `#${L.map(slug).join('+')}` : ''); };
+const listOf = (a) => (Array.isArray(a) ? a : String(a || 'Greater Vancouver').split('|')).filter(Boolean);
+const joinNames = (L) => (L.length < 2 ? L[0] : L.slice(0, -1).join(', ') + ' and ' + L[L.length - 1]);
 const sign = (A) => [A.name, A.brokerage, A.contact_email, phoneFmt(A.phone)].filter(Boolean);
 const pct = (v) => (v == null ? '' : `${v > 0 ? 'up' : 'down'} ${Math.abs(v).toFixed(1)}% from last year`);
 
 const priceLines = (D, A, area) => { const sh = showOf(A); return sh.prices || sh.changes ? typesOf(sh).map((t) => { const o = get(D, area, t); if (!o.price) return null;
   return { t: T1[t], price: sh.prices ? money(o.price) : '', chg: sh.changes ? pct(o.yoy) : '', yoy: o.yoy }; }).filter(Boolean) : []; };
-export function emailDraft(D, A, area, link) {
-  const sh = showOf(A), subject = `${area} market update: ${D.month}`, lines = priceLines(D, A, area);
+export function emailDraft(D, A, areaArg, link) {
+  const L = listOf(areaArg), area = L[0], names = joinNames(L), sh = showOf(A), subject = `${L.length > 1 ? L.join(', ') : area} market update: ${D.month}`, lines = priceLines(D, A, area);
+  const others = L.slice(1).map((a) => ({ a, lines: priceLines(D, A, a) })).filter((o) => o.lines.length);
   const intro = summary(D, area, sh) || `Here are this month's numbers for ${area}.`;
   const more = A.role === 'broker' ? 'If you would like to know what this means for your pre-approval, renewal or refinance, just reply and I will walk you through it.' : 'If you would like the numbers for your own neighbourhood or building, just reply and I will send them.';
   const head = sh.prices ? 'Benchmark prices' : 'Price change over the past year';
-  const text = `Hi,\n\nHere is the ${D.month} market update for ${area}.\n\n${intro}\n\n${lines.length ? `${head}:\n${lines.map((l) => `${l.t}: ${[l.price, l.price && l.chg ? `(${l.chg})` : l.chg].filter(Boolean).join(' ')}`).join('\n')}\n\n` : ''}See the full interactive report:\n${link}\n\n${more}\n\n${sign(A).join('\n')}`;
-  const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.6;color:#181614;max-width:560px">${A.logo ? `<p><img src="${A.logo}" alt="" style="max-height:60px"></p>` : ''}<p>Hi,</p><p>Here is the <strong>${D.month}</strong> market update for ${area}.</p><p>${intro}</p>${lines.length ? `<table style="border-collapse:collapse;margin:8px 0">${lines.map((l) => `<tr><td style="padding:6px 18px 6px 0;color:#6b635a">${l.t}</td>${l.price ? `<td style="padding:6px 18px 6px 0;font-weight:bold">${l.price}</td>` : ''}${l.chg ? `<td style="padding:6px 0;color:${l.yoy < 0 ? '#a24a33' : '#3f6b45'}">${l.chg}</td>` : ''}</tr>`).join('')}</table>` : ''}<p><a href="${link}" style="display:inline-block;background:${palette(A.theme).ac};color:${palette(A.theme).bt};padding:12px 20px;border-radius:8px;text-decoration:none">Open the interactive report</a></p><p>${more}</p><p>${sign(A).join('<br>')}</p></div>`;
+  const text = `Hi,\n\nHere is the ${D.month} market update for ${names}.\n\n${intro}\n\n${lines.length ? `${head}:\n${lines.map((l) => `${l.t}: ${[l.price, l.price && l.chg ? `(${l.chg})` : l.chg].filter(Boolean).join(' ')}`).join('\n')}\n\n` : ''}${others.map((o) => `${o.a}:\n${o.lines.map((l) => `${l.t}: ${[l.price, l.price && l.chg ? `(${l.chg})` : l.chg].filter(Boolean).join(' ')}`).join('\n')}\n\n`).join('')}See the full interactive report${L.length > 1 ? ', with every area side by side' : ''}:\n${link}\n\n${more}\n\n${sign(A).join('\n')}`;
+  const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.6;color:#181614;max-width:560px">${A.logo ? `<p><img src="${A.logo}" alt="" style="max-height:60px"></p>` : ''}<p>Hi,</p><p>Here is the <strong>${D.month}</strong> market update for ${names}.</p><p>${intro}</p>${lines.length ? `<table style="border-collapse:collapse;margin:8px 0">${lines.map((l) => `<tr><td style="padding:6px 18px 6px 0;color:#6b635a">${l.t}</td>${l.price ? `<td style="padding:6px 18px 6px 0;font-weight:bold">${l.price}</td>` : ''}${l.chg ? `<td style="padding:6px 0;color:${l.yoy < 0 ? '#a24a33' : '#3f6b45'}">${l.chg}</td>` : ''}</tr>`).join('')}</table>` : ''}${others.map((o) => `<p style="margin:14px 0 4px"><strong>${o.a}</strong></p><table style="border-collapse:collapse;margin:0 0 8px">${o.lines.map((l) => `<tr><td style="padding:4px 18px 4px 0;color:#6b635a">${l.t}</td>${l.price ? `<td style="padding:4px 18px 4px 0;font-weight:bold">${l.price}</td>` : ''}${l.chg ? `<td style="padding:4px 0;color:${l.yoy < 0 ? '#a24a33' : '#3f6b45'}">${l.chg}</td>` : ''}</tr>`).join('')}</table>`).join('')}<p><a href="${link}" style="display:inline-block;background:${palette(A.theme).ac};color:${palette(A.theme).bt};padding:12px 20px;border-radius:8px;text-decoration:none">Open the interactive report</a></p><p>${more}</p><p>${sign(A).join('<br>')}</p></div>`;
   return { subject, text, html };
 }
-export const caption = (D, A, area, link) => { const lines = priceLines(D, A, area), sh = showOf(A);
+export const caption = (D, A, areaArg, link) => { const L = listOf(areaArg), area = L[0], lines = priceLines(D, A, area), sh = showOf(A);
+  if (L.length > 1) return `${L.join(', ')} market update, ${D.month}\n\n${L.map((a) => `${a}\n${priceLines(D, A, a).map((l) => `${l.t}: ${[l.price, l.chg].filter(Boolean).join(', ')}`).join('\n')}`).join('\n\n')}\n\nFull interactive report: ${link}\n\n${sign(A).join(' | ')}`;
   return `${area} market update, ${D.month}\n\n${lines.length ? lines.map((l) => `${l.t}: ${[l.price, l.chg].filter(Boolean).join(', ')}`).join('\n') + '\n\n' : sh.summary ? summary(D, area, sh) + '\n\n' : ''}Full interactive report: ${link}\n\n${sign(A).join(' | ')}`; };
 
 const loadImg = (src) => new Promise((ok) => { if (!src) return ok(null); const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
