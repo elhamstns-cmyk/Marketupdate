@@ -3,7 +3,7 @@ import http from 'node:http'; import fs from 'node:fs'; import path from 'node:p
 const root = path.resolve('public'), types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png' };
 http.createServer(async (req, res) => {
   let p = new URL(req.url, 'http://x').pathname;
-  if (p.startsWith('/api/')) { const m = await import(path.resolve('api', p.slice(5) + '.js')).catch(() => null);
+  if (p.startsWith('/api/')) { const m = await import(path.resolve('api', '[fn].js')).catch(() => null);
     if (!m) { res.statusCode = 404; return res.end('not found'); } return m.default(req, res); }
   if (/^\/r\/[^/]+\/print$/.test(p)) p = '/print.html'; else if (/^\/r\/[^/]+$/.test(p)) p = '/report.html'; else if (/^\/s\/[^/]+$/.test(p)) p = '/share.html';
   else if (p === '/') p = '/index.html'; else if (!path.extname(p)) p += '.html';

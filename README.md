@@ -3,7 +3,7 @@
 Branded monthly Greater Vancouver market reports for REALTORS®, sold by subscription.
 
 - `public/` the website: landing page, agent dashboard (`/app`), public branded report (`/r/<agent>`), PDF page, admin page (`/admin`)
-- `api/` server functions: sign-in checks, profile, Stripe checkout/billing/webhook, monthly publish + "ready" email
+- `api/[fn].js` is the one server function (Vercel Hobby allows 12); each address is handled by its file in `lib/routes/`: sign-in checks, profile, Stripe checkout/billing/webhook, monthly publish + "ready" email
 - `supabase/schema.sql` database tables
 - `data/seed-report.js` sample month used for the demo report
 
