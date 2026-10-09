@@ -1,5 +1,5 @@
 import { json, body, db, getUser, isActive, latestReport, forPlan, slugify, cleanTheme, cleanShow, DEMO, SEED } from '../lib/util.js';
-const FIELDS = ['name', 'tagline', 'brokerage', 'phone', 'contact_email', 'website', 'licence', 'gvr_member', 'logo', 'photo'];
+const FIELDS = ['name', 'tagline', 'brokerage', 'phone', 'contact_email', 'website', 'gvr_member', 'logo', 'photo'];
 
 export default async function handler(req, res) {
   try {
@@ -15,6 +15,9 @@ export default async function handler(req, res) {
       const b = await body(req), patch = {};
       for (const f of FIELDS) if (f in b) patch[f] = typeof b[f] === 'string' ? b[f].slice(0, f === 'logo' || f === 'photo' ? 400000 : 200) : b[f];
       if (['realtor', 'broker'].includes(b.role)) patch.role = b.role;
+      // Licence: a changed number goes back to "pending" until we check it against the BCFSA public register.
+      if ('licence' in b) { patch.licence = String(b.licence || '').toUpperCase().replace(/\s+/g, '').slice(0, 20); if (patch.licence !== (p.licence || '')) patch.licence_status = 'pending'; }
+      if (b.gvr_member === true && !p.licence_confirmed_at) patch.licence_confirmed_at = new Date().toISOString();
       if ('theme' in b) patch.theme = cleanTheme(b.theme);
       if ('show' in b) patch.show = cleanShow(b.show);
       if (!p.slug && patch.name) {

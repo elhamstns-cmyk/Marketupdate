@@ -3,6 +3,7 @@
 <link rel="stylesheet" href="/css/report.css">
 <style>
 @page{size:letter;margin:0}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{margin:0;background:#e9eeec}
 .bar2{max-width:816px;margin:14px auto;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fff;padding:10px 16px;border-radius:12px;font:500 15px Inter,system-ui,sans-serif}
 .bar2 button{font:inherit;font-weight:700;background:#0f6b4f;color:#fff;border:0;border-radius:10px;padding:10px 16px;cursor:pointer}
@@ -28,16 +29,16 @@ body{margin:0;background:#e9eeec}
 .cta{margin-top:auto;background:var(--ac);color:var(--bt);border-radius:18px;padding:22px 26px;display:flex;justify-content:space-between;align-items:center;gap:20px}
 .cta b{font-family:var(--hf);font-size:22px;line-height:1.15;display:block}.cta .ct{text-align:right;font-weight:700;white-space:nowrap}
 .src{font-size:10px;color:var(--mut)}.pn{position:absolute;right:58px;bottom:18px;font-size:10px;color:var(--mut)}
-.cover{padding:0;gap:0}
+.cover{padding:0;gap:0}.cover>*{flex:none}.cover .cv-body{flex:1 1 auto;min-height:0}
 .cv-band{background:var(--ac);color:var(--bt);padding:48px 58px 128px;position:relative;overflow:hidden}
 .cv-band *{color:inherit!important}
 .cv-band:before,.cv-band:after{content:"";position:absolute;border-radius:50%;border:2px solid currentColor;opacity:.13}
 .cv-band:before{width:460px;height:460px;right:-150px;top:-170px}.cv-band:after{width:300px;height:300px;right:-70px;top:-90px}
 .cv-brand{display:flex;justify-content:space-between;align-items:center;font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:11.5px;position:relative}
 .cv-brand .chip{background:#fff;border-radius:10px;padding:8px 12px;display:inline-flex}.cv-brand img{max-height:40px;max-width:180px;display:block}
-.cv-band .cv-kick{margin-top:112px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:12px;position:relative}
-.cv-band h1{font-size:46px!important;line-height:1.05;letter-spacing:-.025em;margin-top:10px;position:relative}
-.cv-band .lede2{font-size:14.5px;line-height:1.6;margin-top:16px;max-width:560px;position:relative}
+.cv-band .cv-kick{margin-top:var(--kick,112px);font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:12px;position:relative}
+.cv-band h1{font-size:var(--h1,46px)!important;line-height:1.05;letter-spacing:-.025em;margin-top:10px;position:relative}
+.cv-band .lede2{font-size:14px;line-height:1.6;margin-top:16px;max-width:560px;position:relative}
 .cv-cards{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:14px;margin:-74px 58px 0;position:relative}
 .cv-cards>div{background:var(--bg);border-radius:16px;padding:18px 20px;box-shadow:0 14px 34px rgba(0,0,0,.13);display:flex;flex-direction:column;gap:4px}
 .cv-cards .l{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
@@ -114,7 +115,7 @@ if (!r.ok) root.textContent = j.error; else {
   const contactBox = `<div class="cv-contact"><div><span class="eyebrow">Questions about your home?</span><b>Talk to ${fn}</b></div><div class="c">${contact.map((v) => `<span>${v}</span>`).join('')}</div></div>`;
   const brandRow = `<div class="cv-brand">${A.logo ? `<span class="chip"><img src="${esc(A.logo)}" alt=""></span>` : `<span>${esc(A.brokerage || '')}</span>`}<span>${esc(D.month)}</span></div>`;
   const title = `<p class="cv-kick">Market Report</p><h1>${esc(area)}</h1>${lede ? `<p class="lede2">${esc(lede)}</p>` : ''}`;
-  const pad = facts.length ? '' : 'padding-bottom:56px;';
+  const pad = (facts.length ? '' : 'padding-bottom:56px;') + (area.length > 14 ? '--h1:38px;' : '') + (lede.length > 190 ? '--kick:72px;' : '--kick:96px;');
   const p0 = cv === 'a' ? `<div class="pg rpt cover" style="${vars}"><div class="cv-band" style="${pad}--tw:420px">${brandRow}<div class="cvA-who"><img src="${esc(A.photo)}" alt=""><b>${esc(A.name || '')}</b><span>${roleTxt}</span></div>${title}</div>${cards}<div class="cv-body">${factsRow}${contactBox}${toc}</div></div>`
     : cv === 'b' ? `<div class="pg rpt cover" style="${vars}"><div class="cv-band" style="${pad}--tw:410px">${brandRow}<div class="cvB-who"><img src="${esc(A.photo)}" alt=""><b>${esc(A.name || '')}</b><span>${roleTxt}</span></div>${title}</div>${cards}<div class="cv-body">${factsRow}${contactBox}${toc}</div></div>`
     : cv === 'c' ? `<div class="pg rpt cover" style="${vars}"><div class="cvC-top"><img class="ph" src="${esc(A.photo)}" alt=""><div><div class="eyebrow">Prepared for you by</div><div class="n" style="margin-top:6px">${esc(A.name || '')}</div><div class="r">${roleTxt}</div><div class="c">${contact.map((v) => `<span>${v}</span>`).join('')}</div></div>${A.logo ? `<img class="lg" src="${esc(A.logo)}" alt="">` : ''}</div>

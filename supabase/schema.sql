@@ -53,3 +53,7 @@ alter table exports enable row level security;
 
 -- Email confirmed by clicking our link (Google sign-ins count as confirmed)
 alter table profiles add column if not exists email_verified boolean default false;
+
+-- Licence check: V number (REALTOR®) or BCFSA number (mortgage broker), confirmed by the agent, verified by admin
+alter table profiles add column if not exists licence_status text default 'pending';
+alter table profiles add column if not exists licence_confirmed_at timestamptz;

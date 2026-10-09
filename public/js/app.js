@@ -126,11 +126,59 @@ function showPlans() {
   if (want && ['basic', 'pro'].includes(want.plan) && !sessionStorage.getItem('mup_went')) { sessionStorage.setItem('mup_went', '1'); checkout(want.plan, $(`[data-p=${want.plan}]`)); }
 }
 
+
+/* ---------- phone, licence, photo and logo helpers ---------- */
+const localPhone = (v) => { let d = String(v || '').replace(/\D/g, ''); if (d.length === 11 && d[0] === '1') d = d.slice(1); return d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : d; };
+const fullPhone = (v) => { const l = localPhone(v); return l ? `+1 ${l}` : ''; };
+const phoneField = (id) => `<div class="field"><label for="${id}">Phone</label><div class="phonef"><span>+1</span><input id="${id}" type="tel" data-k="phone" value="${esc(localPhone(P.phone))}" placeholder="604-555-0100" autocomplete="tel-national"></div></div>`;
+const licLabel = () => (P.role === 'broker' ? 'BCFSA licence number' : 'Your V number (licence)');
+const licOk = (v) => (P.role === 'broker' ? /^[A-Z0-9-]{4,20}$/i.test(v || '') : /^V\d{4,8}$/i.test(String(v || '').trim()));
+const licStatus = () => (P.licence_status === 'verified' ? '<span class="lic ok">✓ Verified</span>' : P.licence_status === 'rejected' ? '<span class="lic bad">Not found. Please check your number.</span>' : P.licence ? '<span class="lic">Checking, usually within 1 business day</span>' : '');
+const licFields = (pre) => `<div class="field"><label for="${pre}-lic">${licLabel()}</label><input id="${pre}-lic" type="text" data-k="licence" value="${esc(P.licence || '')}" placeholder="${P.role === 'broker' ? 'Your BCFSA number' : 'V123456'}" autocomplete="off" style="text-transform:uppercase">${licStatus()}</div>
+  <label class="attest"><input type="checkbox" data-k="gvr_member"${P.gvr_member ? ' checked' : ''}><span>${P.role === 'broker' ? 'I confirm I am a licensed mortgage broker in British Columbia.' : 'I confirm I am a licensed REALTOR® in British Columbia and a member of Greater Vancouver REALTORS®.'}</span></label>`;
+// Reads the photo with a zoom-and-move step, or checks the logo is a transparent PNG.
+async function pickImage(kind, file) {
+  if (kind === 'logo') {
+    if (file.type !== 'image/png') throw new Error('Please upload your logo as a PNG with a transparent background.');
+    const img = await loadImage(URL.createObjectURL(file)), c = document.createElement('canvas'), k = Math.min(1, 200 / Math.max(img.width, img.height));
+    c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k)); const x = c.getContext('2d'); x.drawImage(img, 0, 0, c.width, c.height);
+    const a = x.getImageData(0, 0, c.width, c.height).data; let clear = 0; for (let i = 3; i < a.length; i += 4) if (a[i] < 250) clear++;
+    if (clear < (a.length / 4) * 0.02) throw new Error('This logo has a solid background. Please upload the transparent PNG version (ask your brokerage for it).');
+    return shrink(file, 520, 'image/png');
+  }
+  return cropPhoto(file);
+}
+const loadImage = (src) => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('That image could not be read. Try a JPG or PNG.')); i.src = src; });
+function cropPhoto(file) {
+  return loadImage(URL.createObjectURL(file)).then((img) => new Promise((done) => {
+    const S = 280, box = document.createElement('div'); box.className = 'crop';
+    box.innerHTML = `<div class="cropin" role="dialog" aria-label="Adjust your photo"><h3>Adjust your photo</h3><p class="small muted">Drag to move. Use the slider to zoom.</p>
+      <div class="cstage"><canvas width="${S * 2}" height="${S * 2}" style="width:${S}px;height:${S}px"></canvas><i></i></div>
+      <label class="zoom"><span>−</span><input type="range" min="1" max="3" step="0.01" value="1" aria-label="Zoom"><span>+</span></label>
+      <div class="cbtns"><button class="btn ghost" data-x>Cancel</button><button class="btn" data-ok>Use this photo</button></div></div>`;
+    document.body.appendChild(box);
+    const cv = box.querySelector('canvas'), x = cv.getContext('2d'), base = Math.max((S * 2) / img.width, (S * 2) / img.height);
+    let z = 1, ox = 0, oy = 0, drag = null;
+    const clamp = () => { const w = img.width * base * z, h = img.height * base * z; ox = Math.min(0, Math.max(S * 2 - w, ox)); oy = Math.min(0, Math.max(S * 2 - h, oy)); };
+    const draw = () => { clamp(); x.fillStyle = '#fff'; x.fillRect(0, 0, S * 2, S * 2); x.drawImage(img, ox, oy, img.width * base * z, img.height * base * z); };
+    ox = (S * 2 - img.width * base) / 2; oy = (S * 2 - img.height * base) / 2; draw();
+    box.querySelector('input').oninput = (e) => { const c = S, nz = +e.target.value; ox = c - ((c - ox) / z) * nz; oy = c - ((c - oy) / z) * nz; z = nz; draw(); };
+    cv.onpointerdown = (e) => { drag = [e.clientX, e.clientY, ox, oy]; cv.setPointerCapture(e.pointerId); };
+    cv.onpointermove = (e) => { if (!drag) return; ox = drag[2] + (e.clientX - drag[0]) * 2; oy = drag[3] + (e.clientY - drag[1]) * 2; draw(); };
+    cv.onpointerup = () => (drag = null);
+    const close = (v) => { box.remove(); done(v); };
+    box.querySelector('[data-x]').onclick = () => close(null);
+    box.querySelector('[data-ok]').onclick = () => { const o = document.createElement('canvas'); o.width = o.height = 400; o.getContext('2d').drawImage(cv, 0, 0, 400, 400); close(o.toDataURL('image/jpeg', 0.9)); };
+  }));
+}
+
 /* ---------- your report, before paying ---------- */
 function showPreview() {
   main.onclick = null;
   main.innerHTML = `<div class="c" style="padding-bottom:0">${steps(1)}</div><div class="pvlay"><div class="pvpanel"><h2>Let's make it yours</h2><p class="muted small">Add your details and watch your report update. This is exactly what your clients will see.</p>
-    ${[['name', 'Your name', 'text', 'Jane Smith', 'name'], ['brokerage', 'Brokerage', 'text', 'Your brokerage', 'organization'], ['phone', 'Phone', 'tel', '604-555-0100', 'tel']].map(([k, l, t, ph, ac]) => `<div class="field"><label for="pv-${k}">${l}</label><input id="pv-${k}" type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}" autocomplete="${ac}"></div>`).join('')}
+    <div class="field"><label for="pv-role">I am a</label><select id="pv-role" data-k="role"><option value="realtor"${P.role !== 'broker' ? ' selected' : ''}>REALTOR®</option><option value="broker"${P.role === 'broker' ? ' selected' : ''}>Mortgage broker</option></select></div>
+    ${[['name', 'Your name', 'text', 'Jane Smith', 'name'], ['brokerage', 'Brokerage', 'text', 'Your brokerage', 'organization']].map(([k, l, t, ph, ac]) => `<div class="field"><label for="pv-${k}">${l}</label><input id="pv-${k}" type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}" autocomplete="${ac}"></div>`).join('')}
+    ${phoneField('pv-phone')}<div id="pvlic">${licFields('pv')}</div>
     <div class="two">${['photo', 'logo'].map((k) => `<div class="upw"><label class="up"><span id="ph-${k}"></span><span>Your ${k}<br><b id="lb-${k}"></b></span><input type="file" accept="image/*" data-img="${k}"></label><button type="button" class="rm" data-rm="${k}" aria-label="Remove your ${k}" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>`).join('')}</div>
     <a href="#" class="pvsee" id="pvsee">See your report preview ↓</a><button class="btn wide" id="pvgo">Looks great. Choose my plan</button><p class="err small" id="pverr" role="status"></p><p class="small muted center" style="margin-top:-6px">You can change everything later.</p></div>
     <div class="pvframe"><div id="rp"></div><div class="wm" aria-hidden="true"><span>PREVIEW</span></div><span class="ptag">Your report · preview</span></div></div>`;
@@ -138,20 +186,26 @@ function showPreview() {
   const draw = () => mountReport($('#rp'), D, { ...P, theme: { style: 'modern', ...STYLES.modern } }, { embedded: true });
   if (D) draw(); else $('#rp').innerHTML = '<p class="muted" style="padding:40px;text-align:center">Your first report is on its way.</p>';
   const panel = $('.pvpanel'); let t;
-  panel.addEventListener('input', (e) => { const k = e.target.dataset.k; if (!k) return; P[k] = e.target.value.trim(); touch(k); clearTimeout(t); t = setTimeout(() => D && draw(), 150); });
-  panel.addEventListener('change', async (e) => { const k = e.target.dataset.img; if (!k || !e.target.files[0]) return;
-    try { P[k] = await shrink(e.target.files[0], k === 'logo' ? 520 : 400, k === 'logo' ? 'image/png' : 'image/jpeg'); touch(k); thumbs(); D && draw(); } catch { alertMsg('That image could not be read. Try a JPG or PNG.', true); } e.target.value = ''; });
+  panel.addEventListener('input', (e) => { if ($('#pverr')) $('#pverr').textContent = ''; const k = e.target.dataset.k; if (!k || k === 'role' || k === 'gvr_member') return; P[k] = k === 'phone' ? fullPhone(e.target.value) : e.target.value.trim(); touch(k); clearTimeout(t); t = setTimeout(() => D && draw(), 150); });
+  panel.addEventListener('change', async (e) => { const k = e.target.dataset.k;
+    if (k === 'role') { P.role = e.target.value; touch('role'); $('#pvlic').innerHTML = licFields('pv'); return D && draw(); }
+    if (k === 'gvr_member') { P.gvr_member = e.target.checked; return touch('gvr_member'); }
+    if (k === 'phone') e.target.value = localPhone(e.target.value);
+    const im = e.target.dataset.img; if (!im || !e.target.files[0]) return;
+    try { const v = await pickImage(im, e.target.files[0]); if (v) { P[im] = v; touch(im); thumbs(); D && draw(); } } catch (err) { alertMsg(err.message, true); } e.target.value = ''; });
   panel.addEventListener('click', async (e) => { const r = e.target.closest('[data-rm]'); if (r) { P[r.dataset.rm] = ''; touch(r.dataset.rm); thumbs(); D && draw(); return; }
     if (e.target.id === 'pvsee') { e.preventDefault(); return $('.pvframe').scrollIntoView({ behavior: 'smooth' }); }
     if (e.target.id !== 'pvgo') return;
     if (!P.name) { $('#pverr').textContent = 'Add your name so it shows on your report.'; return $('#pv-name').focus(); }
+    if (!licOk(P.licence)) { $('#pverr').textContent = P.role === 'broker' ? 'Add your BCFSA licence number.' : 'Add your V number. It looks like V123456.'; return $('#pv-lic').focus(); }
+    if (!P.gvr_member) { $('#pverr').textContent = 'Please tick the box to confirm your licence.'; return; }
     e.target.disabled = true; await saveNow(); sessionStorage.setItem('mup_previewed', '1'); showPlans(); });
   if (!P.name) $('#pv-name').focus();
 }
 
 /* ---------- dashboard ---------- */
 let P = {}, D = null, active = false, area = 'Greater Vancouver', tab = 'report', view = 'create', HIST = [], filter = 'all';
-const DETAILS = [['name', 'Your name', 'text', 'Jane Smith'], ['brokerage', 'Brokerage', 'text', 'Your brokerage'], ['phone', 'Phone', 'tel', '604-555-0100'], ['contact_email', 'Email for clients', 'email', 'you@email.com'], ['website', 'Website (optional)', 'text', 'yourname.ca']];
+const DETAILS = [['name', 'Your name', 'text', 'Jane Smith'], ['brokerage', 'Brokerage', 'text', 'Your brokerage'], ['contact_email', 'Email for clients', 'email', 'you@email.com'], ['website', 'Website (optional)', 'text', 'yourname.ca']];
 const ACCENTS = ['#0f6b4f', '#14233f', '#1d4f9c', '#b3202e', '#d0a94a', '#6b3fa0', '#111312'], BGS = ['#ffffff', '#f7f4ee', '#eef3fb', '#111312'];
 const isPro = () => P.plan === 'pro';
 const theme = () => (isPro() ? { style: 'modern', ...STYLES.modern, ...(P.theme || {}) } : BASIC_THEME);
@@ -255,22 +309,29 @@ function dashboard() {
     ${cfg.demo ? '<p class="note">Preview mode: nothing is saved to a server and no payment is taken.</p>' : ''}${noticeOk ? `<p class="note ok">${esc(noticeOk)}</p>` : ''}${!cfg.demo && P.email_verified === false ? `<p class="note warn" id="cfm">Please confirm your email. We sent a link to <b>${esc(P.email || '')}</b>. <a href="#" id="cfmagain">Send it again</a></p>` : ''}${qs.has('welcome') ? `<p class="note ok">You are subscribed${P.name ? ', ' + esc(P.name.trim().split(/\s+/)[0]) : ''}. Welcome aboard.</p>` : ''}
     <div class="sec"><div class="hd"><h3>1 · Your details</h3><span class="ok small" id="saved"></span></div>
       <div class="two">${DETAILS.map(([k, l, t, ph]) => `<input type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}" aria-label="${l}">`).join('')}
+        <div class="phonef"><span>+1</span><input type="tel" data-k="phone" value="${esc(localPhone(P.phone))}" placeholder="604-555-0100" aria-label="Phone"></div>
         <select data-k="role" aria-label="I am a"><option value="realtor"${P.role !== 'broker' ? ' selected' : ''}>I'm a REALTOR®</option><option value="broker"${P.role === 'broker' ? ' selected' : ''}>I'm a mortgage broker</option></select></div>
+      <div id="dlic">${licFields('d')}</div>
       <div class="two">${['photo', 'logo'].map((k) => `<div class="upw"><label class="up"><span id="ph-${k}"></span><span>Your ${k}<br><b id="lb-${k}"></b></span><input type="file" accept="image/*" data-img="${k}"></label><button type="button" class="rm" data-rm="${k}" aria-label="Remove your ${k}" title="Remove" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>`).join('')}</div></div>
     <div class="sec" id="look"></div>
     <div class="sec" id="showsec"></div>
     <div class="sec" id="send"></div></div>
-    <div class="main"><div class="hd"><div><h3 style="font-size:1.35rem">Your ${esc(D.month)} report</h3><span class="live">Live preview. Changes show instantly.</span></div>
+    <div class="main"><div class="hd"><div style="display:flex;gap:12px;align-items:center"><button type="button" class="sidetog" id="sidetog" aria-label="Hide or show the settings panel" title="Hide or show settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><div><h3 style="font-size:1.35rem">Your ${esc(D.month)} report</h3><span class="live">Live preview. Changes show instantly.</span></div></div>
       <div class="seg" id="tabs" role="group" aria-label="Preview">${[['report', 'Report'], ['phone', 'Phone'], ['post', 'Post'], ['story', 'Story'], ['pdf', 'PDF']].map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${k === tab}">${l}</button>`).join('')}</div></div>
-      <div id="pv"></div></div></div>`;
+      <div class="pvact" id="pvact"></div><div id="pv"></div></div></div>`;
   thumbs(); drawLook(); drawShow(); drawSend(); preview(); noticeOk = '';
   if ($('#cfmagain')) $('#cfmagain').onclick = async (e) => { e.preventDefault(); const ok = await sendConfirm(P.email); alertMsg(ok ? 'Sent. Check your inbox.' : 'Please wait a minute and try again.', !ok); };
   const side = $('.side');
-  side.addEventListener('input', (e) => { const k = e.target.dataset.k; if (!k) return; let v = e.target.value.trim();
-    if (k === 'website' && v && !/^https?:\/\//.test(v)) v = 'https://' + v; P[k] = v; touch(k); later(); if (k === 'name') drawSend(); });
-  side.addEventListener('change', async (e) => { const k = e.target.dataset.img; if (!k || !e.target.files[0]) return;
-    try { P[k] = await shrink(e.target.files[0], k === 'logo' ? 520 : 400, k === 'logo' ? 'image/png' : 'image/jpeg'); touch(k); thumbs(); preview(); } catch { alertMsg('That image could not be read. Try a JPG or PNG.', true); } e.target.value = ''; });
+  side.addEventListener('input', (e) => { const k = e.target.dataset.k; if (!k || k === 'gvr_member') return; let v = e.target.value.trim();
+    if (k === 'website' && v && !/^https?:\/\//.test(v)) v = 'https://' + v; if (k === 'phone') v = fullPhone(v); P[k] = v; touch(k); later(); if (k === 'name') drawSend(); if (k === 'role') $('#dlic').innerHTML = licFields('d'); });
+  side.addEventListener('change', async (e) => { if (e.target.dataset.k === 'gvr_member') { P.gvr_member = e.target.checked; return touch('gvr_member'); } if (e.target.dataset.k === 'phone') e.target.value = localPhone(e.target.value);
+    const k = e.target.dataset.img; if (!k || !e.target.files[0]) return;
+    try { const v = await pickImage(k, e.target.files[0]); if (v) { P[k] = v; touch(k); thumbs(); preview(); } } catch (err) { alertMsg(err.message, true); } e.target.value = ''; });
   side.addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (!b) return; const k = b.dataset.rm; P[k] = ''; touch(k); thumbs(); preview(); alertMsg(`Your ${k} was removed.`); });
+  const app = $('.app'); try { if (localStorage.getItem('mup_side') === 'closed') app.classList.add('closed'); } catch {}
+  $('#sidetog').onclick = () => { app.classList.toggle('closed'); try { localStorage.setItem('mup_side', app.classList.contains('closed') ? 'closed' : 'open'); } catch {} setTimeout(preview, 260); };
+  $('#pvact').onchange = (e) => { if (e.target.id !== 'area2') return; area = e.target.value; if ($('#area')) $('#area').value = area; preview(); };
+  $('#pvact').onclick = (e) => { const b = e.target.closest('[data-do]'); if (!b || b.disabled) return; saveNow(); act(b.dataset.do, record(b.dataset.do), b.dataset.verb); };
   $('#tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; $('#tabs').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b)); preview(); };
   if (dirty.size) touch([...dirty][0]);
 }
@@ -332,7 +393,17 @@ function drawSend() {
     const b = e.target.closest('[data-do]'); if (!b || b.disabled) return; saveNow(); act(b.dataset.do, record(b.dataset.do), b.dataset.verb); };
 }
 
+// Quick actions right above the preview: copy the link, download the image, open the PDF.
+function drawActs() {
+  const el = $('#pvact'); if (!el) return; const ok = !!(P.name && P.slug), pro = isPro();
+  const where = pro ? `<select class="pa-where" id="area2" aria-label="Area">${areasOf(D).map((a) => `<option${a === area ? ' selected' : ''}>${a}</option>`).join('')}</select>` : `<span class="pa-where">${esc(area)}</span>`;
+  const b = (k, label, verb, ghost) => `<button class="btn sm${ghost ? ' ghost' : ''}" data-do="${k}"${verb ? ` data-verb="${verb}"` : ''}${ok ? '' : ' disabled'}>${label}</button>`;
+  el.innerHTML = tab === 'report' || tab === 'phone' ? `${where}${b('link', 'Open', 'open', 1)}${b('link', 'Copy link')}`
+    : tab === 'post' || tab === 'story' ? (pro ? `${where}${b(tab, tab === 'post' ? 'Download post' : 'Download story')}${b('caption', 'Copy caption', '', 1)}` : '')
+    : pro ? `${where}${b('pdf', 'Open PDF to save or print')}` : '';
+}
 async function preview() {
+  drawActs();
   const pv = $('#pv'); if (!pv) return; const A = agent(), pro = isPro(), city = area !== 'Greater Vancouver';
   const locked = (what) => `<div class="frame pad"><div class="lockbox" style="max-width:360px;text-align:center"><b>${what} are part of Pro</b><span>Upgrade to download them with your branding.</span></div></div>`;
   if (tab === 'report' || tab === 'phone') { const top = pv.querySelector('.frame')?.scrollTop || 0;

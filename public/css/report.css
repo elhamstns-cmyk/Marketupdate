@@ -152,3 +152,5 @@
 .rpt .tch b{font-size:.95rem}.rpt .tch span{font-size:.82rem;color:var(--mut)}
 .rpt .tcv{position:relative}.rpt .tcv svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
 .rpt .ctip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;padding:6px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-118%);opacity:0;transition:opacity .12s;z-index:2}
+.rpt .monthpill{display:inline-flex;align-items:center;gap:8px;background:var(--tn);color:var(--act);font-weight:800;font-size:.92rem;padding:7px 14px;border-radius:999px;width:max-content;letter-spacing:.01em;margin-bottom:4px}
+.rpt .chg.neu{color:var(--ink)}

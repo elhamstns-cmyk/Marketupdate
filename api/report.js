@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     const q = query(req), slug = q.get('slug'), v = q.get('v');
     if (DEMO || slug === 'demo') return json(res, 200, { agent: DEMO_AGENT, report: SEED, plan: 'pro', sample: true });
     const [p] = await db(`profiles?slug=eq.${encodeURIComponent(slug)}&limit=1`);
-    if (!p || !isActive(p)) return json(res, 404, { error: 'This report is not available right now.' });
+    if (!p || !isActive(p) || p.licence_status === 'rejected') return json(res, 404, { error: 'This report is not available right now.' });
     const agent = publicAgent(p);
     let view = null, report;
     if (v) {

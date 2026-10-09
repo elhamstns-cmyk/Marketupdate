@@ -6,6 +6,8 @@
 <div class="field"><label for="test">Send a test "ready" email to (optional)</label><input type="email" id="test" placeholder="info@ellasoltani.ca"></div>
 <div class="row"><button class="btn ghost" id="bt">Send test email only</button><button class="btn" id="bp">Publish and email all subscribers</button></div><p id="out" role="status"></p></div>
 <div class="card"><h2 style="font-size:1.5rem">Campaign email list</h2><p class="muted">Everyone who started sign-up, whether they ticked the marketing box, and whether they are paying.</p><div class="row"><button class="btn ghost" id="dl">Download the list</button><span id="lout" role="status"></span></div></div>
+<div class="card"><h2 style="font-size:1.5rem">Licence checks</h2><p class="muted">Look up each number on the BCFSA public register (bcfsa.ca, "Find a licensee"), then mark it. A rejected agent's report link stops working.</p>
+<div class="row"><button class="btn ghost" id="la">Show agents</button><select id="lf" style="width:auto"><option value="pending">Waiting to check</option><option value="all">Everyone</option></select></div><div id="ag" style="display:grid;gap:8px;margin-top:12px"></div></div>
 </main></div><script>
 const $=i=>document.getElementById(i);
 async function go(body){ $('out').className='';$('out').textContent='Working…'; let report; try{report=JSON.parse($('data').value)}catch{ $('out').className='err';$('out').textContent='The report data is not valid.';return}
@@ -15,4 +17,11 @@ $('bt').onclick=()=>{ if(!$('test').value){$('out').className='err';$('out').tex
 $('bp').onclick=()=>{ if(confirm('Publish this report and email every subscriber now?')) go({notify:true}); };
 $('dl').onclick=async()=>{const r=await fetch('/api/leads',{headers:{authorization:'Bearer '+$('tok').value}});if(!r.ok){$('lout').className='err';$('lout').textContent='Enter your admin password above first.';return}
   const t=await r.text(),n=t.trim().split('\n').length-1,a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='campaign-list.csv';a.click();$('lout').className='ok';$('lout').textContent=n+' people on the list.';};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function agents(){const r=await fetch('/api/admin-agents',{headers:{authorization:'Bearer '+$('tok').value}});if(!r.ok){$('ag').innerHTML='<p class="err">Enter your admin password above first.</p>';return}
+  const j=await r.json(),list=j.agents.filter(a=>$('lf').value==='all'||(a.licence_status||'pending')==='pending');
+  $('ag').innerHTML=list.length?list.map(a=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;margin:0"><div><b>${esc(a.name)}</b> · ${a.role==='broker'?'Mortgage broker':'REALTOR®'} · ${esc(a.brokerage||'')}<br><span class="small muted">${esc(a.email)} · Licence: <b>${esc(a.licence||'none given')}</b> · ${esc(a.licence_status||'pending')} · ${esc(a.status||'')}</span></div><div style="display:flex;gap:6px"><button class="btn sm" data-id="${a.id}" data-s="verified">Verified</button><button class="btn sm ghost" data-id="${a.id}" data-s="rejected">Not found</button></div></div>`).join(''):'<p class="muted">Nobody waiting.</p>';}
+$('la').onclick=agents;$('lf').onchange=agents;
+$('ag').onclick=async e=>{const b=e.target.closest('[data-s]');if(!b)return;if(b.dataset.s==='rejected'&&!confirm('Mark as not found? Their report link will stop working.'))return;
+  const r=await fetch('/api/admin-agents',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+$('tok').value},body:JSON.stringify({id:b.dataset.id,status:b.dataset.s})});if(r.ok)agents();};
 </script></body></html>

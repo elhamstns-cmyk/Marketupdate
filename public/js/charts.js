@@ -72,12 +72,15 @@ export function barChart(el, rows, { label = '', interactive = true, width, heig
   const bw = (W - 16) / rows.length, y = (v) => t + (1 - v / mx) * (H - t - b);
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}"${width ? ` width="${width}"` : ''} role="img" aria-label="${label}: ${rows.map(([k, v]) => `${SPAN(k)} ${v}`).join(', ')}">${rows.map(([k, v], i) => {
     const X = 8 + i * bw + bw * 0.2, w = bw * 0.6, last = i === rows.length - 1, h = Math.max(0, H - b - y(v)), rad = Math.min(4, h / 2, w / 2);
-    return `<g class="cb" data-i="${i}"><rect x="${X - 6}" y="${t}" width="${w + 12}" height="${H - t - b}" fill="transparent"/><path d="M${X},${H - b}V${y(v) + rad}q0,-${rad} ${rad},-${rad}h${w - 2 * rad}q${rad},0 ${rad},${rad}V${H - b}Z" fill="var(--ac)" opacity="${last ? 1 : 0.32}"/>
-      ${last || v === top ? `<text x="${X + w / 2}" y="${y(v) - 6}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">${v.toLocaleString()}</text>` : ''}<text x="${X + w / 2}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--mut)">${SPAN(k)}</text></g>`; }).join('')}
+    return `<g class="cb" data-i="${i}"><rect x="${X - 6}" y="${t}" width="${w + 12}" height="${H - t - b}" fill="transparent"/><path d="M${X},${H - b}V${y(v) + rad}q0,-${rad} ${rad},-${rad}h${w - 2 * rad}q${rad},0 ${rad},${rad}V${H - b}Z" class="bb" fill="var(--ac)" opacity="${last ? 1 : 0.32}"/>
+      <text class="bv" x="${X + w / 2}" y="${y(v) - 6}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)" opacity="${last ? 1 : 0}">${v.toLocaleString()}</text><text x="${X + w / 2}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--mut)">${SPAN(k)}</text></g>`; }).join('')}
     <line x1="8" x2="${W - 8}" y1="${H - b}" y2="${H - b}" stroke="var(--ln)"/></svg>${interactive ? '<div class="ctip"></div>' : ''}`;
   if (!interactive) return;
   const tip = el.querySelector('.ctip');
-  el.querySelectorAll('.cb').forEach((g) => { const i = +g.dataset.i, on = () => { tip.innerHTML = `<b>${monthLong(rows[i][0])}</b> · ${rows[i][1].toLocaleString()} ${unit}`; tip.style.left = ((8 + i * bw + bw / 2) / W) * 100 + '%'; tip.style.top = (y(rows[i][1]) / H) * el.offsetHeight + 'px'; tip.style.opacity = 1; };
+  const gs = [...el.querySelectorAll('.cb')], n = gs.length;
+  const focus = (j) => gs.forEach((g, i) => { const on = j == null ? i === n - 1 : i === j; g.querySelector('.bb').setAttribute('opacity', on ? 1 : 0.32); g.querySelector('.bv').setAttribute('opacity', on ? 1 : 0); });
+  el.addEventListener('pointerleave', () => focus(null));
+  gs.forEach((g) => { const i = +g.dataset.i, on = () => { focus(i); tip.innerHTML = `<b>${monthLong(rows[i][0])}</b> · ${rows[i][1].toLocaleString()} ${unit}`; tip.style.left = ((8 + i * bw + bw / 2) / W) * 100 + '%'; tip.style.top = (y(rows[i][1]) / H) * el.offsetHeight + 'px'; tip.style.opacity = 1; };
     g.addEventListener('pointerenter', on); g.addEventListener('pointerdown', on); g.addEventListener('pointerleave', () => (tip.style.opacity = 0)); });
 }
 export { monthLong };

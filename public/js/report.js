@@ -1,7 +1,9 @@
 import { priceSeries, salesSeries, trendFacts, lineChart, barChart } from './charts.js';
 // The interactive market report. mountReport(root, D, A) draws it with the agent's branding (A) and theme (A.theme).
-export const TN = { detached: 'detached homes', townhome: 'townhomes', condo: 'condos' };
-export const T1 = { detached: 'Detached', townhome: 'Townhome', condo: 'Condo' };
+export const TN = { detached: 'detached homes', townhome: 'attached homes', condo: 'condos', all: 'homes' };
+export const T1 = { detached: 'Detached', townhome: 'Attached', condo: 'Condo', all: 'All homes' };
+export const SOLDLAB = { detached: 'Detached homes', townhome: 'Attached homes', condo: 'Condos', all: 'Homes' };
+const addMonths = (k, n) => { let [y, m] = k.split('-').map(Number); m += n; y += Math.floor((m - 1) / 12); m = ((m - 1) % 12 + 12) % 12 + 1; return `${y}-${String(m).padStart(2, '0')}`; };
 export const TYPES = ['detached', 'townhome', 'condo'];
 export const money = (n) => '$' + Math.round(n).toLocaleString('en-CA');
 export const slug = (s) => s.toLowerCase().replace(/[^a-z]+/g, '-');
@@ -13,8 +15,8 @@ export const roleLabel = (A) => (A.role === 'broker' ? 'Mortgage broker' : 'REAL
 
 /* ---------- what the agent chooses to show (Pro) ---------- */
 export const SHOW_NUMBERS = [['prices', 'Benchmark prices'], ['changes', 'Price changes'], ['sold', 'Homes sold'], ['forsale', 'Homes for sale'], ['days', 'Days to sell'], ['market', 'Market type']];
-export const SHOW_SECTIONS = [['summary', 'Written summary'], ['trend', '12-month trend'], ['compare', 'Area comparison']];
-export const DEFAULT_SHOW = { prices: true, changes: true, sold: true, forsale: true, days: true, market: true, detached: true, townhome: true, condo: true, summary: true, trend: true, compare: true };
+export const SHOW_SECTIONS = [['summary', 'Written summary'], ['trend', '12-month trend'], ['compare', 'Area comparison'], ['picker', 'Clients can pick a city']];
+export const DEFAULT_SHOW = { prices: true, changes: true, sold: true, forsale: true, days: true, market: true, detached: true, townhome: true, condo: true, summary: true, trend: true, compare: true, picker: true };
 export function showOf(A) { const s = { ...DEFAULT_SHOW, ...((A && A.show) || {}) }; if (!TYPES.some((t) => s[t])) TYPES.forEach((t) => (s[t] = true)); return s; }
 export const typesOf = (sh) => TYPES.filter((t) => sh[t]);
 export const monthKey = (m) => { const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], x = /^(\w+) (\d{4})$/.exec(m || ''); return x ? `${x[2]}-${String(M.indexOf(x[1]) + 1).padStart(2, '0')}` : ''; };
@@ -22,21 +24,21 @@ const monthName = (k) => { const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
 export const nounOf = (ts) => (ts.length === 3 ? 'homes' : ts.map((t) => TN[t]).join(' and '));
 
 /* ---------- themes ---------- */
-// label, heading font, body font, Google Fonts families to load
-const F = (label, h, b, g) => ({ label, hf: `"${h}", ${/Playfair|Lora|Cormorant|DM Serif|Baskerville/.test(h) ? 'Georgia, serif' : 'system-ui, sans-serif'}`, bf: `"${b}", system-ui, sans-serif`, g });
+// Twelve pairings: a heading font with character, always a highly readable body font for numbers and text.
+const F = (label, h, b, g) => ({ label, hf: `"${h}", ${/Playfair|Lora|DM Serif|Baskerville|Merriweather|Source Serif|Fraunces/.test(h) ? 'Georgia, serif' : 'system-ui, sans-serif'}`, bf: `"${b}", system-ui, sans-serif`, g });
 export const FONTS = {
   modern: F('Inter', 'Inter', 'Inter', ['Inter:wght@400;500;600;700;800']),
-  classic: F('Playfair', 'Playfair Display', 'DM Sans', ['Playfair+Display:wght@600;700', 'DM+Sans:wght@400;500;700']),
+  jakarta: F('Jakarta', 'Plus Jakarta Sans', 'Plus Jakarta Sans', ['Plus+Jakarta+Sans:wght@400;500;600;700;800']),
+  manrope: F('Manrope', 'Manrope', 'Manrope', ['Manrope:wght@400;500;600;700;800']),
+  montserrat: F('Montserrat', 'Montserrat', 'Inter', ['Montserrat:wght@600;700;800', 'Inter:wght@400;500;600;700']),
+  poppins: F('Poppins', 'Poppins', 'Inter', ['Poppins:wght@600;700', 'Inter:wght@400;500;600;700']),
   friendly: F('Nunito', 'Nunito', 'Nunito', ['Nunito:wght@400;600;700;800']),
-  montserrat: F('Montserrat', 'Montserrat', 'Montserrat', ['Montserrat:wght@400;500;600;700']),
-  poppins: F('Poppins', 'Poppins', 'Poppins', ['Poppins:wght@400;500;600;700']),
-  manrope: F('Manrope', 'Manrope', 'Manrope', ['Manrope:wght@400;500;700;800']),
-  worksans: F('Work Sans', 'Work Sans', 'Work Sans', ['Work+Sans:wght@400;500;600;700']),
-  raleway: F('Raleway', 'Raleway', 'Raleway', ['Raleway:wght@400;500;600;700']),
-  lora: F('Lora', 'Lora', 'Inter', ['Lora:wght@500;600;700', 'Inter:wght@400;500;600;700']),
-  cormorant: F('Cormorant', 'Cormorant Garamond', 'Jost', ['Cormorant+Garamond:wght@500;600;700', 'Jost:wght@400;500;600']),
+  classic: F('Playfair', 'Playfair Display', 'Inter', ['Playfair+Display:wght@600;700', 'Inter:wght@400;500;600;700']),
   dmserif: F('DM Serif', 'DM Serif Display', 'DM Sans', ['DM+Serif+Display', 'DM+Sans:wght@400;500;700']),
-  baskerville: F('Baskerville', 'Libre Baskerville', 'Source Sans 3', ['Libre+Baskerville:wght@400;700', 'Source+Sans+3:wght@400;600;700']),
+  lora: F('Lora', 'Lora', 'Inter', ['Lora:wght@500;600;700', 'Inter:wght@400;500;600;700']),
+  sourceserif: F('Source Serif', 'Source Serif 4', 'Source Sans 3', ['Source+Serif+4:wght@600;700', 'Source+Sans+3:wght@400;600;700']),
+  merriweather: F('Merriweather', 'Merriweather', 'Inter', ['Merriweather:wght@700', 'Inter:wght@400;500;600;700']),
+  fraunces: F('Fraunces', 'Fraunces', 'Inter', ['Fraunces:opsz,wght@9..144,600;9..144,700', 'Inter:wght@400;500;600;700']),
 };
 export const fontHref = (keys) => 'https://fonts.googleapis.com/css2?' + [...new Set(keys.flatMap((k) => (FONTS[k] || FONTS.modern).g))].map((g) => 'family=' + g).join('&') + '&display=swap';
 // Loads the fonts a page needs (one theme's font on a report, all of them in the dashboard).
@@ -78,12 +80,21 @@ export const SAMPLES = {
 
 /* ---------- data helpers ---------- */
 export function get(D, area, type) {
+  if (type === 'all') { // every home type together: composite benchmark price, totals for counts
+    const rs = TYPES.map((t) => get(D, area, t)), sum = (k) => (rs.every((r) => r[k] != null) ? rs.reduce((n, r) => n + r[k], 0) : null);
+    const H = D.history?.price?.composite?.[area], k = monthKey(D.month), price = H?.[k] || null, ly = H?.[addMonths(k, -12)], prev = H?.[addMonths(k, -1)] || null;
+    const wavg = (dk, sk) => (rs.every((r) => r[dk] != null && r[sk] != null) && sum(sk) ? Math.round(rs.reduce((n, r) => n + r[dk] * r[sk], 0) / sum(sk)) : null);
+    const o = { price, yoy: price && ly ? Math.round(((price - ly) / ly) * 1000) / 10 : null, prev, sales: sum('sales'), salesLy: sum('salesLy'), active: sum('active'), activeLy: sum('activeLy'), dom: wavg('dom', 'sales'), domLy: wavg('domLy', 'salesLy') };
+    o.ratio = o.active ? (o.sales / o.active) * 100 : null; return o;
+  }
   const c = D.cities[area] && D.cities[area][type], a = area === 'Greater Vancouver' ? null : D.areas[area][type];
   const o = c ? { price: c.price.now, yoy: c.price.yoy, prev: c.price.prev, sales: c.sales.now, salesLy: c.sales.ly, active: c.active.now, activeLy: c.active.ly, dom: c.dom.now, domLy: c.dom.ly, ratio: c.ratio }
     : { price: a.price, yoy: a.yoy, sales: a.sales, active: a.active };
   if (o.ratio == null) o.ratio = o.active ? (o.sales / o.active) * 100 : null;
   return o;
 }
+// Neutral arrow for counts (more homes for sale isn't "good" or "bad" by itself).
+export function chgN(v, suffix) { if (v == null || !isFinite(v)) return ''; return `<span class="chg neu">${v > 0 ? '▲' : v < 0 ? '▼' : '●'} ${Math.abs(v).toFixed(1)}%</span>${suffix ? ` <span class="muted small">${suffix}</span>` : ''}`; }
 export function chg(v, suffix) {
   if (v == null) return '<span class="muted small">n/a</span>';
   const c = v > 0 ? 'up' : v < 0 ? 'down' : '';
@@ -105,7 +116,7 @@ export function summary(D, area = 'Greater Vancouver', sh = DEFAULT_SHOW) {
 export const regionSummary = (D, sh) => summary(D, 'Greater Vancouver', sh);
 export function readout(D, area, type, sh = DEFAULT_SHOW) {
   const o = get(D, area, type), mk = market(o.ratio), mon = D.month.split(' ')[0], bits = [];
-  if (sh.changes && o.price && o.yoy != null) bits.push(`the typical ${type === 'detached' ? 'detached home' : T1[type].toLowerCase()} is ${o.yoy < 0 ? `down ${Math.abs(o.yoy)}%` : o.yoy > 0 ? `up ${o.yoy}%` : 'unchanged'} from a year ago`);
+  if (sh.changes && o.price && o.yoy != null) bits.push(`the typical ${{ detached: 'detached home', townhome: 'attached home', condo: 'condo', all: 'home' }[type]} is ${o.yoy < 0 ? `down ${Math.abs(o.yoy)}%` : o.yoy > 0 ? `up ${o.yoy}%` : 'unchanged'} from a year ago`);
   if (sh.sold && sh.forsale) bits.push(`${o.sales.toLocaleString()} of ${o.active.toLocaleString()} listed ${TN[type]} sold in ${mon}`);
   else if (sh.sold) bits.push(`${o.sales.toLocaleString()} ${TN[type]} sold in ${mon}`);
   else if (sh.forsale) bits.push(`${o.active.toLocaleString()} ${TN[type]} are listed for sale`);
@@ -136,7 +147,7 @@ export function askCopy(A) {
 export function mountReport(root, D, A, opts = {}) {
   const AREAS = areasOf(D), F = esc(first(A)), ask = askCopy(A), sh = showOf(A), TS = typesOf(sh);
   const start = AREAS.includes(opts.area) ? opts.area : 'Greater Vancouver', city = opts.city && start !== 'Greater Vancouver';
-  const multi = AREAS.length > 1 && !city, S = { area: start, type: TS[0], intent: null };
+  const multi = AREAS.length > 1 && !city && sh.picker !== false, TX = TS.length > 1 ? ['all', ...TS] : TS, S = { area: start, type: TX[0], intent: null };
   const anyPrice = sh.prices || sh.changes, stats = [['sold', 'Homes sold'], ['forsale', 'Homes for sale'], ['days', 'Average days to sell']].filter(([k]) => sh[k]);
   const showRank = AREAS.length > 1 && sh.compare && anyPrice;
   const email = A.contact_email || '', phone = A.phone || '', head = city ? start : 'Greater Vancouver';
@@ -145,12 +156,12 @@ export function mountReport(root, D, A, opts = {}) {
   root.classList.add('rpt'); root.style.cssText = themeVars(A.theme);
   root.innerHTML = `<div class="wrap">
 <div class="mast">${whoBlock(A)}</div>
-<header class="title"><p class="eyebrow">${esc(D.month)}</p><h1>${esc(head)} Market Report</h1>${lede ? `<p class="lede">${esc(lede)}</p>` : ''}</header>
-${anyPrice ? `<section><div class="metro" style="--n:${TS.length}">${TS.map((t) => { const m = get(D, head, t); return `<div><span class="lab">${T1[t]}</span>${sh.prices ? `<span class="num">${m.price ? money(m.price) : 'n/a'}</span>` : ''}<span>${sh.changes && m.price ? chg(m.yoy, 'in a year') : ''}</span></div>`; }).join('')}</div>
+<header class="title"><p class="monthpill"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>${esc(D.month)} report</p><h1 data-id="h1">${esc(head)} Market Report</h1><p class="lede" data-id="lede"${lede ? '' : ' hidden'}>${esc(lede)}</p></header>
+${anyPrice ? `<section><div class="metro" data-id="metro" style="--n:${TS.length}"></div>
   <p class="small muted">${sh.prices ? 'Benchmark price is the MLS® HPI price of a typical home' : 'Change in the MLS® HPI benchmark price of a typical home'}${sh.changes && sh.prices ? ', compared with the same month last year' : sh.changes ? ' over the past year' : ''}.</p></section>` : ''}
 <section><h2 data-id="h-city">${multi ? 'Pick your city' : 'A closer look'}</h2>
   <div class="controls">${multi ? `<div class="field"><label>Area<select data-id="area">${AREAS.map((a) => `<option>${a}</option>`).join('')}</select></label></div>` : ''}
-    ${TS.length > 1 ? `<div class="field"><span class="lab">Home type</span><div class="seg" data-id="types" role="group" aria-label="Home type">${TS.map((t) => `<button type="button" data-t="${t}">${T1[t]}</button>`).join('')}</div></div>` : ''}</div>
+    ${TX.length > 1 ? `<div class="field"><span class="lab">Home type</span><div class="seg" data-id="types" role="group" aria-label="Home type">${TX.map((t) => `<button type="button" data-t="${t}">${t === 'all' ? 'All' : T1[t]}</button>`).join('')}</div></div>` : ''}</div>
   <div class="panel" aria-live="polite">
     <div class="phead"><p class="eyebrow" data-id="p-title"></p>${sh.prices ? '<div class="big" data-id="p-price"></div>' : ''}<p class="muted small" data-id="p-sub"></p>${sh.changes ? '<p class="chgs" data-id="p-chg"></p>' : ''}</div>
     ${sh.market ? `<div class="gauge"><div class="ghead"><strong data-id="p-market"></strong><span class="muted small" data-id="p-ratio"></span></div>
@@ -179,39 +190,43 @@ ${showRank ? `<section><h2>How the areas compare</h2><p class="muted small" data
   function msg() {
     const t = text(); $('msg').textContent = t;
     if ($('mail')) $('mail').href = `mailto:${email}?subject=${encodeURIComponent(ask.subj)}&body=${encodeURIComponent(t)}`;
-    if ($('sms')) $('sms').href = `sms:+1${phone.replace(/\D/g, '')}?&body=${encodeURIComponent(t)}`;
+    if ($('sms')) { const d = phone.replace(/\D/g, ''); $('sms').href = `sms:+${d.length === 11 && d[0] === '1' ? d : '1' + d}?&body=${encodeURIComponent(t)}`; }
   }
   function render() {
     const { area, type } = S, o = get(D, area, type);
     if ($('area')) $('area').value = area;
     if ($('types')) $('types').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t === type));
-    put('p-title', area); put('p-sub', anyPrice ? `${T1[type]} benchmark price` : T1[type]);
+    put('h1', `${area} Market Report`);
+    if (sh.summary && area !== head) put('lede', summary(D, area, sh)); else if (sh.summary) put('lede', lede);
+    if ($('metro')) put('metro', TS.map((t) => { const m = get(D, area, t); return `<div><span class="lab">${T1[t]}</span>${sh.prices ? `<span class="num">${m.price ? money(m.price) : 'n/a'}</span>` : ''}<span>${sh.changes && m.price ? chg(m.yoy, 'in a year') : ''}</span></div>`; }).join(''), true);
+    put('p-title', area); put('p-sub', type === 'all' ? (anyPrice ? 'Benchmark price, all home types' : 'All home types') : anyPrice ? `${T1[type]} benchmark price` : T1[type]);
     put('p-price', o.price ? money(o.price) : 'No benchmark');
     let c = o.price ? chg(o.yoy, 'vs. ' + D.month.replace(/\d+$/, (y) => y - 1)) : '<span class="muted small">Too few sales here for a reliable benchmark.</span>';
     if (o.prev && o.price) { const m = ((o.price - o.prev) / o.prev) * 100; c = `<span>${c}</span><span>${chg(Math.round(m * 10) / 10, 'vs. last month')}</span>`; }
     put('p-chg', c, true);
     if (sh.market) { const mk = market(o.ratio); put('p-market', mk || 'Not enough activity to call'); put('p-ratio', o.ratio != null ? `${o.ratio.toFixed(1)}% of listings sold` : '');
       $('pin').hidden = o.ratio == null; $('pin').style.left = (Math.min(o.ratio || 0, 40) / 40) * 100 + '%'; }
-    const vals = { sold: [o.sales.toLocaleString(), o.salesLy != null ? `${o.salesLy.toLocaleString()} a year ago` : ''], forsale: [o.active.toLocaleString(), o.activeLy != null ? `${o.activeLy.toLocaleString()} a year ago` : ''],
-      days: [o.dom != null ? o.dom : `Ask ${F}`, o.dom != null ? `${o.domLy} a year ago` : "Not in this month's summary"] };
+    const yr = (now, ly) => (ly ? `${chgN(((now - ly) / ly) * 100)} <span class="muted">from ${ly.toLocaleString()} a year ago</span>` : '');
+    const vals = { sold: [o.sales.toLocaleString(), yr(o.sales, o.salesLy)], forsale: [o.active.toLocaleString(), yr(o.active, o.activeLy)],
+      days: [o.dom != null ? o.dom : `Ask ${F}`, o.dom != null ? yr(o.dom, o.domLy) : "Not in this month's summary"] };
     put('p-stats', stats.map(([k, l]) => `<div><span class="lab">${l}</span><span class="num">${vals[k][0]}</span><span class="sub">${vals[k][1]}</span></div>`).join(''), true);
     put('p-read', readout(D, area, type, sh));
     if (showTrend) drawTrend();
     if (showRank) {
-      const rows = Object.keys(D.areas).map((a) => ({ a, ...D.areas[a][type] })).filter((r) => r.price > 0).sort((x, y) => (sh.prices ? y.price - x.price : y.yoy - x.yoy));
+      const rows = Object.keys(D.areas).map((a) => ({ a, ...(type === 'all' ? get(D, a, 'all') : D.areas[a][type]) })).filter((r) => r.price > 0).sort((x, y) => (sh.prices ? y.price - x.price : y.yoy - x.yoy));
       const max = sh.prices ? rows[0].price : Math.max(...rows.map((r) => Math.abs(r.yoy))) || 1;
-      put('rank-sub', `${T1[type]} ${sh.prices ? 'benchmark price by area' : 'price change by area over the past year'}${sh.prices && sh.changes ? ', with the change from a year ago' : ''}.${multi ? ' Tap an area to see its details.' : ''}`);
-      const hdr = `<div class="row rh" aria-hidden="true"><span class="nm">Area</span><span></span><span class="v">${sh.prices ? `<span>${T1[type]} price</span>` : ''}${sh.changes ? `<small>1-yr change</small>` : ''}</span></div>`;
+      put('rank-sub', `${type === 'all' ? 'Overall' : T1[type]} ${sh.prices ? 'benchmark price by area' : 'price change by area over the past year'}${sh.prices && sh.changes ? ', with the change from a year ago' : ''}.${multi ? ' Tap an area to see its details.' : ''}`);
+      const hdr = `<div class="row rh" aria-hidden="true"><span class="nm">Area</span><span></span><span class="v">${sh.prices ? `<span>${type === 'all' ? 'Benchmark' : T1[type]} price</span>` : ''}${sh.changes ? `<small>1-yr change</small>` : ''}</span></div>`;
       put('rank', hdr + rows.map((r) => `<${multi ? 'button type="button"' : 'div'} class="row${r.a === area ? ' on' : ''}" data-a="${r.a}"><span class="nm">${r.a}</span><span><span class="bar" style="display:block;width:${(((sh.prices ? r.price : Math.abs(r.yoy)) / max) * 100).toFixed(1)}%"></span></span><span class="v">${sh.prices ? money(r.price) : ''}${sh.changes ? (sh.prices ? `<small>${chg(r.yoy)}</small>` : chg(r.yoy)) : ''}</span></${multi ? 'button' : 'div'}>`).join(''), true);
     }
     msg();
   }
   function drawTrend() {
-    const { area, type } = S, ps = priceSeries(D.history, area, type, endKey), first = ps[0]?.[0];
-    if ($('t1')) { put('t1h', `${T1[type]} benchmark price`); put('t1s', ps.length ? `${area} · ${monthName(first)} to ${monthName(endKey)}` : `${area} · not enough history yet`); lineChart($('t1'), ps, { label: `${T1[type]} benchmark price in ${area}` }); }
+    const { area, type } = S, ps = priceSeries(D.history, area, type === 'all' ? 'composite' : type, endKey), first = ps[0]?.[0];
+    if ($('t1')) { put('t1h', type === 'all' ? 'Benchmark price, all home types' : `${T1[type]} benchmark price`); put('t1s', ps.length ? `${area} · ${monthName(first)} to ${monthName(endKey)}` : `${area} · not enough history yet`); lineChart($('t1'), ps, { label: `${T1[type]} benchmark price in ${area}` }); }
     if ($('tfacts')) put('tfacts', trendFacts(ps).map(([b, t]) => `<span><b>${b}</b> ${t}</span>`).join(''), true);
-    if ($('t2')) { const ss = salesSeries(D.history, area, [type], endKey);
-      put('t2h', `${T1[type] === 'Detached' ? 'Detached homes' : T1[type] + 's'} sold each month`); put('t2s', ss.rows.length > 1 ? `${ss.group === 'Grand Totals' ? 'Greater Vancouver' : ss.group}${ss.group !== area && ss.group !== 'Grand Totals' ? ' (whole area)' : ''} · ${monthName(ss.rows[0][0])} to ${monthName(endKey)}` : 'Not enough history yet');
+    if ($('t2')) { const ss = salesSeries(D.history, area, type === 'all' ? TS : [type], endKey);
+      put('t2h', `${SOLDLAB[type]} sold each month`); put('t2s', ss.rows.length > 1 ? `${ss.group === 'Grand Totals' ? 'Greater Vancouver' : ss.group}${ss.group !== area && ss.group !== 'Grand Totals' ? ' (whole area)' : ''} · ${monthName(ss.rows[0][0])} to ${monthName(endKey)}` : 'Not enough history yet');
       barChart($('t2'), ss.rows, { label: `${T1[type]} sales in ${ss.group}` }); }
   }
   if (showTrend && window.ResizeObserver) { let w = 0, tm; new ResizeObserver(() => { const cw = root.clientWidth; if (Math.abs(cw - w) > 20) { w = cw; clearTimeout(tm); tm = setTimeout(drawTrend, 120); } }).observe(root); }
