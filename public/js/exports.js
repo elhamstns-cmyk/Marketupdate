@@ -1,4 +1,5 @@
 // Ready-to-send formats: client email, social images.
+import { calmImage, calmCaption } from './social2.js';
 import { phoneFmt, typesNote, T1, money, get, market, summary, readout, first, areasOf, slug, palette, roleLabel, showOf, typesOf } from './report.js';
 
 export const reportLink = (base, A, area, v) => `${base}/r/${A.slug}` + (v ? `?v=${v}` : area && area !== 'Greater Vancouver' ? `#${slug(area)}` : '');
@@ -16,7 +17,7 @@ export function emailDraft(D, A, area, link) {
   const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.6;color:#181614;max-width:560px">${A.logo ? `<p><img src="${A.logo}" alt="" style="max-height:60px"></p>` : ''}<p>Hi,</p><p>Here is the <strong>${D.month}</strong> market update for ${area}.</p><p>${intro}</p>${lines.length ? `<table style="border-collapse:collapse;margin:8px 0">${lines.map((l) => `<tr><td style="padding:6px 18px 6px 0;color:#6b635a">${l.t}</td>${l.price ? `<td style="padding:6px 18px 6px 0;font-weight:bold">${l.price}</td>` : ''}${l.chg ? `<td style="padding:6px 0;color:${l.yoy < 0 ? '#a24a33' : '#3f6b45'}">${l.chg}</td>` : ''}</tr>`).join('')}</table>` : ''}<p><a href="${link}" style="display:inline-block;background:${palette(A.theme).ac};color:${palette(A.theme).bt};padding:12px 20px;border-radius:8px;text-decoration:none">Open the interactive report</a></p><p>${more}</p><p>${sign(A).join('<br>')}</p></div>`;
   return { subject, text, html };
 }
-export const caption = (D, A, area, link) => { const lines = priceLines(D, A, area), sh = showOf(A);
+export const captionOld = (D, A, area, link) => { const lines = priceLines(D, A, area), sh = showOf(A);
   return `${area} market update, ${D.month}\n\n${lines.length ? lines.map((l) => `${l.t}: ${[l.price, l.chg].filter(Boolean).join(', ')}`).join('\n') + '\n\n' : sh.summary ? summary(D, area, sh) + '\n\n' : ''}Full interactive report: ${link}\n\n${sign(A).join(' | ')}`; };
 
 const loadImg = (src) => new Promise((ok) => { if (!src) return ok(null); const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
@@ -24,7 +25,7 @@ const loadImg = (src) => new Promise((ok) => { if (!src) return ok(null); const 
 // kind: 'post' (1080x1080, Instagram square) or 'story' (1080x1920).
 // A compact header, three headline facts, then a small table of all three home types, then who to call.
 const tiles0 = (sh) => sh.sold || sh.forsale || sh.market;
-export async function socialImage(D, A, area, kind = 'post') {
+export async function socialImageOld(D, A, area, kind = 'post') {
   await (document.fonts?.ready || Promise.resolve());
   const sh = showOf(A), P = palette(A.theme), story = kind === 'story', W = 1080, H = story ? 1920 : 1080, M = 72, k = story ? 1.22 : 1;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
@@ -103,3 +104,6 @@ export async function socialImage(D, A, area, kind = 'post') {
 }
 export function download(canvas, name) { const a = document.createElement('a'); a.download = name; a.href = canvas.toDataURL('image/png'); a.click(); }
 export { areasOf, first };
+// Current look: the calm blue images and the plain-words caption.
+export const socialImage = (D, A, area, kind = 'post', opts) => calmImage(D, A, area, kind, opts);
+export const caption = (D, A, area, link) => calmCaption(D, A, area, link);

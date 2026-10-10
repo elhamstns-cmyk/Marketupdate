@@ -1,6 +1,7 @@
 import { mountReport, SECTIONS, layoutOf, DEFAULT_LAYOUT, MAX_AREAS, sameLayout, PAIRABLE, USES_TYPES, USES_AREAS, TYPE_KEYS } from './board.js';
 import { esc, areasOf, STYLES, FONTS, BASIC_THEME, loadFonts, SHOW_NUMBERS, SHOW_SECTIONS, DEFAULT_SHOW, TYPES, T1, showOf, monthKey, COVERS } from './report.js';
 import { reportLink, emailDraft, caption, socialImage, download } from './exports.js';
+import { calmImage, calmCaption, imgOpts, IMG_PARTS } from './social2.js';
 import { sv, isPhone, canShareFiles, toFile, shareMenu, closeMenu, qrModal } from './share.js';
 
 const $ = (s) => document.querySelector(s), main = $('#main');
@@ -288,6 +289,7 @@ function show(v) {
   view = ['create', 'history', 'account'].includes(v) ? v : 'create'; saveNow();
   main.innerHTML = `<div class="subnav" id="subnav"></div><div id="page" class="pg-${view}"></div>`; drawNav();
   $('#subnav').onclick = (e) => { const b = e.target.closest('[data-view]'); if (b && b.dataset.view !== view) show(b.dataset.view); };
+  document.body.classList.toggle('oncreate', view === 'create');
   if (view === 'history') drawHistory(); else if (view === 'account') drawAccount(); else dashboard();
   window.scrollTo(0, 0);
 }
@@ -304,9 +306,9 @@ async function saveNow() {
   return saving;
 }
 
-/* ---------- Create: the report on the left, a panel on the right ---------- */
-// The agent sees exactly what clients see. Click a section to edit it (Data / Settings), add sections, reorder them,
-// and save the layout as "My template" so every new month opens the same way.
+/* ---------- Create: the report on the left, the sections panel on the right ---------- */
+// The agent sees exactly what clients see. They select, drag, remove and add sections right on the report,
+// switch sections on and off in the panel, and save it all as their template for every new month.
 const firstArea = () => layoutOf(agent(), D).areas[0];
 const layoutName = () => { const a = layoutOf(agent(), D).areas; return a.length === 1 ? a[0] : a.length === 2 ? a.join(' and ') : `${a.length} areas`; };
 const shareText = (link) => { const n = layoutName(); return { url: link, subject: `${n} market update: ${D.month}`, short: `Here is the ${D.month} market update for ${n}: ${link}`, body: emailDraft(D, agent(), firstArea(), link).text }; };
@@ -314,7 +316,8 @@ const avatar = () => (P.photo ? `<img src="${esc(P.photo)}" alt="">` : `<span cl
 const SEC = Object.fromEntries(SECTIONS.map(([k, l, d]) => [k, { l, d }]));
 const SIC = { numbers: '#', trend: '∿', market: '⇆', types: '⌂', growth: '↗', summary: '≡', sold: '▮', compare: '☰', contact: '✉' };
 const TYPE_NAME = { detached: 'Detached', townhome: 'Townhouse', condo: 'Condo' };
-let PS = { m: 'list', k: null, tab: 'data' };
+const EYE = '<svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+let PS = { m: 'list', k: null, tab: 'data' }, ZOOM = 0.85, IGS = null;
 const cur = () => layoutOf(agent(), D);
 const snap = (L) => ({ sections: L.sections, areas: L.areas, agentTop: L.agentTop, clientAreas: L.clientAreas, view: L.view, conf: L.conf });
 const mode = () => (P.show?.mode === 'template' && P.show?.template ? 'template' : 'default');
@@ -332,65 +335,80 @@ function dashboard() {
   $('#subnav').hidden = true; PS = { m: P.name ? 'list' : 'details', k: null, tab: 'data' };
   const notes = [cfg.demo ? 'Preview mode: nothing is saved to a server and no payment is taken.' : '', noticeOk, qs.has('welcome') ? `You are subscribed${P.name ? ', ' + P.name.trim().split(/\s+/)[0] : ''}. Welcome aboard.` : ''].filter(Boolean);
   pg.innerHTML = `<div class="dbar"><div class="crumb"><button type="button" class="lk" data-go="history">Your reports</button><span>/</span><b>${esc(D.month)}</b><span class="ok small" id="saved"></span></div>
-    <div class="dact"><span id="laysel"></span><span class="shwrap"><button type="button" class="btn sm ghost" id="sharebtn">Share</button></span><button type="button" class="btn sm" id="pvbtn">Preview</button>
-    <button type="button" class="me" data-go="account" title="Your account"><span class="av">${avatar()}</span><span class="who"><b>${esc(P.name || 'Add your name')}</b><small>${esc(P.brokerage || '')}</small></span></button></div></div>
-    <div class="dwrap"><div class="dleft">${notes.map((n) => `<p class="dnote">${esc(n)}</p>`).join('')}${!cfg.demo && P.email_verified === false ? `<p class="dnote warn">Please confirm your email. We sent a link to <b>${esc(P.email || '')}</b>. <a href="#" id="cfmagain">Send it again</a></p>` : ''}<div id="dban"></div><div id="rp"></div></div><aside class="dpanel" id="dpanel"></aside></div>`;
-  noticeOk = ''; drawTop(); preview(); wirePanel(); drawPanel();
+    <div class="dact"><span id="laysel"></span><span class="shwrap"><button type="button" class="btn sm ghost" id="sharebtn">${sv('share')}Share</button></span><button type="button" class="btn sm" id="pvbtn">${EYE}Preview</button>
+    <span class="mewrap"><button type="button" class="me" id="mebtn" aria-haspopup="menu"><span class="av">${avatar()}</span><span class="who"><b>${esc(P.name || 'Add your name')}</b><small>${esc(P.brokerage || '')}</small></span><span class="car">⌄</span></button></span></div></div>
+    <div class="dwrap"><div class="dleft" id="dleft">${notes.map((n) => `<p class="dnote">${esc(n)}</p>`).join('')}${!cfg.demo && P.email_verified === false ? `<p class="dnote warn">Please confirm your email. We sent a link to <b>${esc(P.email || '')}</b>. <a href="#" id="cfmagain">Send it again</a></p>` : ''}
+      <div id="rp"></div><div class="zoomc" role="group" aria-label="Zoom"><button type="button" data-z="-" aria-label="Zoom out">−</button><span id="zv">85%</span><button type="button" data-z="+" aria-label="Zoom in">+</button><button type="button" data-z="fit" title="Back to 85%" aria-label="Reset zoom">⤢</button></div></div>
+    <aside class="dpanel" id="dpanel"></aside></div>`;
+  noticeOk = ''; drawTop(); preview(); setZoom(ZOOM); wirePanel(); drawPanel(); wireZoom();
   pg.onclick = (e) => { const g = e.target.closest('[data-go]'); if (g) return show(g.dataset.go);
     if (e.target.id === 'cfmagain') { e.preventDefault(); return sendConfirm(P.email).then((ok) => alertMsg(ok ? 'Sent. Check your inbox.' : 'Please wait a minute and try again.', !ok)); }
-    if (e.target.id === 'savetpl') { e.preventDefault(); P.show = { ...showOf(P), ...snap(cur()), mode: 'template', template: snap(cur()) }; touch('show'); drawTop(); drawPanel(); return alertMsg('Saved as your template. Every new month opens this way.'); }
+    const z = e.target.closest('[data-z]'); if (z) return setZoom(z.dataset.z === 'fit' ? 0.85 : ZOOM + (z.dataset.z === '+' ? 0.1 : -0.1));
     if (e.target.closest('#pvbtn')) { if (!ready()) return; saveNow(); return act('link', record('link'), 'open'); }
-    if (e.target.closest('#sharebtn')) return shareDrop(e.target.closest('#sharebtn')); };
-  pg.onchange = (e) => { if (e.target.id !== 'layout') return; const v = e.target.value, t = P.show?.template;
-    if (v === 'template' && t) P.show = { ...showOf(P), ...t, mode: 'template' };
+    if (e.target.closest('#sharebtn')) return shareDrop(e.target.closest('#sharebtn'));
+    if (e.target.closest('#mebtn')) return meMenu(e.target.closest('#mebtn')); };
+  pg.onchange = (e) => { if (e.target.id !== 'layout') return; const t = P.show?.template;
+    if (e.target.value === 'template' && t) P.show = { ...showOf(P), ...t, mode: 'template' };
     else P.show = { ...showOf(P), ...snap({ ...DEFAULT_LAYOUT, areas: cur().areas }), mode: 'default' };
     touch('show'); PS = { m: 'list' }; drawTop(); preview(); drawPanel(); };
   if (dirty.size) touch([...dirty][0]);
 }
-// Top bar: layout picker; banner above the report while the default is in use.
+// Zoom only changes how big the report looks here. Pinch on a trackpad, or use − and +.
+function setZoom(z) { ZOOM = Math.round(Math.min(1.5, Math.max(0.5, z)) * 100) / 100; const rp = $('#rp'); if (rp) rp.style.zoom = ZOOM; if ($('#zv')) $('#zv').textContent = Math.round(ZOOM * 100) + '%'; }
+function wireZoom() {
+  const el = $('#dleft'); if (!el) return; let base = ZOOM;
+  el.addEventListener('wheel', (e) => { if (!e.ctrlKey) return; e.preventDefault(); setZoom(ZOOM * Math.exp(-Math.max(-50, Math.min(50, e.deltaY)) * 0.006)); }, { passive: false });
+  el.addEventListener('gesturestart', (e) => { e.preventDefault(); base = ZOOM; });
+  el.addEventListener('gesturechange', (e) => { e.preventDefault(); setZoom(base * e.scale); });
+  try { if (!sessionStorage.getItem('mup_zoomtip')) { sessionStorage.setItem('mup_zoomtip', '1'); const t = document.createElement('div'); t.className = 'ztip'; t.textContent = 'Pinch on your trackpad to zoom in or out. It only changes how it looks here.'; el.appendChild(t); setTimeout(() => t.remove(), 5000); } } catch {}
+}
+// Top bar: the layout picker shows only once there are two layouts to choose from.
 function drawTop() {
-  const ls = $('#laysel'), ban = $('#dban'); if (!ls) return; const w = $('.dbar .who b'); if (w) w.textContent = P.name || 'Add your name'; const a = $('.dbar .av'); if (a) a.innerHTML = avatar();
-  if (!isPro()) { ls.innerHTML = ''; ban.innerHTML = ''; return; }
-  const m = mode(), t = P.show?.template;
-  ls.innerHTML = `<label class="lay">Layout: <select id="layout" aria-label="Layout"><option value="default"${m === 'default' ? ' selected' : ''}>Default</option>${t ? `<option value="template"${m === 'template' ? ' selected' : ''}>My template</option>` : ''}</select></label>`;
-  ban.innerHTML = m === 'template' ? '' : `<div class="dbanner">${sameLayout(cur(), { ...DEFAULT_LAYOUT }) ? 'This is the default layout. Add, move or remove sections, then save it as your template for every month.' : 'You changed the layout. Save it as your template so every new month opens this way.'}<a href="#" id="savetpl">Save as my template</a></div>`;
+  const ls = $('#laysel'); if (!ls) return; const w = $('.dbar .who b'); if (w) w.textContent = P.name || 'Add your name'; const a = $('.dbar .me .av'); if (a) a.innerHTML = avatar();
+  const t = isPro() && P.show?.template, m = mode();
+  ls.innerHTML = t ? `<label class="lay">Layout: <select id="layout" aria-label="Layout"><option value="default"${m === 'default' ? ' selected' : ''}>Default</option><option value="template"${m === 'template' ? ' selected' : ''}>My template</option></select></label>` : '';
 }
 function drawSend() { drawTop(); }
 const ready = () => { if (P.name && P.slug) return true; alertMsg('Add your name first.', true); PS = { m: 'details' }; drawPanel(); return false; };
 function preview() {
   const rp = $('#rp'); if (!rp) return;
-  mountReport(rp, D, agent(), { embedded: true, ...(isPro() ? { edit: (L) => setLayout({ areas: L.areas, view: L.view }, false), selected: PS.m === 'edit' ? PS.k : null, adding: PS.m === 'add',
-    onSelect: (k) => { PS = { m: 'edit', k, tab: PS.k === k ? PS.tab : 'data' }; drawPanel(); if (innerWidth < 1000) $('#dpanel').scrollIntoView({ behavior: 'smooth' }); },
-    onAdd: () => { PS = { m: 'add' }; $('#rp')._select?.(null); $('#rp')._adding?.(true); drawPanel(); } } : {}) });
+  mountReport(rp, D, agent(), { embedded: true, ...(isPro() ? { edit: (patch) => setLayout(patch, false), selected: PS.k, adding: PS.m === 'add',
+    onSelect: (k) => { PS = PS.m === 'edit' && k ? { m: 'edit', k, tab: PS.tab } : { m: 'list', k }; drawPanel(); $(`#dpanel [data-sk="${k}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' }); },
+    onAdd: () => { PS = { m: 'add' }; drawPanel(); } } : {}) });
+  rp.style.zoom = ZOOM;
 }
 let pvT; const later = () => { clearTimeout(pvT); pvT = setTimeout(() => { preview(); drawTop(); }, 160); };
 const thumbs = () => { for (const k of ['photo', 'logo']) { if (!$('#lb-' + k)) continue; $('#lb-' + k).textContent = P[k] ? 'Change' : 'Add';
   $('#ph-' + k).innerHTML = P[k] ? `<img${k === 'photo' ? ' class="round"' : ''} src="${P[k]}" alt="">` : '<span class="ph">+</span>'; $(`[data-rm="${k}"]`).hidden = !P[k]; } };
+function selectSec(k, scroll) { PS.k = k; $('#rp')?._select?.(k); $('#dpanel').querySelectorAll('[data-sk]').forEach((x) => x.classList.toggle('sel', x.dataset.sk === k));
+  if (scroll) $(`#rp .sx[data-k="${k}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 
 /* ---------- the right panel ---------- */
 const tgl = (attr, l, on) => `<label class="tgr"><span>${l}</span><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>`;
 function drawPanel() {
   const el = $('#dpanel'); if (!el) return; const L = cur(), pro = isPro();
-  $('#rp')?._select?.(PS.m === 'edit' ? PS.k : null); $('#rp')?._adding?.(PS.m === 'add');
+  $('#rp')?._select?.(PS.m === 'list' || PS.m === 'edit' ? PS.k : null); $('#rp')?._adding?.(PS.m === 'add');
   const head = (t, back) => `<div class="ph">${back ? `<button type="button" class="back" data-p="list">‹ ${t}</button>` : `<h3>${t}</h3>`}${back ? '<button type="button" class="x" data-p="list" aria-label="Close">✕</button>' : ''}</div>`;
+  let body = '', foot = '';
   if (PS.m === 'details') {
-    el.innerHTML = `${head('Your details', !!P.name)}${P.name ? '' : '<p class="hint">Add your name, photo and contact details. They show on your report.</p>'}
+    body = `${head('Your details', !!P.name)}${P.name ? '' : '<p class="hint">Add your name, photo and contact details. They show on your report.</p>'}
       <div class="fl2">${DETAILS.map(([k, l, t, ph]) => `<label>${l}<input type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}"></label>`).join('')}
       <label>Phone<div class="phonef"><span>+1</span><input type="tel" data-k="phone" value="${esc(localPhone(P.phone))}" placeholder="604-555-0100"></div></label>
       <label>I am a<select data-k="role"><option value="realtor"${P.role !== 'broker' ? ' selected' : ''}>REALTOR®</option><option value="broker"${P.role === 'broker' ? ' selected' : ''}>Mortgage broker</option></select></label></div>
       <div class="two">${['photo', 'logo'].map((k) => `<div class="upw"><label class="up"><span id="ph-${k}"></span><span>Your ${k}<br><b id="lb-${k}"></b></span><input type="file" accept="image/*" data-img="${k}"></label><button type="button" class="rm" data-rm="${k}" aria-label="Remove your ${k}" title="Remove" hidden>✕</button></div>`).join('')}</div>
       <button type="button" class="btn wide" data-p="list">Done</button>`;
-    thumbs();
+  } else if (!pro) {
+    body = `${head('Sections')}<div class="lockbox"><span>With Pro you choose your areas and sections, move them around, and save your own template.</span><button type="button" class="btn sm" id="up4">Upgrade to Pro</button></div>`;
   } else if (PS.m === 'add') {
-    el.innerHTML = `${head('Add a section')}<button type="button" class="x tr" data-p="list" aria-label="Close">✕</button><p class="hint">Click one to add it to the end of your report. Drag it in the list to move it.</p>
+    body = `${head('Add a section', true)}<p class="hint">Click one to add it to the end of your report. Then drag it where you want it.</p>
       <div class="lib">${SECTIONS.filter(([k]) => k !== 'growth' || D.growth).map(([k, l, d]) => { const has = L.sections.includes(k); return `<div class="it${has ? ' done' : ''}"><span class="ic">${SIC[k]}</span><div><b>${l}</b><small>${d}</small></div>${has ? '<span class="added">Added</span>' : `<button type="button" class="add" data-addk="${k}">+ Add</button>`}</div>`; }).join('')}</div>`;
   } else if (PS.m === 'edit' && L.sections.includes(PS.k)) {
     const k = PS.k, c = L.conf[k] || {}, i = L.sections.indexOf(k);
-    let body = '';
+    let b = '';
     if (PS.tab === 'data') {
-      if (!USES_AREAS.includes(k)) body = `<p class="hint">${k === 'compare' ? 'This section always shows every area, ranked by typical price.' : 'This section shows your photo, your details and a message box for clients. Change your details from "Your details".'}</p>`;
+      if (!USES_AREAS.includes(k)) b = `<p class="hint">${k === 'compare' ? 'This section always shows every area, ranked by typical price.' : 'This section shows your photo, your details and a message box for clients. Change your details from the menu under your photo.'}</p>`;
       else { const own = !!c.areas, ar = c.areas || L.areas, free = areasOf(D).filter((a) => !ar.includes(a));
-        body = `<span class="lbl2">Areas in this section</span><div class="seg2"><button type="button" data-own="0" aria-pressed="${!own}">Same as the report</button><button type="button" data-own="1" aria-pressed="${own}">Choose</button></div>
+        b = `<span class="lbl2">Areas in this section</span><div class="seg2"><button type="button" data-own="0" aria-pressed="${!own}">Same as the report</button><button type="button" data-own="1" aria-pressed="${own}">Choose</button></div>
           ${own ? `<div class="chips2">${ar.map((a) => `<span class="chip2">${esc(a)}${ar.length > 1 ? `<button type="button" data-arm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}</div>
             ${ar.length < MAX_AREAS ? `<label class="addl">+ Add an area (up to ${MAX_AREAS})<select data-aadd><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}`
           : `<p class="hint">Uses the areas at the top of your report: ${L.areas.map(esc).join(', ')}.</p>`}
@@ -398,46 +416,57 @@ function drawPanel() {
           <span class="lbl2">Compared with</span><div class="fake">Same month last year</div>`; }
     } else {
       const titled = !['numbers', 'contact'].includes(k);
-      body = `${titled ? `<span class="lbl2">Title</span><input class="inp2" data-title value="${esc(c.title || '')}" placeholder="${esc(SEC[k].l)}">
+      b = `${titled ? `<span class="lbl2">Title</span><input class="inp2" data-title value="${esc(c.title || '')}" placeholder="${esc(SEC[k].l)}">
         ${tgl('data-cf="sub"', 'Show the line under the title', c.sub !== false)}` : '<p class="hint">This section uses its own titles.</p>'}
         ${k === 'market' ? tgl('data-cf="note"', 'Show a one-line explanation', c.note !== false) : ''}
         ${PAIRABLE.includes(k) ? `<span class="lbl2">Size</span><select class="inp2" data-size><option value="half"${c.size !== 'full' ? ' selected' : ''}>Half width (sits next to another section)</option><option value="full"${c.size === 'full' ? ' selected' : ''}>Full width</option></select>` : ''}
-        <span class="lbl2">Position</span><div class="mv2"><button type="button" data-mv="-1"${i ? '' : ' disabled'}>↑ Move up</button><button type="button" data-mv="1"${i < L.sections.length - 1 ? '' : ' disabled'}>↓ Move down</button></div>
-        <button type="button" class="rmsec" data-hide${L.sections.length > 1 ? '' : ' disabled'}>Remove this section</button>`;
+        <span class="lbl2">Position</span><div class="mv2"><button type="button" data-mv="-1"${i ? '' : ' disabled'}>↑ Move up</button><button type="button" data-mv="1"${i < L.sections.length - 1 ? '' : ' disabled'}>↓ Move down</button></div>`;
     }
-    el.innerHTML = `${head('Edit section', true)}<p class="secname">${SEC[k].l}</p><div class="tabs2"><button type="button" data-tab="data" aria-selected="${PS.tab === 'data'}">Data</button><button type="button" data-tab="settings" aria-selected="${PS.tab === 'settings'}">Settings</button></div>${body}`;
+    body = `${head('Edit section', true)}<p class="secname">${esc(c.title || SEC[k].l)}</p><div class="tabs2"><button type="button" data-tab="data" aria-selected="${PS.tab === 'data'}">Data</button><button type="button" data-tab="settings" aria-selected="${PS.tab === 'settings'}">Settings</button></div>${b}
+      <button type="button" class="rmsec" data-hide${L.sections.length > 1 ? '' : ' disabled'}>Remove this section</button>`;
   } else {
-    PS = { m: 'list' };
-    el.innerHTML = `${head('Your report')}<button type="button" class="drow" data-p="details"><span class="av">${avatar()}</span><span><b>${esc(P.name || 'Add your name')}</b><small>${esc([P.brokerage, localPhone(P.phone)].filter(Boolean).join(' · ') || 'Your photo and details')}</small></span><span class="e">Edit ›</span></button>
-      ${pro ? `<p class="hint">Click a section on the left to edit it, or drag here to reorder.</p><span class="lbl2">Sections</span>
-      <ol class="slist">${L.sections.map((k) => `<li draggable="true" data-sk="${k}"><span class="h" aria-hidden="true">⋮⋮</span><span class="ic">${SIC[k]}</span><b>${esc(L.conf[k]?.title || SEC[k].l)}</b><button type="button" class="e" data-ek="${k}">Edit ›</button></li>`).join('')}</ol>
-      <button type="button" class="addbtn" data-p="add">+ Add a section</button>
-      <span class="lbl2">Options</span>${L.areas.length > 1 ? `<div class="seg2" style="margin-bottom:6px"><button type="button" data-vw="side" aria-pressed="${L.view === 'side'}">Side by side</button><button type="button" data-vw="one" aria-pressed="${L.view === 'one'}">One at a time</button></div>` : ''}
-      ${tgl('data-lt="agentTop"', 'Show my name and photo at the top', L.agentTop)}${tgl('data-lt="clientAreas"', 'Clients can add or remove areas', L.clientAreas)}
-      ${sameLayout(L, { ...DEFAULT_LAYOUT, areas: L.areas }) ? '' : '<button type="button" class="linkbtn" id="ltreset">Go back to the default layout</button>'}`
-      : `<div class="lockbox"><span>With Pro you choose your areas and sections, edit each one, and save your own template.</span><button type="button" class="btn sm" id="up4">Upgrade to Pro</button></div>`}`;
+    if (PS.m !== 'list') PS = { m: 'list', k: PS.k };
+    const off = SECTIONS.filter(([k]) => !L.sections.includes(k) && (k !== 'growth' || D.growth));
+    body = `${head('Sections')}<p class="hint">Click a section to select it. Switch it off to take it off your report. Drag to reorder, here or on the report.</p>
+      <div class="grp">On your report <span>${L.sections.length}</span></div>
+      <ol class="slist">${L.sections.map((k) => `<li draggable="true" data-sk="${k}" class="${PS.k === k ? 'sel' : ''}"><span class="h" aria-hidden="true">⋮⋮</span><span class="ic">${SIC[k]}</span><b>${esc(L.conf[k]?.title || SEC[k].l)}</b><button type="button" class="e" data-ek="${k}">Edit</button><label class="swl" title="Show on your report"><input type="checkbox" data-on="${k}" checked${L.sections.length > 1 ? '' : ' disabled'}><span class="sw2" aria-hidden="true"></span></label></li>`).join('')}</ol>
+      ${off.length ? `<div class="grp">Not on your report <span>${off.length}</span></div><ol class="slist off">${off.map(([k]) => `<li data-ok="${k}"><span class="ic">${SIC[k]}</span><b>${SEC[k].l}</b><label class="swl" title="Add to your report"><input type="checkbox" data-on="${k}"><span class="sw2" aria-hidden="true"></span></label></li>`).join('')}</ol>` : ''}
+      <div class="grp" style="margin-top:14px">Options</div>${L.areas.length > 1 ? `<div class="seg2" style="margin-bottom:6px"><button type="button" data-vw="side" aria-pressed="${L.view === 'side'}">Side by side</button><button type="button" data-vw="one" aria-pressed="${L.view === 'one'}">One at a time</button></div>` : ''}
+      ${tgl('data-lt="agentTop"', 'Show my name and photo at the top', L.agentTop)}${tgl('data-lt="clientAreas"', 'Clients can add or remove areas', L.clientAreas)}`;
   }
+  if (pro && PS.m !== 'details') { const m = mode(), isDef = sameLayout(L, { ...DEFAULT_LAYOUT, areas: L.areas });
+    foot = m === 'template' ? `<span class="st"><i class="ok"></i>Using your template. Changes save to it.</span>${isDef ? '' : '<button type="button" class="linkbtn" id="ltreset">Back to the default layout</button>'}`
+      : `<span class="st"><i></i>${isDef ? 'Using the default layout' : 'You changed the default layout'}</span><button type="button" class="btn wide" id="savetpl">Save as my template</button><span class="small muted center">Every new month opens with your template.</span>${isDef ? '' : '<button type="button" class="linkbtn" id="ltreset">Back to the default layout</button>'}`; }
+  el.innerHTML = `<div class="pbody">${body}</div>${foot ? `<div class="pfoot">${foot}</div>` : ''}`;
+  if (PS.m === 'details') thumbs();
 }
 // One set of listeners for the panel, whatever it is showing.
 function wirePanel() {
   const el = $('#dpanel'); if (!el || el._w) return; el._w = 1;
-  el.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset, L = cur(), k = PS.k;
-    if (d.p) { PS = { m: d.p }; return drawPanel(); }
-    if (d.ek) { PS = { m: 'edit', k: d.ek, tab: 'data' }; drawPanel(); return $(`#rp .sx[data-k="${d.ek}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  el.addEventListener('click', (e) => { const t = e.target;
+    if (t.closest('.swl')) return; // the on/off switches are handled on change
+    const b = t.closest('button');
+    if (!b) { const li = t.closest('[data-sk]'); if (li) selectSec(li.dataset.sk, true); return; }
+    if (b.disabled) return; const d = b.dataset, L = cur(), k = PS.k;
+    if (d.p) { PS = { m: d.p, k: PS.k }; return drawPanel(); }
+    if (d.ek) { PS = { m: 'edit', k: d.ek, tab: 'data' }; drawPanel(); return selectSec(d.ek, true); }
     if (d.tab) { PS.tab = d.tab; return drawPanel(); }
-    if (d.addk) { setLayout({ sections: [...L.sections, d.addk] }); PS = { m: 'edit', k: d.addk, tab: 'data' }; drawPanel(); preview(); return setTimeout(() => $(`#rp .sx[data-k="${d.addk}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80); }
+    if (d.addk) { setLayout({ sections: [...L.sections, d.addk] }); PS = { m: 'list', k: d.addk }; drawPanel(); return setTimeout(() => selectSec(d.addk, true), 80); }
     if (d.own) return setConf(k, { areas: d.own === '1' ? [...L.areas] : undefined });
     if (d.arm) return setConf(k, { areas: (L.conf[k]?.areas || L.areas).filter((a) => a !== d.arm) });
-    if (d.ty) { const on = L.conf[k]?.types || [...TYPE_KEYS], next = on.includes(d.ty) ? on.filter((t) => t !== d.ty) : [...on, d.ty];
-      if (!next.length) return alertMsg('Keep at least one home type.', true); return setConf(k, { types: next.length === 3 ? undefined : TYPE_KEYS.filter((t) => next.includes(t)) }); }
-    if (d.mv) { const s2 = [...L.sections], i = s2.indexOf(k), j = i + +d.mv; [s2[i], s2[j]] = [s2[j], s2[i]]; setLayout({ sections: s2 }); return setTimeout(() => $(`#rp .sx[data-k="${k}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80); }
+    if (d.ty) { const on = L.conf[k]?.types || [...TYPE_KEYS], next = on.includes(d.ty) ? on.filter((x) => x !== d.ty) : [...on, d.ty];
+      if (!next.length) return alertMsg('Keep at least one home type.', true); return setConf(k, { types: next.length === 3 ? undefined : TYPE_KEYS.filter((x) => next.includes(x)) }); }
+    if (d.mv) { const s2 = [...L.sections], i = s2.indexOf(k), j = i + +d.mv; [s2[i], s2[j]] = [s2[j], s2[i]]; setLayout({ sections: s2 }); return setTimeout(() => selectSec(k, true), 80); }
     if ('hide' in d) { setLayout({ sections: L.sections.filter((x) => x !== k) }); PS = { m: 'list' }; return drawPanel(); }
     if (d.vw) return setLayout({ view: d.vw });
-    if (b.id === 'ltreset') return setLayout({ ...DEFAULT_LAYOUT, areas: L.areas });
+    if (b.id === 'ltreset') { if (!confirm('Go back to the default sections and order?')) return; return setLayout({ ...DEFAULT_LAYOUT, areas: L.areas }); }
+    if (b.id === 'savetpl') { P.show = { ...showOf(P), ...snap(cur()), mode: 'template', template: snap(cur()) }; touch('show'); drawTop(); drawPanel(); return alertMsg('Saved as your template. Every new month opens this way.'); }
     if (b.id === 'up4') return portal();
     if (d.rm) { P[d.rm] = ''; touch(d.rm); thumbs(); later(); return alertMsg(`Your ${d.rm} was removed.`); } });
-  el.addEventListener('change', async (e) => { const t = e.target, k = PS.k;
-    if (t.matches('[data-aadd]') && t.value) return setConf(k, { areas: [...(cur().conf[k]?.areas || cur().areas), t.value] });
+  el.addEventListener('change', async (e) => { const t = e.target, k = PS.k, L = cur();
+    if (t.dataset.on) { const s = t.dataset.on; if (t.checked) { setLayout({ sections: [...L.sections, s] }); PS = { m: 'list', k: s }; drawPanel(); return setTimeout(() => selectSec(s, true), 80); }
+      if (L.sections.length < 2) { t.checked = true; return; } if (PS.k === s) PS.k = null; return setLayout({ sections: L.sections.filter((x) => x !== s) }); }
+    if (t.matches('[data-aadd]') && t.value) return setConf(k, { areas: [...(L.conf[k]?.areas || L.areas), t.value] });
     if (t.dataset.cf) return setConf(k, { [t.dataset.cf]: t.checked ? undefined : false });
     if (t.matches('[data-size]')) return setConf(k, { size: t.value === 'full' ? 'full' : undefined });
     if (t.dataset.lt) return setLayout({ [t.dataset.lt]: t.checked });
@@ -449,31 +478,95 @@ function wirePanel() {
     if (t.matches('[data-title]')) { clearTimeout(tT); tT = setTimeout(() => setConf(PS.k, { title: t.value.trim() || undefined }), 350); return; }
     const k = t.dataset.k; if (!k || k === 'role') return; let v = t.value.trim();
     if (k === 'website' && v && !/^https?:\/\//.test(v)) v = 'https://' + v; if (k === 'phone') v = fullPhone(v); P[k] = v; touch(k); later(); });
-  // Drag to reorder the sections list.
+  // Drag to reorder the list.
   let drag = null;
   el.addEventListener('dragstart', (e) => { const li = e.target.closest('[data-sk]'); if (!li) return; drag = li.dataset.sk; li.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', drag); } catch {} });
   el.addEventListener('dragover', (e) => { const li = e.target.closest('[data-sk]'); if (!li || !drag) return; e.preventDefault(); el.querySelectorAll('[data-sk]').forEach((x) => x.classList.toggle('over', x === li && x.dataset.sk !== drag)); });
   el.addEventListener('dragend', () => { drag = null; el.querySelectorAll('[data-sk]').forEach((x) => x.classList.remove('dragging', 'over')); });
-  el.addEventListener('drop', (e) => { const li = e.target.closest('[data-sk]'); if (!li || !drag) return; e.preventDefault(); const s2 = cur().sections.filter((x) => x !== drag), at = s2.indexOf(li.dataset.sk);
-    const from = cur().sections.indexOf(drag), to = cur().sections.indexOf(li.dataset.sk); s2.splice(from < to ? at + 1 : at, 0, drag); drag = null; setLayout({ sections: s2 }); });
+  el.addEventListener('drop', (e) => { const li = e.target.closest('[data-sk]'); if (!li || !drag) return; e.preventDefault(); const all = cur().sections, s2 = all.filter((x) => x !== drag), at = s2.indexOf(li.dataset.sk);
+    s2.splice(all.indexOf(drag) < all.indexOf(li.dataset.sk) ? at + 1 : at, 0, drag); const k = drag; drag = null; setLayout({ sections: s2 }); setTimeout(() => selectSec(k, true), 80); });
 }
 
-/* Share: one calm menu for everything you send or download. */
+/* Menu under the agent's photo. */
+function meMenu(btn) {
+  if (btn.parentElement.querySelector('.amenu')) return closeMenu(); closeMenu();
+  const m = document.createElement('div'); m.className = 'shmenu amenu'; m.setAttribute('role', 'menu');
+  m.innerHTML = [['details', 'Your details'], ['account', 'Account and billing'], ['history', 'Your reports'], ['logout', 'Log out']].map(([k, l]) => `${k === 'logout' ? '<hr>' : ''}<button type="button" role="menuitem" data-mm="${k}">${l}</button>`).join('');
+  btn.parentElement.appendChild(m);
+  m.onclick = (e) => { const b = e.target.closest('[data-mm]'); if (!b) return; closeMenu(); const k = b.dataset.mm;
+    if (k === 'details') { PS = { m: 'details', k: PS.k }; return drawPanel(); } if (k === 'logout') return $('#logout').click(); show(k); };
+  setTimeout(() => document.addEventListener('click', function off(ev) { if (!ev.target.closest('.amenu') && !ev.target.closest('#mebtn')) { closeMenu(); document.removeEventListener('click', off, true); } }, true));
+}
+
+/* Share: send the report, or preview an image or the PDF before downloading or posting. */
 function shareDrop(btn) {
   if (btn.parentElement.querySelector('.shmenu')) return closeMenu(); if (!ready()) return;
   saveNow(); closeMenu(); const pro = isPro(), m = document.createElement('div'); m.className = 'shmenu dmenu'; m.setAttribute('role', 'menu');
-  const it = (k, ic, l, sub, off) => `<button type="button" role="menuitem" data-s="${k}"${off ? ' disabled' : ''}><span class="i">${sv(ic)}</span><span><b>${l}</b>${sub ? `<small>${sub}</small>` : ''}</span></button>`;
-  m.innerHTML = `<p class="mh">Send your report</p>${it('copy', 'link', 'Copy link', 'Paste it in a text, email or post')}${it('email', 'mail', 'Email for your clients', 'A finished message to paste into Gmail or your CRM')}${it('qr', 'qr', 'QR code', 'For open houses, flyers and signs')}${isPhone() ? it('native', 'share', 'Share from this phone') : ''}
-    <hr><p class="mh">Download${pro ? '' : ' <span class="pro">Pro</span>'}</p>${it('pdf', 'dl', 'PDF', 'To print or attach', !pro)}${it('post', 'ig', 'Instagram post', 'Square image with your branding', !pro)}${it('story', 'ig', 'Instagram story', 'Tall image for stories', !pro)}${it('caption', 'cap', 'Copy caption', 'Words for under your post', !pro)}
-    ${pro ? `<p class="mn">Images and PDF are for ${esc(firstArea())}, your first area.</p>` : ''}`;
+  const it = (k, ic, l, sub, off, pv) => `<button type="button" role="menuitem" data-s="${k}"${off ? ' disabled' : ''}><span class="i">${sv(ic)}</span><span><b>${l}</b>${sub ? `<small>${sub}</small>` : ''}</span>${pv ? `<em>${off ? 'Pro' : 'Preview ›'}</em>` : ''}</button>`;
+  m.innerHTML = `<p class="mh">Send your report</p>${it('copy', 'link', 'Copy link', 'Paste it in a text, email or post')}${it('email', 'mail', 'Email for your clients', 'A finished message for Gmail or your CRM')}${it('qr', 'qr', 'QR code', 'For open houses, flyers and signs')}${isPhone() ? it('native', 'share', 'Share from this phone') : ''}
+    <hr><p class="mh">Images and PDF</p>${it('post', 'ig', 'Instagram post', 'Square image', !pro, 1)}${it('story', 'ig', 'Instagram story', 'Tall image', !pro, 1)}${it('pdf', 'dl', 'PDF', 'To print or attach', !pro, 1)}`;
   btn.parentElement.appendChild(m);
-  m.onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b || b.disabled) return; const k = b.dataset.s; closeMenu(); area = firstArea();
+  m.onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b || b.disabled) return; const k = b.dataset.s; closeMenu();
     if (k === 'copy') return act('link', record('link'));
     if (k === 'email') return act('email', record('email'));
     if (k === 'native') { const t = shareText(reportLink(location.origin, P, 'Greater Vancouver')); navigator.share({ title: t.subject, text: t.short.replace(/: \S+$/, '.'), url: t.url }).catch(() => {}); return record('link').catch(() => {}); }
     if (k === 'qr') return record('link').then((x) => qrModal({ title: 'Your report QR code', text: 'Anyone who scans this with a phone camera opens your report.', url: linkOf(x), file: `${P.slug}-QR.png` })).catch((er) => alertMsg(er.message, true));
-    act(k, record(k)); };
+    openPreview(k); };
   setTimeout(() => document.addEventListener('click', function off(ev) { if (!ev.target.closest('.dmenu') && !ev.target.closest('#sharebtn')) { closeMenu(); document.removeEventListener('click', off, true); } }, true));
+}
+// The preview window: see the image (or PDF) first, choose what's on it, then download, post or send to a phone.
+async function openPreview(kind) {
+  document.querySelector('.pvm')?.remove(); const W = document.createElement('div'); W.className = 'pvm'; document.body.appendChild(W);
+  let K = kind, A0 = areasOf(D).includes(firstArea()) ? firstArea() : 'Greater Vancouver', canvas = null;
+  if (IGS === null) igApi({ action: 'status' }).then((c) => { IGS = c || { connected: false }; draw(); }).catch(() => { IGS = { connected: false }; draw(); });
+  const close = () => { W.remove(); document.removeEventListener('keydown', esc1); }, esc1 = (e) => e.key === 'Escape' && close(); document.addEventListener('keydown', esc1);
+  const linkP = () => record('link').then(linkOf);
+  async function draw() {
+    const img = K !== 'pdf', o = img ? imgOpts(agent(), K) : null, A = agent(), link = reportLink(location.origin, P, 'Greater Vancouver');
+    const ig = IGS?.connected, igLbl = K === 'story' ? 'Post to my Instagram story' : 'Post to my Instagram';
+    W.innerHTML = `<div class="pvbg"></div><div class="pvbox" role="dialog" aria-modal="true" aria-label="Preview"><button type="button" class="pvx" data-x aria-label="Close">✕</button>
+      <div class="pvl" id="pvl">${img ? '<p class="muted">Making your image…</p>' : `<iframe title="PDF preview" src="/r/${P.slug}/print?area=${encodeURIComponent(A0)}&preview=${encodeURIComponent(JSON.stringify(current()))}"></iframe>`}</div>
+      <div class="pvr"><div class="seg2 pvt">${[['post', 'Post'], ['story', 'Story'], ['pdf', 'PDF']].map(([k, l]) => `<button type="button" data-k2="${k}" aria-pressed="${K === k}">${l}</button>`).join('')}</div>
+        <h3>${K === 'post' ? 'Instagram post' : K === 'story' ? 'Instagram story' : 'PDF report'}</h3>
+        <label class="lbl2">Area<select class="inp2" id="pvarea">${areasOf(D).map((a) => `<option${a === A0 ? ' selected' : ''}>${esc(a)}</option>`).join('')}</select></label>
+        ${img ? `<span class="lbl2">On the image</span>${IMG_PARTS.map(([k, l]) => tgl(`data-io="${k}"`, l, o[k])).join('')}` : '<p class="hint">A printable report for this area, with your name and photo.</p>'}
+        ${K === 'post' ? `<span class="lbl2">Caption</span><textarea class="inp2 cap" id="pvcap" rows="4">${esc(calmCaption(D, A, A0, link))}</textarea>` : ''}
+        ${K === 'story' ? `<div class="tipb">Stories don't have a caption. To let people open your full report, add a <b>link sticker</b> in Instagram. <button type="button" class="lk2" data-a="copylink">Copy my report link</button></div>` : ''}
+        <div class="pvacts">${img ? `${ig ? `<button type="button" class="btn wide igb" data-a="ig">${sv('ig')}${igLbl}</button>` : `<button type="button" class="btn wide ghost" data-a="igc">${sv('ig')}Connect Instagram to post directly</button>`}
+          <button type="button" class="btn wide ${ig ? 'ghost' : ''}" data-a="dl">${sv('dl')}Download</button>${K === 'post' ? `<button type="button" class="btn wide ghost" data-a="cap">${sv('cap')}Copy caption</button>` : ''}<button type="button" class="btn wide ghost" data-a="phone">${sv('share')}Send to my phone</button>
+          ${ig ? `<span class="small muted center">Posting goes to @${esc(IGS.username || '')}</span>` : ''}` : `<button type="button" class="btn wide" data-a="pdf">${sv('dl')}Open PDF to save or print</button>`}</div></div></div>`;
+    if (img) { canvas = await calmImage(D, A, A0, K, o); const l = $('#pvl'); if (l) { l.innerHTML = ''; canvas.className = 'pvimg ' + K; l.appendChild(canvas); } }
+  }
+  W.addEventListener('click', async (e) => { const b = e.target.closest('button'); if (e.target.classList.contains('pvbg')) return close(); if (!b) return; const d = b.dataset;
+    if ('x' in d) return close();
+    if (d.k2) { K = d.k2; return draw(); }
+    const A = agent();
+    if (d.a === 'copylink') return copy(linkP()).then(() => alertMsg('Report link copied.'));
+    if (d.a === 'cap') return copy(linkP().then((l) => ($('#pvcap')?.value || calmCaption(D, A, A0, l)))).then(() => alertMsg('Caption copied.'));
+    if (d.a === 'dl') { area = A0; download(canvas, `${A0.replace(/\s+/g, '-')}-${D.month.replace(' ', '-')}-${K}.png`); record(K, A0).catch(() => {}); return alertMsg('Image downloaded.'); }
+    if (d.a === 'phone') { area = A0; return record(K, A0).then((it) => qrModal({ title: 'Send it to your phone', text: 'Scan this with your phone camera. The image opens there, ready to save or share to Instagram.', url: `${location.origin}/s/${P.slug}?v=${it.id}&k=${K}${cfg.demo ? `&area=${encodeURIComponent(A0)}` : ''}` })).catch((er) => alertMsg(er.message, true)); }
+    if (d.a === 'pdf') { area = A0; return act('pdf', record('pdf', A0)); }
+    if (d.a === 'igc') { close(); return show('account'); }
+    if (d.a === 'ig') return confirmPost(W, K, () => ({ canvas, cap: $('#pvcap')?.value })); });
+  W.addEventListener('change', (e) => { const t = e.target;
+    if (t.id === 'pvarea') { A0 = t.value; return draw(); }
+    if (t.dataset.io) { const all = showOf(P).img || {}, cur0 = imgOpts(agent(), K); P.show = { ...showOf(P), img: { ...all, [K]: { ...cur0, [t.dataset.io]: t.checked } } }; touch('show'); return draw(); } });
+  draw();
+}
+// "Post this story now?" then post through the connected Instagram account.
+function confirmPost(W, K, get) {
+  const box = document.createElement('div'); box.className = 'pvconf';
+  const ask = () => { box.innerHTML = `<div class="pvcbg"></div><div class="pvc"><h3>Post this ${K === 'story' ? 'story' : 'post'} now?</h3><div class="igwho"><span class="iglogo">${sv('ig', 18)}</span><div><b>@${esc(IGS.username || '')}</b><small>Your connected Instagram</small></div></div>
+    <p>${K === 'story' ? 'It goes live on your story right away and stays for 24 hours.' : 'It goes live on your profile right away, with your caption.'} You can delete it in Instagram any time.</p><div class="row2"><button type="button" class="btn ghost" data-c="no">Cancel</button><button type="button" class="btn igb" data-c="yes">Post now</button></div></div>`; };
+  ask(); W.appendChild(box);
+  box.onclick = async (e) => { const b = e.target.closest('[data-c]'); if (!b && !e.target.classList.contains('pvcbg')) return; if (!b || b.dataset.c === 'no') return box.remove();
+    if (b.dataset.c === 'done') return box.remove(); if (b.dataset.c === 'open') { window.open('https://www.instagram.com/' + (IGS.username || ''), '_blank'); return box.remove(); }
+    b.disabled = true; b.textContent = 'Posting…';
+    try { const { canvas, cap } = get(), jpg = canvas.toDataURL('image/jpeg', 0.92), link = await record('link').then(linkOf);
+      await igApi({ action: 'post', [K]: jpg, caption: cap || calmCaption(D, agent(), firstArea(), link) }); record(K).catch(() => {});
+      box.querySelector('.pvc').innerHTML = `<h3>Posted to your ${K === 'story' ? 'story' : 'profile'}</h3><div class="okb"><b>✓ Live on @${esc(IGS.username || '')}</b>Posted just now.${K === 'story' ? ' It stays up for 24 hours.' : ''}</div>
+        ${K === 'story' ? '<p>Want people to tap through to your report? Open the story in Instagram and add a link sticker.</p>' : ''}<div class="row2"><button type="button" class="btn ghost" data-c="done">Done</button><button type="button" class="btn" data-c="open">Open Instagram</button></div>`;
+    } catch (er) { b.disabled = false; b.textContent = 'Try again'; alertMsg(er.message, true); } };
 }
 
 /* ---------- My reports ---------- */

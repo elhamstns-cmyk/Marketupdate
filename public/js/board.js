@@ -56,7 +56,7 @@ const N = (n) => Number(n).toLocaleString('en-CA');
 const pctOf = (now, then) => (now != null && then ? Math.round(((now - then) / then) * 1000) / 10 : null);
 const signed = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + '%';
 const arrow = (v, tail = '') => (v == null ? '<span class="na">not published</span>'
-  : `<span class="ch ${v < 0 ? 'dn' : v > 0 ? 'up' : ''}"><i>${v < 0 ? '▼' : v > 0 ? '▲' : '●'}</i>${Math.abs(v).toFixed(1)}%${tail ? ` <span>${tail}</span>` : ''}</span>`);
+  : `<span class="ch ${v < 0 ? 'dn' : v > 0 ? 'upv' : ''}"><i>${v < 0 ? '▼' : v > 0 ? '▲' : '●'}</i>${Math.abs(v).toFixed(1)}%${tail ? ` <span>${tail}</span>` : ''}</span>`);
 const dot = (c) => `<i class="dt" style="background:${c}"></i>`;
 const mkt = (r) => (r == null ? null : r < 12 ? "Buyer's" : r <= 20 ? 'Balanced' : "Seller's");
 const TYPE_ROWS = [['detached', 'Detached'], ['townhome', 'Townhouse'], ['condo', 'Condo']];
@@ -225,7 +225,7 @@ export function mountReport(root, D, A, opts = {}) {
     const lines = [have.length > 1 ? `Over ${yrs} years, <b>${esc(best)}</b>${what} grew the most of these areas: <b>${signed(G[best][p])}</b>.` : `Over ${yrs} years, the typical price of${tn ? ` ${tn} in` : ' a home in'} <b>${esc(best)}</b> changed by <b>${signed(G[best][p])}</b>.`];
     if (have.length > 1) lines.push(G[worst][p] < 0 ? `<b>${esc(worst)}</b>${what} ${tn ? 'are' : 'prices are'} ${Math.abs(G[worst][p]).toFixed(1)}% lower than ${yrs} years ago.` : `Every area is higher than ${yrs} years ago.`);
     el.innerHTML = `<div class="gg"><div>${sorted.map((a) => { const v = G[a][p], x0 = X(0), x1 = X(v);
-      return `<div class="hb"><span class="ma">${dot(colour(a))}${esc(a)}</span><div class="trk"><span class="z" style="left:${x0}%"></span><span class="f" style="left:${Math.min(x0, x1)}%;width:${Math.abs(x1 - x0)}%;background:${colour(a)}"></span><span class="v ${v < 0 ? 'dn' : 'up'}" style="${v >= 0 ? `left:calc(${x1}% + 8px)` : `right:calc(${100 - x1}% + 8px)`}">${signed(v)}</span></div></div>`; }).join('')}
+      return `<div class="hb"><span class="ma">${dot(colour(a))}${esc(a)}</span><div class="trk"><span class="z" style="left:${x0}%"></span><span class="f" style="left:${Math.min(x0, x1)}%;width:${Math.abs(x1 - x0)}%;background:${colour(a)}"></span><span class="v ${v < 0 ? 'dn' : 'upv'}" style="${v >= 0 ? `left:calc(${x1}% + 8px)` : `right:calc(${100 - x1}% + 8px)`}">${signed(v)}</span></div></div>`; }).join('')}
       ${miss.map((a) => `<div class="hb"><span class="ma">${dot(colour(a))}${esc(a)}</span><span class="na">not published</span></div>`).join('')}
       <div class="hb axis"><span></span><div class="trk">${ticks.map((t) => `<span style="left:${X(t)}%">${t > 0 ? '+' : ''}${t}%</span>`).join('')}</div></div></div>
       <div class="ins">${lines.map((t) => `<p>${t}</p>`).join('')}<p class="note">Change in the MLS® Home Price Index benchmark price. Past growth doesn't guarantee future growth.</p></div></div>`;
@@ -235,7 +235,7 @@ export function mountReport(root, D, A, opts = {}) {
     const st = niceStep(H0 - L0, 4), ticks = []; for (let v = Math.ceil(L0 / st) * st; v <= H0; v += st) ticks.push(Math.round(v * 10) / 10);
     const line = (i) => `${['3', '5', '10'][i]} years: <b>${signed(v3[i])}</b>`;
     el.innerHTML = `<div class="gg"><div>${[0, 1, 2].map((i) => { const v = v3[i], x0 = X(0), x1 = X(v);
-      return `<div class="hb"><span class="ma">Over ${[3, 5, 10][i]} years</span><div class="trk"><span class="z" style="left:${x0}%"></span><span class="f" style="left:${Math.min(x0, x1)}%;width:${Math.abs(x1 - x0)}%;background:var(--ac);opacity:${0.45 + i * 0.27}"></span><span class="v ${v < 0 ? 'dn' : 'up'}" style="${v >= 0 ? `left:calc(${x1}% + 8px)` : `right:calc(${100 - x1}% + 8px)`}">${signed(v)}</span></div></div>`; }).join('')}
+      return `<div class="hb"><span class="ma">Over ${[3, 5, 10][i]} years</span><div class="trk"><span class="z" style="left:${x0}%"></span><span class="f" style="left:${Math.min(x0, x1)}%;width:${Math.abs(x1 - x0)}%;background:var(--ac);opacity:${0.45 + i * 0.27}"></span><span class="v ${v < 0 ? 'dn' : 'upv'}" style="${v >= 0 ? `left:calc(${x1}% + 8px)` : `right:calc(${100 - x1}% + 8px)`}">${signed(v)}</span></div></div>`; }).join('')}
       <div class="hb axis"><span></span><div class="trk">${ticks.map((t) => `<span style="left:${X(t)}%">${t > 0 ? '+' : ''}${t}%</span>`).join('')}</div></div></div>
       <div class="ins"><p>Typical price of ${esc(what)} in <b>${esc(a)}</b>.</p><p>${[2, 1, 0].map(line).join('<br>')}</p><p class="note">Change in the MLS® Home Price Index benchmark price. Past growth doesn't guarantee future growth.</p></div></div>`;
   }
@@ -259,11 +259,33 @@ export function mountReport(root, D, A, opts = {}) {
   }
   const NAME = Object.fromEntries(SECTIONS.map(([k, l]) => [k, l]));
   // Agent view: click a section to edit it (outlined, with an "Editing" tag); "+ Add a section" at the end.
-  function sec(k) { const h = R[k](); return ED ? `<div class="sx${opts.selected === k ? ' ed' : ''}" data-k="${k}">${h}</div>` : h; }
+  let SEL = opts.selected || null;
+  const BIN = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
+  // Agent view: each section has a "Drag to move" handle and, when selected, a bin to remove it.
+  function sec(k) { const h = R[k](); return ED ? `<div class="sx${SEL === k ? ' ed' : ''}" data-k="${k}">${h}<button type="button" class="dragh" data-drag="${k}" aria-label="Drag ${NAME[k]} to move it">⠿ Drag to move</button><button type="button" class="bin" data-bin="${k}" title="Remove this section" aria-label="Remove ${NAME[k]}">${BIN}</button></div>` : h; }
   const addBox = () => `<button type="button" class="addsec2${opts.adding ? ' on' : ''}" data-addsec>+ Add a section</button>`;
-  root._select = (k) => root.querySelectorAll('.sx').forEach((x) => x.classList.toggle('ed', x.dataset.k === k));
+  root._select = (k) => { SEL = k; root.querySelectorAll('.sx').forEach((x) => x.classList.toggle('ed', x.dataset.k === k)); };
   root._adding = (on) => root.querySelector('.addsec2')?.classList.toggle('on', !!on);
-  function saveLayout(patch) { Object.assign(L, patch); if (ED) opts.edit({ ...L }); }
+  function saveLayout(patch) { Object.assign(L, patch); if (ED) opts.edit(patch); }
+  // Drag a section by its handle; a blue line shows where it will land.
+  function startDrag(e, k) {
+    const src = root.querySelector(`.sx[data-k="${k}"]`); if (!src) return; e.preventDefault();
+    const card = src.firstElementChild, r0 = card.getBoundingClientRect(), z = r0.width / (card.offsetWidth || r0.width) || 1;
+    const ghost = document.createElement('div'); ghost.className = 'bd dgw'; ghost.style.cssText = root.style.cssText; ghost.appendChild(card.cloneNode(true)); ghost.firstElementChild.classList.add('dghost');
+    Object.assign(ghost.style, { position: 'fixed', left: r0.left + 'px', top: r0.top + 'px', width: card.offsetWidth + 'px', transform: `scale(${z})`, transformOrigin: '0 0', zIndex: 60, pointerEvents: 'none', background: 'transparent' });
+    const line = document.createElement('div'); line.className = 'dline'; line.style.display = 'none'; document.body.append(ghost, line);
+    src.classList.add('lift'); const dx = e.clientX - r0.left, dy = e.clientY - r0.top; let drop = null, raf;
+    const move = (ev) => { ghost.style.left = ev.clientX - dx + 'px'; ghost.style.top = ev.clientY - dy + 'px';
+      const t = document.elementsFromPoint(ev.clientX, ev.clientY).map((el) => el.closest && el.closest('.sx')).find((el) => el && el !== src && root.contains(el));
+      if (t) { const r = t.getBoundingClientRect(), before = ev.clientY < r.top + r.height / 2; drop = { k: t.dataset.k, before };
+        Object.assign(line.style, { display: 'block', left: r.left + 'px', width: r.width + 'px', top: (before ? r.top - 9 : r.bottom + 3) + 'px' }); }
+      cancelAnimationFrame(raf); const edge = ev.clientY < 90 ? -14 : ev.clientY > innerHeight - 70 ? 14 : 0; if (edge) { const step = () => { scrollBy(0, edge); raf = requestAnimationFrame(step); }; raf = requestAnimationFrame(step); } };
+    const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); cancelAnimationFrame(raf); ghost.remove(); line.remove(); src.classList.remove('lift');
+      if (!drop || drop.k === k) return; const s2 = L.sections.filter((x) => x !== k); s2.splice(s2.indexOf(drop.k) + (drop.before ? 0 : 1), 0, k); saveLayout({ sections: s2 }); SEL = k; draw();
+      setTimeout(() => root.querySelector(`.sx[data-k="${k}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 30); };
+    addEventListener('pointermove', move); addEventListener('pointerup', up); move(e);
+  }
+  if (ED) root.onpointerdown = (e) => { const h = e.target.closest('[data-drag]'); if (h && e.button === 0) startDrag(e, h.dataset.drag); };
   function draw() {
     const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1);
     const head = sh.length === 1 ? `${esc(sh[0])} Market Report` : `Market Report: ${sh.length} areas`;
@@ -287,6 +309,8 @@ export function mountReport(root, D, A, opts = {}) {
   root.onclick = (e) => {
     const t = e.target, b = (s) => t.closest(s);
     if (ED && b('[data-addsec]')) return opts.onAdd?.();
+    if (ED && b('[data-drag]')) return;
+    if (ED && b('[data-bin]')) { const k = b('[data-bin]').dataset.bin; if (L.sections.length < 2) return; saveLayout({ sections: L.sections.filter((x) => x !== k) }); SEL = null; draw(); return opts.onSelect?.(null); }
     if (ED && b('.sx') && !b('button,a,input,select,label,.mrow,[data-chart="trend"]')) { const k = b('.sx').dataset.k; root._select(k); opts.onSelect?.(k); }
     if (b('[data-rm]')) { e.stopPropagation(); const a = b('[data-rm]').dataset.rm; return setAreas(S.areas.filter((x) => x !== a)); }
     if (b('[data-focus]')) { S.focus = b('[data-focus]').dataset.focus; return draw(); }
