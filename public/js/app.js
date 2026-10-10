@@ -1,5 +1,5 @@
-import { esc, areasOf, mountReport, STYLES, FONTS, BASIC_THEME, loadFonts, SHOW_NUMBERS, SHOW_SECTIONS, DEFAULT_SHOW, TYPES, T1, showOf, monthKey, areaList, layoutOf, PAIR, MAX_AREAS, palette } from './report.js';
-import { areaColours } from './charts.js';
+import { mountReport, SECTIONS, layoutOf, DEFAULT_LAYOUT, MAX_AREAS, sameLayout } from './board.js';
+import { esc, areasOf, STYLES, FONTS, BASIC_THEME, loadFonts, SHOW_NUMBERS, SHOW_SECTIONS, DEFAULT_SHOW, TYPES, T1, showOf, monthKey, COVERS } from './report.js';
 import { reportLink, emailDraft, caption, socialImage, download } from './exports.js';
 import { sv, isPhone, canShareFiles, toFile, shareMenu, closeMenu, qrModal } from './share.js';
 
@@ -185,7 +185,7 @@ function showPreview() {
     <a href="#" class="pvsee" id="pvsee">See your report preview ↓</a><button class="btn wide" id="pvgo">Looks great. Choose my plan</button><p class="err small" id="pverr" role="status"></p><p class="small muted center" style="margin-top:-6px">You can change everything later.</p></div>
     <div class="pvframe"><div id="rp"></div><div class="wm" aria-hidden="true"><span>PREVIEW</span></div><span class="ptag">Your report · preview</span></div></div>`;
   thumbs(); loadFonts(['modern']);
-  const draw = () => mountReport($('#rp'), D, { ...P, theme: { style: 'highlights', ...STYLES.highlights } }, { embedded: true });
+  const draw = () => mountReport($('#rp'), D, { ...P, theme: { style: 'modern', ...STYLES.modern } }, { embedded: true });
   if (D) draw(); else $('#rp').innerHTML = '<p class="muted" style="padding:40px;text-align:center">Your first report is on its way.</p>';
   const panel = $('.pvpanel'); let t;
   panel.addEventListener('input', (e) => { if ($('#pverr')) $('#pverr').textContent = ''; const k = e.target.dataset.k; if (!k || k === 'role' || k === 'gvr_member') return; P[k] = k === 'phone' ? fullPhone(e.target.value) : e.target.value.trim(); touch(k); clearTimeout(t); t = setTimeout(() => D && draw(), 150); });
@@ -206,12 +206,11 @@ function showPreview() {
 }
 
 /* ---------- dashboard ---------- */
-let P = {}, D = null, active = false, areas = ['Greater Vancouver'], tab = 'report', view = 'create', HIST = [], filter = 'all';
-const DETAILS = [['name', 'Your name', 'text', 'Jane Smith'], ['brokerage', 'Brokerage', 'text', 'Your brokerage'], ['contact_email', 'Email for clients', 'email', 'you@email.com'], ['website', 'Website (optional)', 'text', 'Website (optional)']];
-const ACCENTS = ['#14523d', '#1d4f9c', '#1f3557', '#7a2e3b', '#d6b25e', '#2f6f7a', '#6b3fa0', '#111312'], BGS = ['#ffffff', '#f7f4ee', '#eef3fb', '#111312'];
+let P = {}, D = null, active = false, area = 'Greater Vancouver', tab = 'report', view = 'create', HIST = [], filter = 'all';
+const DETAILS = [['name', 'Your name', 'text', 'Jane Smith'], ['brokerage', 'Brokerage', 'text', 'Your brokerage'], ['contact_email', 'Email for clients', 'email', 'you@email.com'], ['website', 'Website (optional)', 'text', 'Your website (optional)']];
+const ACCENTS = ['#0f6b4f', '#14233f', '#1d4f9c', '#b3202e', '#d0a94a', '#6b3fa0', '#111312'], BGS = ['#ffffff', '#f7f4ee', '#eef3fb', '#111312'];
 const isPro = () => P.plan === 'pro';
-const theme = () => (isPro() ? { style: 'highlights', ...STYLES.highlights, ...(P.theme || {}) } : BASIC_THEME);
-const areaKey = () => (isPro() ? areas : ['Greater Vancouver']).join('|'), mainOf = (a) => String(a || 'Greater Vancouver').split('|')[0], namesOf = (a) => String(a || 'Greater Vancouver').split('|').join(', ');
+const theme = () => (isPro() ? { style: 'modern', ...STYLES.modern, ...(P.theme || {}) } : BASIC_THEME);
 const agent = () => ({ ...P, theme: theme(), show: isPro() ? P.show || null : null });
 const current = () => (isPro() ? { theme: theme(), show: showOf(P) } : {});
 function shrink(file, max, type) { return new Promise((ok, no) => { const i = new Image(); i.onload = () => { const k = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement('canvas');
@@ -222,13 +221,13 @@ const KIND = { link: ['Report link', 'Copy link'], email: ['Client email', 'Copy
 const ICON = { link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>', email: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
   pdf: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>', post: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="12" cy="12" r="3.5"/>', story: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>', caption: '<path d="M5 6h14M5 10h14M5 14h9M5 18h6"/>' };
 const icon = (k) => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`;
-const HIDE_NAMES = { prices: 'prices', changes: 'price changes', sold: 'homes sold', forsale: 'homes for sale', days: 'days on market', market: 'market type', detached: 'detached', townhome: 'townhomes', condo: 'condos', summary: 'written summary', compare: 'area comparison' };
+const HIDE_NAMES = { prices: 'prices', changes: 'price changes', sold: 'homes sold', forsale: 'homes for sale', days: 'days to sell', market: 'market type', detached: 'detached', townhome: 'townhomes', condo: 'condos', summary: 'written summary', compare: 'area comparison' };
 const demoKey = 'mup_demo_exports';
 async function loadHistory() {
   if (cfg.demo) { try { HIST = JSON.parse(localStorage.getItem(demoKey) || '[]'); } catch { HIST = []; } return; }
   try { HIST = (await api('/api/exports')).items || []; } catch { HIST = []; }
 }
-async function record(kind, a = ['post', 'story', 'caption'].includes(kind) ? areas[0] : areaKey()) {
+async function record(kind, a = kind === 'link' || kind === 'email' ? 'Greater Vancouver' : area) {
   const body = { kind, area: isPro() ? a : 'Greater Vancouver', month: D.month, settings: current() };
   let it;
   if (cfg.demo) { const sig = JSON.stringify([body.kind, body.area, body.month, body.settings]);
@@ -250,12 +249,12 @@ function copy(textP, htmlP) {
   }
   return textP.then((t) => navigator.clipboard.writeText(t));
 }
-const fname = (it, a = mainOf(it.area)) => `${a.replace(/\s+/g, '-')}-${it.month.replace(' ', '-')}-${it.kind}.png`;
+const fname = (it) => `${it.area.replace(/\s+/g, '-')}-${it.month.replace(' ', '-')}-${it.kind}.png`;
 // Runs one action for a saved item (or one being made right now).
 function act(kind, itP, verb) {
   if (verb === 'open' || kind === 'pdf') { const w = window.open('', '_blank'); itP.then((it) => { w.location = verb === 'open' ? linkOf(it) : printOf(it); }).catch((e) => { w.close(); alertMsg(e.message, true); }); return; }
-  if (kind === 'post' || kind === 'story') { itP.then(async (it) => { const d = await dataOf(it), list = it.area.split('|'); for (const a of list) download(await socialImage(d, agentOf(it), a, kind), fname(it, a)); alertMsg(list.length > 1 ? `${list.length} images downloaded, one per area.` : 'Image downloaded.'); }).catch((e) => alertMsg(e.message, true)); return; }
-  const mail = itP.then((it) => emailDraft(D, agentOf(it), it.area, linkOf(it)));
+  if (kind === 'post' || kind === 'story') { itP.then(async (it) => { download(await socialImage(await dataOf(it), agentOf(it), it.area, kind), fname(it)); alertMsg('Image downloaded.'); }).catch((e) => alertMsg(e.message, true)); return; }
+  const mail = itP.then((it) => emailDraft(D, agentOf(it), (it.kind === 'link' || it.kind === 'email') && it.area === 'Greater Vancouver' ? layoutOf(agentOf(it), D).areas[0] : it.area, linkOf(it)));
   const text = kind === 'email' ? mail.then((d) => `Subject: ${d.subject}\n\n${d.text}`) : itP.then((it) => (kind === 'link' ? linkOf(it) : caption(D, agentOf(it), it.area, linkOf(it))));
   copy(text, kind === 'email' ? mail.then((d) => d.html) : null).then(() => mail.then((d) => alertMsg(kind === 'email' ? `Email copied. Suggested subject: ${d.subject}` : kind === 'link' ? 'Link copied.' : 'Caption copied.')))
     .catch((e) => alertMsg(e.message === 'signed out' ? '' : 'Copying was blocked by the browser. Please try again.', true));
@@ -305,176 +304,153 @@ async function saveNow() {
   return saving;
 }
 
-/* ---------- the dashboard: the report fills the page; Customize opens beside it ---------- */
-const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch {} return null; };
-let panelOpen = store('mup_panel') === '1', ptab = store('mup_ptab') || 'details', more = false, igKind = 'post';
-let zoom = +(store('mup_zoom') || 1) || 1;
-const COLS = () => areaColours(palette(theme()).fill);
-const SICON = { link: 'link', mail: 'mail', sms: 'sms', wa: 'wa', qr: 'qr', email: 'cap', pdf: 'dl', ig: 'ig', share: 'share' };
 function dashboard() {
   const pg = $('#page');
   if (!D) { pg.innerHTML = `<div class="c">${steps(4)}<h2>Your first report is on its way</h2><p class="lead">We will email you as soon as this month's report is published.</p></div>`; return; }
-  loadFonts(Object.keys(FONTS)); if (!isPro()) areas = ['Greater Vancouver'];
-  const notes = `${cfg.demo ? '<p class="dnote2">Preview mode: nothing is saved to a server and no payment is taken.</p>' : ''}${noticeOk ? `<p class="dnote2 ok">${esc(noticeOk)}</p>` : ''}${!cfg.demo && P.email_verified === false ? `<p class="dnote2 warn">Please confirm your email. We sent a link to <b>${esc(P.email || '')}</b>. <a href="#" id="cfmagain">Send it again</a></p>` : ''}${qs.has('welcome') ? `<p class="dnote2 ok">You are subscribed${P.name ? ', ' + esc(P.name.trim().split(/\s+/)[0]) : ''}. Welcome aboard.</p>` : ''}`;
-  pg.innerHTML = `<div class="dsh${panelOpen ? ' open' : ''}" id="dsh"><div class="dmain">${notes}
-    <div class="dbar"><h2>${esc(D.month)}</h2><span id="areasel"></span>
-      <div class="dright"><span class="zm" id="zm" role="group" aria-label="Size"><button type="button" data-zoom="-" aria-label="Smaller">−</button><span id="zl">${Math.round(zoom * 100)}%</span><button type="button" data-zoom="+" aria-label="Bigger">+</button></span>
-        <button type="button" class="btn ghost" id="custom" aria-expanded="${panelOpen}">Customize</button><span class="shwrap"><button type="button" class="btn" id="sharebtn" aria-haspopup="true">Share</button></span></div></div>
-    <div class="dviews" id="tabs" role="tablist">${[['report', 'Report'], ['phone', 'Phone'], ['insta', 'Instagram'], ['pdf', 'PDF']].map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === tab}">${l}</button>`).join('')}</div>
-    <div id="pv"></div></div>
-    <aside class="dpane" id="pane" aria-label="Customize"></aside></div>`;
-  noticeOk = ''; drawAreaSel(); drawPane(); preview();
+  loadFonts(Object.keys(FONTS));
+  pg.innerHTML = `<div class="app"><div class="side">
+    ${cfg.demo ? '<p class="note">Preview mode: nothing is saved to a server and no payment is taken.</p>' : ''}${noticeOk ? `<p class="note ok">${esc(noticeOk)}</p>` : ''}${!cfg.demo && P.email_verified === false ? `<p class="note warn" id="cfm">Please confirm your email. We sent a link to <b>${esc(P.email || '')}</b>. <a href="#" id="cfmagain">Send it again</a></p>` : ''}${qs.has('welcome') ? `<p class="note ok">You are subscribed${P.name ? ', ' + esc(P.name.trim().split(/\s+/)[0]) : ''}. Welcome aboard.</p>` : ''}
+    <div class="sec"><div class="hd"><h3>1 · Your details</h3><span class="ok small" id="saved"></span></div>
+      <div class="two">${DETAILS.map(([k, l, t, ph]) => `<input type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}" aria-label="${l}">`).join('')}
+        <div class="phonef"><span>+1</span><input type="tel" data-k="phone" value="${esc(localPhone(P.phone))}" placeholder="604-555-0100" aria-label="Phone"></div>
+        <select data-k="role" aria-label="I am a"><option value="realtor"${P.role !== 'broker' ? ' selected' : ''}>I'm a REALTOR®</option><option value="broker"${P.role === 'broker' ? ' selected' : ''}>I'm a mortgage broker</option></select></div>
+
+      <div class="two">${['photo', 'logo'].map((k) => `<div class="upw"><label class="up"><span id="ph-${k}"></span><span>Your ${k}<br><b id="lb-${k}"></b></span><input type="file" accept="image/*" data-img="${k}"></label><button type="button" class="rm" data-rm="${k}" aria-label="Remove your ${k}" title="Remove" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>`).join('')}</div></div>
+    <div class="sec" id="look"></div>
+    <div class="sec" id="showsec"></div>
+    <div class="sec" id="send"></div></div>
+    <div class="main"><div class="hd"><div style="display:flex;gap:12px;align-items:center"><button type="button" class="sidetog" id="sidetog" aria-label="Hide or show the settings panel" title="Hide or show settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><div><h3 style="font-size:1.35rem">Your ${esc(D.month)} report</h3><span class="live">Live preview. Changes show instantly.</span></div></div>
+      <div class="seg" id="tabs" role="group" aria-label="Preview">${[['report', 'Report'], ['phone', 'Phone'], ['post', 'Post'], ['story', 'Story'], ['pdf', 'PDF']].map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${k === tab}">${l}</button>`).join('')}</div></div>
+      <div class="pvact" id="pvact"></div><div id="pv"></div></div></div>`;
+  thumbs(); drawLook(); drawShow(); drawSend(); preview(); noticeOk = '';
   if ($('#cfmagain')) $('#cfmagain').onclick = async (e) => { e.preventDefault(); const ok = await sendConfirm(P.email); alertMsg(ok ? 'Sent. Check your inbox.' : 'Please wait a minute and try again.', !ok); };
-  $('#custom').onclick = () => setPanel(!panelOpen);
-  $('#sharebtn').onclick = (e) => { e.stopPropagation(); shareDrop(); };
-  $('#zm').onclick = (e) => { const z = e.target.closest('[data-zoom]'); if (!z) return; zoom = Math.min(1.2, Math.max(0.5, Math.round((zoom + (z.dataset.zoom === '+' ? 0.1 : -0.1)) * 10) / 10)); store('mup_zoom', zoom); applyZoom(); };
-  $('#tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; $('#tabs').querySelectorAll('button').forEach((x) => x.setAttribute('aria-selected', x === b)); preview(); };
-  if (window.ResizeObserver) new ResizeObserver(() => applyZoom()).observe($('#pv'));
+  const side = $('.side');
+  side.addEventListener('input', (e) => { const k = e.target.dataset.k; if (!k || k === 'gvr_member') return; let v = e.target.value.trim();
+    if (k === 'website' && v && !/^https?:\/\//.test(v)) v = 'https://' + v; if (k === 'phone') v = fullPhone(v); P[k] = v; touch(k); later(); if (k === 'name') drawSend();  });
+  side.addEventListener('change', async (e) => { if (e.target.dataset.k === 'gvr_member') { P.gvr_member = e.target.checked; return touch('gvr_member'); } if (e.target.dataset.k === 'phone') e.target.value = localPhone(e.target.value);
+    const k = e.target.dataset.img; if (!k || !e.target.files[0]) return;
+    try { const v = await pickImage(k, e.target.files[0]); if (v) { P[k] = v; touch(k); thumbs(); preview(); } } catch (err) { alertMsg(err.message, true); } e.target.value = ''; });
+  side.addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (!b) return; const k = b.dataset.rm; P[k] = ''; touch(k); thumbs(); preview(); alertMsg(`Your ${k} was removed.`); });
+  const app = $('.app'); try { if (localStorage.getItem('mup_side') === 'closed') app.classList.add('closed'); } catch {}
+  $('#sidetog').onclick = () => { app.classList.toggle('closed'); try { localStorage.setItem('mup_side', app.classList.contains('closed') ? 'closed' : 'open'); } catch {} setTimeout(preview, 260); };
+  $('#pvact').onchange = (e) => { if (e.target.id !== 'area2') return; area = e.target.value; if ($('#area')) $('#area').value = area; preview(); };
+  $('#pvact').onclick = (e) => { const s2 = e.target.closest('[data-share]'); if (s2 && !s2.disabled) return s2.dataset.share === 'link' ? shareLink(s2) : shareImage(s2, s2.dataset.share === 'ig');
+    const b = e.target.closest('[data-do]'); if (!b || b.disabled) return; saveNow(); act(b.dataset.do, record(b.dataset.do), b.dataset.verb); };
+  $('#tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; $('#tabs').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b)); preview(); };
   if (dirty.size) touch([...dirty][0]);
 }
-function setPanel(open) { panelOpen = open; store('mup_panel', open ? '1' : '0'); $('#dsh').classList.toggle('open', open); $('#custom').setAttribute('aria-expanded', open); if (open) drawPane(); setTimeout(applyZoom, 260); }
-// The area picker in the bar. Comparing several areas happens inside the report (Compare link).
-function drawAreaSel() { const el = $('#areasel'); if (!el) return;
-  if (!isPro()) { el.innerHTML = `<span class="dsel static">Greater Vancouver</span> <a href="#" class="small" id="upa">Every city with Pro</a>`; $('#upa').onclick = (e) => { e.preventDefault(); portal(); }; return; }
-  el.innerHTML = `<select class="dsel" id="area1" aria-label="Area">${areasOf(D).map((a) => `<option${a === areas[0] ? ' selected' : ''}>${esc(a)}</option>`).join('')}</select>${areas.length > 1 ? `<span class="small muted"> + ${areas.length - 1} compared</span>` : ''}`;
-  $('#area1').onchange = (e) => { areas = [e.target.value]; drawAreaSel(); preview(); }; }
-function setAreas(list) { areas = areaList(list, D); drawAreaSel(); }
-function applyZoom() { const rp = $('#rp'), fr = $('#pv .frame'); if ($('#zl')) $('#zl').textContent = Math.round(zoom * 100) + '%'; if (!rp || !fr) return;
-  // Size only: the layout stays the same, everything just gets smaller or bigger.
-  const w = fr.clientWidth; rp.style.width = w + 'px'; rp.style.zoom = zoom; rp.style.margin = '0 auto'; }
-
-/* ---------- Customize: Details · Look · What to show ---------- */
-const GROUPS = [['summary', 'The short version', 'Three key points in plain words', ['summary']], ['price', 'Prices and changes', 'Typical price, up or down from last year', ['prices', 'changes']],
-  ['sales', 'Homes sold and market type', "Buyer's, balanced or seller's market", ['sold', 'market']], ['picker', 'Clients can compare areas', 'A "Compare" link on your report', ['picker']]];
-const MORE = [['meaning', 'If you’re buying / selling', 'One line each, written from the numbers'], ['forsale', 'Homes for sale', 'How many are listed'], ['days', 'Days on market', 'For the larger areas'], ['trend', '12-month charts', 'Prices and sales over the year'], ['compare', 'Every area, ranked', 'A list of all areas by price']];
-function drawPane() {
-  const el = $('#pane'); if (!el) return; const pro = isPro();
-  const head = `<div class="ph"><h3>Customize</h3><span class="ok small" id="saved"></span><button type="button" class="btn sm ghost" data-done>Done</button></div>
-    <div class="ptabs" role="tablist">${[['details', 'Details'], ['look', 'Look'], ['show', 'What to show']].map(([k, l]) => `<button type="button" role="tab" data-ptab="${k}" aria-selected="${ptab === k}">${l}</button>`).join('')}</div>`;
-  const lock = (t) => `<div class="lockbox"><span>${t}</span><button type="button" class="btn sm" data-up>Upgrade to Pro</button></div>`;
-  let body = '';
-  if (ptab === 'details') body = `<div class="pf">${DETAILS.map(([k, l, t, ph]) => `<label class="pfl"><span>${l}</span><input type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}"></label>`).join('')}
-      <label class="pfl"><span>Phone</span><div class="phonef"><span>+1</span><input type="tel" data-k="phone" value="${esc(localPhone(P.phone))}" placeholder="604-555-0100"></div></label>
-      <label class="pfl"><span>I am a</span><select data-k="role"><option value="realtor"${P.role !== 'broker' ? ' selected' : ''}>REALTOR®</option><option value="broker"${P.role === 'broker' ? ' selected' : ''}>Mortgage broker</option></select></label></div>
-    <div class="two" style="margin-top:6px">${['photo', 'logo'].map((k) => `<div class="upw"><label class="up"><span id="ph-${k}"></span><span>Your ${k}<br><b id="lb-${k}"></b></span><input type="file" accept="image/*" data-img="${k}"></label><button type="button" class="rm" data-rm="${k}" aria-label="Remove your ${k}" title="Remove" hidden>✕</button></div>`).join('')}</div>`;
-  else if (ptab === 'look') { if (!pro) body = lock('Essentials uses one clean white and blue design. With Pro you pick from four styles and your own colour and font.'); else { const t = theme(), lay = layoutOf(t);
-    body = `<span class="lbl">Style</span><div class="stys two-col">${Object.entries(STYLES).map(([k, st]) => `<button type="button" class="sty" data-style="${k}" aria-pressed="${lay === k}"><span class="sth sth-${k}" style="--a:${k === lay ? t.ac : st.ac};--a2:${k === lay ? t.ac2 || st.ac2 || '#ddd' : st.ac2 || '#ddd'};--b:${k === lay ? t.bg : st.bg}"><i></i><i></i><i></i><i></i></span>${st.label}</button>`).join('')}</div>
-      <span class="lbl">Colour</span><div class="sw">${ACCENTS.map((c) => `<button type="button" data-ac="${c}" style="background:${c}" aria-label="Colour ${c}" aria-pressed="${t.ac.toLowerCase() === c}"></button>`).join('')}<label class="pick" title="Any colour"><input type="color" data-pick="ac" value="${t.ac}" aria-label="Choose any colour"></label></div>
-      <span class="lbl">Font</span><select data-font-sel>${Object.entries(FONTS).map(([k, f]) => `<option value="${k}"${t.font === k ? ' selected' : ''}>${f.label}</option>`).join('')}</select>
-      <span class="lbl">Your contact box</span><div class="cbox">${[['bottom', 'At the bottom'], ['side', 'On the side']].map(([k, l]) => `<button type="button" data-contact="${k}" aria-pressed="${(t.contact || 'bottom') === k}"><i class="cb-${k}"><b></b><em></em></i>${l}</button>`).join('')}</div>`; } }
-  else { if (!pro) body = lock('With Pro you choose what appears on your report, PDF and images.'); else { const sh = showOf(P), on = (keys) => keys.every((k) => sh[k]);
-    const sw = (k, l, d, checked) => `<label class="psw"><span><b>${l}</b><small>${d}</small></span><input type="checkbox" data-g="${k}"${checked ? ' checked' : ''}><i aria-hidden="true"></i></label>`;
-    body = `${GROUPS.map(([k, l, d, keys]) => sw(k, l, d, on(keys))).join('')}
-      <button type="button" class="linkbtn pmore" data-more aria-expanded="${more}">${more ? 'Fewer choices' : 'More choices'} ›</button>
-      ${more ? `<div class="pmorebox">${MORE.map(([k, l, d]) => sw(k, l, d, sh[k])).join('')}<span class="lbl">Home types</span><div class="pills">${TYPES.map((t) => `<label class="pill"><input type="checkbox" data-g="${t}"${sh[t] ? ' checked' : ''}><span>${{ detached: 'Detached', townhome: 'Attached', condo: 'Condos' }[t]}</span></label>`).join('')}</div></div>` : ''}`; } }
-  el.innerHTML = head + `<div class="pbody">${body}</div><p class="pfoot"><i></i>Changes save on their own and show in the preview.</p>`;
-  if (ptab === 'details') thumbs();
-}
-// One listener for everything in the panel.
-document.addEventListener('click', (e) => { const el = $('#pane'); if (!el || !el.contains(e.target)) return;
-  if (e.target.closest('[data-done]')) return setPanel(false);
-  if (e.target.closest('[data-up]')) return portal();
-  const t = e.target.closest('[data-ptab]'); if (t) { ptab = t.dataset.ptab; store('mup_ptab', ptab); return drawPane(); }
-  if (e.target.closest('[data-more]')) { more = !more; return drawPane(); }
-  const rm = e.target.closest('[data-rm]'); if (rm) { const k = rm.dataset.rm; P[k] = ''; touch(k); thumbs(); preview(); return alertMsg(`Your ${k} was removed.`); }
-  const b = e.target.closest('button'); if (!b) return; const set = (patch) => { P.theme = { ...theme(), ...patch }; touch('theme'); drawPane(); preview(); };
-  if (b.dataset.style) { const { label, note, ...rest } = STYLES[b.dataset.style]; set({ style: b.dataset.style, ac2: '', ...rest, contact: theme().contact }); }
-  else if (b.dataset.ac) set({ ac: b.dataset.ac, ac2: PAIR[b.dataset.ac] || '' });
-  else if (b.dataset.contact) set({ contact: b.dataset.contact });
-});
-document.addEventListener('input', (e) => { const el = $('#pane'); if (!el || !el.contains(e.target)) return;
-  const k = e.target.dataset.k; if (k) { let v = e.target.value.trim(); if (k === 'website' && v && !/^https?:\/\//.test(v)) v = 'https://' + v; if (k === 'phone') v = fullPhone(v); P[k] = v; touch(k); later(); return; }
-  if (e.target.dataset.pick) { P.theme = { ...theme(), ac: e.target.value, ac2: '' }; touch('theme'); later(); } });
-document.addEventListener('change', async (e) => { const el = $('#pane'); if (!el || !el.contains(e.target)) return;
-  if (e.target.dataset.k === 'phone') e.target.value = localPhone(e.target.value);
-  if (e.target.dataset.k === 'role') { P.role = e.target.value; touch('role'); return later(); }
-  if (e.target.hasAttribute('data-font-sel')) { P.theme = { ...theme(), font: e.target.value }; touch('theme'); return preview(); }
-  const g = e.target.dataset.g; if (g) { const grp = GROUPS.find((x) => x[0] === g), keys = grp ? grp[3] : [g], next = { ...showOf(P) }; keys.forEach((k) => (next[k] = e.target.checked));
-    if (!TYPES.some((t) => next[t])) { e.target.checked = true; return alertMsg('Keep at least one home type.', true); }
-    if (!next.prices && !next.changes && !next.sold && !next.market) { e.target.checked = true; return alertMsg('Keep prices or homes sold on, so the report has numbers.', true); }
-    P.show = next; touch('show'); pointAt = { k: keys[0], on: e.target.checked, label: grp ? grp[1] : (MORE.find((m) => m[0] === g) || [, ({ detached: 'Detached', townhome: 'Attached', condo: 'Condos' })[g]])[1] }; return later(); }
-  const k = e.target.dataset.img; if (!k || !e.target.files[0]) return;
-  try { const v = await pickImage(k, e.target.files[0]); if (v) { P[k] = v; touch(k); thumbs(); preview(); } } catch (err) { alertMsg(err.message, true); } e.target.value = ''; });
-const thumbs = () => { for (const k of ['photo', 'logo']) { if (!$('#lb-' + k)) continue; $('#lb-' + k).textContent = P[k] ? 'Change' : 'Add';
+const thumbs = () => { for (const k of ['photo', 'logo']) { $('#lb-' + k).textContent = P[k] ? 'Change' : 'Add';
   $('#ph-' + k).innerHTML = P[k] ? `<img${k === 'photo' ? ' class="round"' : ''} src="${P[k]}" alt="">` : '<span class="ph">+</span>'; $(`[data-rm="${k}"]`).hidden = !P[k]; } };
 let pvT; const later = () => { clearTimeout(pvT); pvT = setTimeout(preview, 140); };
-const drawLook = () => drawPane(), drawShow = () => drawPane(), drawSend = () => {};
 
-// After a switch changes, scroll the preview to that spot, outline it and say what changed.
-let pointAt = null;
-function flagChange() {
-  const pa = pointAt; pointAt = null; const fr = $('#pv .frame'); if (!pa || !fr || !(tab === 'report' || tab === 'phone')) return;
-  const hits = [...fr.querySelectorAll(`[data-sh="${pa.k}"]`)], anchor = hits[0] || fr.querySelector('[data-sh=types]');
-  if (!anchor) return;
-  const fb = fr.getBoundingClientRect(), ab = anchor.getBoundingClientRect(); fr.scrollTo({ top: fr.scrollTop + ab.top - fb.top - 90, behavior: 'smooth' });
-  hits.forEach((h) => { h.classList.remove('flash'); void h.offsetWidth; h.classList.add('flash'); });
-  fr.querySelectorAll('.pvflag').forEach((x) => x.remove());
-  const f = document.createElement('div'); f.className = 'pvflag' + (pa.on ? '' : ' off'); f.textContent = `${pa.on ? '↓' : '✕'} ${pa.label || 'This'} ${pa.on ? 'is now showing' : 'is now hidden'}`;
-  fr.appendChild(f); setTimeout(() => { const fb2 = fr.getBoundingClientRect(), ab2 = anchor.getBoundingClientRect();
-    f.style.top = Math.max(8, fr.scrollTop + ab2.top - fb2.top - 46) + 'px'; f.style.left = Math.max(8, Math.min(ab2.left - fb2.left, fb2.width - 300)) + 'px'; f.classList.add('on'); }, 420);
-  setTimeout(() => f.classList.remove('on'), 3200); setTimeout(() => f.remove(), 3600);
+function drawLook() {
+  const el = $('#look');
+  if (!isPro()) { el.innerHTML = `<h3>2 · Make it yours</h3><div class="lockbox"><span>Essentials uses one clean white and blue design. With Pro you choose your own colours, background and font, and start from three report styles.</span><button class="btn sm" id="up1">Upgrade to Pro</button></div>`; $('#up1').onclick = portal; return; }
+  const t = theme();
+  el.innerHTML = `<h3>2 · Make it yours</h3>
+    <span class="lbl">Start from a style</span><div class="three">${Object.entries(STYLES).map(([k, s]) => `<button type="button" class="opt" data-style="${k}" aria-pressed="${t.style === k}"><i style="background:linear-gradient(135deg,${s.bg} 60%,${s.ac} 60%)"></i>${s.label}</button>`).join('')}</div>
+    <span class="lbl">Theme colour</span><div class="sw">${ACCENTS.map((c) => `<button type="button" data-ac="${c}" style="background:${c}" aria-label="Colour ${c}" aria-pressed="${t.ac.toLowerCase() === c}"></button>`).join('')}<label class="pick" title="Any colour"><input type="color" data-pick="ac" value="${t.ac}" aria-label="Choose any theme colour"></label></div>
+    <span class="lbl">Background</span><div class="sw">${BGS.map((c) => `<button type="button" data-bg="${c}" style="background:${c}" aria-label="Background ${c}" aria-pressed="${t.bg.toLowerCase() === c}"></button>`).join('')}<label class="pick" title="Any colour"><input type="color" data-pick="bg" value="${t.bg}" aria-label="Choose any background colour"></label></div>
+    <span class="lbl">Font</span><div class="fonts">${Object.entries(FONTS).map(([k, f]) => `<button type="button" class="opt f" data-font="${k}" style="font-family:${f.hf.replaceAll('"', "'")}" aria-pressed="${t.font === k}">${f.label}</button>`).join('')}</div>
+    <span class="lbl">PDF cover</span><div class="three">${Object.entries(COVERS).map(([k, l]) => `<button type="button" class="opt cvopt" data-cover="${k}" aria-pressed="${(t.cover || 'b') === k}"><i class="cvp cvp-${k}" style="--a:${t.ac}"><b></b><em></em></i>${l}</button>`).join('')}</div>`;
+  const set = (patch) => { P.theme = { ...theme(), ...patch }; touch('theme'); drawLook(); preview(); };
+  el.onclick = (e) => { const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.style) set({ style: b.dataset.style, ...STYLES[b.dataset.style] }); else if (b.dataset.ac) set({ ac: b.dataset.ac }); else if (b.dataset.bg) set({ bg: b.dataset.bg }); else if (b.dataset.font) set({ font: b.dataset.font }); else if (b.dataset.cover) { set({ cover: b.dataset.cover }); tab = 'pdf'; $('#tabs').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x.dataset.tab === 'pdf')); preview(); } };
+  el.oninput = (e) => { const k = e.target.dataset.pick; if (!k) return; P.theme = { ...theme(), [k]: e.target.value }; touch('theme'); later(); };
 }
 
-/* ---------- Share: one menu for sending and downloading ---------- */
-function shareDrop() {
-  const w = $('#sharebtn').parentElement; if (w.querySelector('.dmenu')) return closeDrop();
-  const pro = isPro(), ok = !!(P.name && P.slug);
-  if (!ok) return alertMsg('Add your name in Customize → Details first.', true);
-  const r = (k, l) => `<button type="button" class="dmi" data-s="${k}"><i>${sv(SICON[k] || k)}</i>${l}</button>`;
-  const m = document.createElement('div'); m.className = 'dmenu'; m.setAttribute('role', 'menu');
-  m.innerHTML = `${isPhone() ? r('share', 'Share with an app') + '<hr>' : ''}<p class="dg">Send your report</p>${r('link', 'Copy link')}${r('mail', 'Email')}${r('sms', 'Text message')}${r('wa', 'WhatsApp')}${r('qr', 'QR code')}${r('email', 'Copy client email')}
-    <hr><p class="dg">Download</p>${pro ? r('pdf', 'PDF') + r('ig', 'Instagram post or story') : '<p class="dmnote">PDF and Instagram images come with Pro.</p>'}`;
-  w.appendChild(m); setTimeout(() => document.addEventListener('click', outsideDrop, true));
-  m.onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b) return; closeDrop(); runShare(b.dataset.s); };
+
+/* Your report: areas, sections and their order (Pro). Saved with the profile, so every new month uses it. */
+function drawShow() {
+  const el = $('#showsec');
+  if (!isPro()) { el.innerHTML = `<h3>3 · Your report</h3><div class="lockbox"><span>With Pro you pick your areas, choose and order the sections, and let clients compare areas on your report.</span><button class="btn sm" id="up3">Upgrade to Pro</button></div>`; $('#up3').onclick = portal; return; }
+  const L = layoutOf(P, D), ALL = areasOf(D), off = SECTIONS.filter(([k]) => !L.sections.includes(k)), name = Object.fromEntries(SECTIONS.map(([k, l, d]) => [k, [l, d]]));
+  const isDefault = sameLayout(L, DEFAULT_LAYOUT);
+  const tg = (k, l, on) => `<label class="tg"><input type="checkbox" data-lt="${k}"${on ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span><span>${l}</span></label>`;
+  el.innerHTML = `<div class="hd"><h3>3 · Your report</h3>${isDefault ? '' : '<button type="button" class="linkbtn" id="ltreset">Back to the default</button>'}</div>
+    <p class="small muted" style="margin-top:-4px">Saved as your template. Every new month opens this way.</p>
+    <span class="lbl">Areas <span class="hint">· up to ${MAX_AREAS}</span></span>
+    <div class="ltareas">${L.areas.map((a) => `<span class="ltchip">${esc(a)}${L.areas.length > 1 ? `<button type="button" data-lrm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}
+      ${L.areas.length < MAX_AREAS ? `<label class="ltadd">+ Add area<select id="ltadd" aria-label="Add an area"><option value="">Add an area</option>${ALL.filter((a) => !L.areas.includes(a)).map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}</div>
+    ${L.areas.length > 1 ? `<span class="lbl">Several areas show</span><div class="seg" id="ltview">${[['side', 'Side by side'], ['one', 'One at a time']].map(([k, l]) => `<button type="button" data-v="${k}" aria-pressed="${L.view === k}">${l}</button>`).join('')}</div>` : ''}
+    <div class="tgs">${tg('clientAreas', 'Clients can add or remove areas', L.clientAreas)}${tg('agentTop', 'My name and photo at the top', L.agentTop)}</div>
+    <span class="lbl">Sections, in order</span>
+    <ol class="ltsec">${L.sections.map((k, i) => `<li><span class="nm"><b>${name[k][0]}</b><span>${name[k][1]}</span></span><span class="mv"><button type="button" data-up="${k}" aria-label="Move ${name[k][0]} up"${i ? '' : ' disabled'}>↑</button><button type="button" data-dn="${k}" aria-label="Move ${name[k][0]} down"${i < L.sections.length - 1 ? '' : ' disabled'}>↓</button><button type="button" data-off="${k}" aria-label="Remove ${name[k][0]}"${L.sections.length > 1 ? '' : ' disabled'}>✕</button></span></li>`).join('')}</ol>
+    ${off.length ? `<span class="lbl">Add a section</span><div class="ltoff">${off.map(([k, l, d]) => `<button type="button" data-on="${k}"><b>+ ${l}</b><span>${d}</span></button>`).join('')}</div>` : ''}`;
+  const save = (patch) => { const cur = layoutOf(P, D); P.show = { ...showOf(P), ...cur, ...patch }; touch('show'); drawShow(); later(); };
+  el.onclick = (e) => { const b = e.target.closest('button'); if (!b || b.disabled) return; const L2 = layoutOf(P, D), s = [...L2.sections], d = b.dataset;
+    if (b.id === 'ltreset') return save({ sections: [...DEFAULT_LAYOUT.sections], agentTop: true, clientAreas: true, view: 'side' });
+    if (d.lrm) return save({ areas: L2.areas.filter((a) => a !== d.lrm) });
+    if (d.v) return save({ view: d.v });
+    if (d.on) return save({ sections: [...s, d.on] });
+    if (d.off) return save({ sections: s.filter((k) => k !== d.off) });
+    const k = d.up || d.dn; if (k) { const i = s.indexOf(k), j = d.up ? i - 1 : i + 1; [s[i], s[j]] = [s[j], s[i]]; return save({ sections: s }); } };
+  el.onchange = (e) => { if (e.target.id === 'ltadd' && e.target.value) return save({ areas: [...layoutOf(P, D).areas, e.target.value] });
+    const k = e.target.dataset.lt; if (k) save({ [k]: e.target.checked }); };
 }
-const outsideDrop = (e) => { if (!e.target.closest('.dmenu') && !e.target.closest('#sharebtn')) closeDrop(); };
-function closeDrop() { document.querySelectorAll('.dmenu').forEach((x) => x.remove()); document.removeEventListener('click', outsideDrop, true); }
-function runShare(k) {
-  saveNow(); const en = encodeURIComponent;
-  if (k === 'share') { const t = shareText(plainLink()); navigator.share({ title: t.subject, text: t.short.replace(/: \S+$/, '.'), url: t.url }).catch(() => {}); return void record('link').catch(() => {}); }
-  if (k === 'link') return act('link', record('link'));
-  if (k === 'email') return act('email', record('email'));
-  if (k === 'pdf') return act('pdf', record('pdf'));
-  if (k === 'ig') { tab = 'insta'; $('#tabs').querySelectorAll('button').forEach((x) => x.setAttribute('aria-selected', x.dataset.tab === 'insta')); return preview(); }
-  const win = k === 'wa' ? window.open('', '_blank') : null;
-  record('link').then((it) => { const t = shareText(linkOf(it));
-    if (k === 'mail') location.href = `mailto:?subject=${en(t.subject)}&body=${en(t.body)}`;
-    else if (k === 'sms') location.href = `sms:?&body=${en(t.short)}`;
-    else if (k === 'wa') win.location = `https://wa.me/?text=${en(t.short)}`;
-    else if (k === 'qr') qrModal({ title: 'Your report QR code', text: 'Anyone who scans this with a phone camera opens your report. Great for open houses, flyers and signs.', url: t.url, file: `${P.slug}-${areas[0].replace(/\s+/g, '-')}-QR.png` });
-  }).catch((e) => { win?.close(); alertMsg(e.message, true); });
+
+function drawSend() {
+  const el = $('#send'); if (!el) return; const pro = isPro(), areas = areasOf(D), ok = !!(P.name && P.slug);
+  if (!areas.includes(area)) area = 'Greater Vancouver';
+  el.innerHTML = `<h3>4 · Create and send</h3>${ok ? '' : '<p class="small muted">Add your name above and these unlock.</p>'}
+    <span class="lbl">Area for the PDF and Instagram images</span><select id="area" ${pro ? '' : 'disabled'}>${areas.map((a) => `<option${a === area ? ' selected' : ''}>${a}</option>`).join('')}</select>
+    <div class="acts">${[['link', 'Report link', 'Interactive report to text, email or share.', 1], ['email', 'Email for your clients', 'A finished message to paste into Gmail or your CRM.', 1],
+      ['pdf', 'PDF', 'A three-page report to print or attach.', pro], ['post', 'Instagram post', 'Square image with your branding.', pro], ['story', 'Instagram story', 'Tall image for stories.', pro], ['caption', 'Caption', 'Words to paste under your post.', pro]]
+      .map(([k, t, d, on]) => `<div class="act${on ? '' : ' off'}"><span class="ic">${icon(k)}</span><div><b>${t}</b><span>${d}</span></div><div class="ab">${k === 'link' && on ? `<button class="btn sm ghost" data-do="link" data-verb="open" ${ok ? '' : 'disabled'}>Open</button>` : ''}<button class="btn sm ${k === 'link' ? '' : 'ghost'}" data-do="${k}" ${ok && on ? '' : 'disabled'}>${on ? KIND[k][1] : 'Pro'}</button></div></div>`).join('')}</div>
+    <p class="small muted">${pro ? 'Everything you create is saved in <a href="#" data-go="history">My reports</a>, so you can find it again.' : 'Individual cities, PDF and social images are part of Pro. <a href="#" id="up2">Upgrade</a>'}</p>`;
+  $('#area').onchange = (e) => { area = e.target.value; preview(); };
+  if ($('#up2')) $('#up2').onclick = (e) => { e.preventDefault(); portal(); };
+  el.onclick = (e) => { const g = e.target.closest('[data-go]'); if (g) { e.preventDefault(); return show(g.dataset.go); }
+    const b = e.target.closest('[data-do]'); if (!b || b.disabled) return; saveNow(); act(b.dataset.do, record(b.dataset.do), b.dataset.verb); };
+}
+
+// Quick actions right above the preview: open, copy, share, download, Instagram.
+function drawActs() {
+  const el = $('#pvact'); if (!el) return; const ok = !!(P.name && P.slug), pro = isPro(); closeMenu();
+  const where = pro ? `<select class="pa-where" id="area2" aria-label="Area">${areasOf(D).map((a) => `<option${a === area ? ' selected' : ''}>${a}</option>`).join('')}</select>` : `<span class="pa-where">${esc(area)}</span>`;
+  const b = (k, label, verb, ghost, ic) => `<button class="btn sm${ghost ? ' ghost' : ''}" data-do="${k}"${verb ? ` data-verb="${verb}"` : ''}${ok ? '' : ' disabled'}>${ic ? sv(ic) : ''}${label}</button>`;
+  const sh = (what, label, ghost, ic) => `<button class="btn sm${ghost ? ' ghost' : ''}" data-share="${what}"${ok ? '' : ' disabled'}>${sv(ic)}${label}</button>`;
+  el.innerHTML = tab === 'report' || tab === 'phone' ? `<span class="pa-where">${esc(layoutName())}</span><span class="pa-btns">${b('link', 'Open', 'open', 1, 'open')}${b('link', 'Copy link', '', 1, 'link')}<span class="shwrap">${sh('link', 'Share', 0, 'share')}</span></span>`
+    : tab === 'post' || tab === 'story' ? (pro ? `${where}<span class="pa-btns">${b(tab, 'Download', '', 1, 'dl')}${b('caption', 'Copy caption', '', 1, 'cap')}${sh('image', 'Share', 1, 'share')}${sh('ig', '<span class="lg">Share to </span>Instagram', 0, 'ig')}</span>` : '')
+    : pro ? `${where}<span class="pa-btns">${b('pdf', 'Open PDF to save or print', '', 0, 'dl')}</span>` : '';
 }
 // What the phone needs ready before the tap (phones only allow sharing straight from a tap).
-let ready = { files: [], cap: '' };
-const plainLink = () => reportLink(location.origin, P, areas);
-const shareText = (link) => { const n = areas.join(', '); return { url: link, subject: `${n} market update: ${D.month}`, short: `Here is the ${D.month} market update for ${n}: ${link}`, body: emailDraft(D, agent(), areas.join('|'), link).text }; };
-function shareImage(ig) {
-  saveNow(); const kind = igKind, fs = ready.files, okF = fs.length && canShareFiles(fs[0]) && (!navigator.canShare || navigator.canShare({ files: fs }));
-  if (isPhone() && okF) { if (ig) navigator.clipboard?.writeText(ready.cap).catch(() => {});
-    navigator.share(ig ? { files: fs } : { files: fs, text: ready.cap }).then(() => ig && alertMsg('Caption copied. Paste it in Instagram.')).catch(() => {}); return void record(kind).catch(() => {}); }
-  record(kind).then((it) => { const url = `${location.origin}/s/${P.slug}?v=${it.id}&k=${kind}${cfg.demo ? `&area=${encodeURIComponent(it.area)}` : ''}`;
-    qrModal({ title: 'Post it from your phone', text: 'Instagram only takes posts and stories from a phone. Scan this with your phone camera.', url,
-      steps: [`Your ${kind} opens on your phone. Tap <b>Share to Instagram</b>.`, `Choose <b>${kind === 'story' ? 'Story' : 'Post'}</b> in Instagram.`, 'Your caption is copied for you. Paste it and publish.'] }); })
+let ready = { file: null, cap: '' };
+const plainLink = (a = area) => reportLink(location.origin, P, a);
+const shareText = (link) => { const n = layoutName(); return { url: link, subject: `${n} market update: ${D.month}`, short: `Here is the ${D.month} market update for ${n}: ${link}`, body: emailDraft(D, agent(), layoutOf(agent(), D).areas[0], link).text }; };
+const layoutName = () => { const a = layoutOf(agent(), D).areas; return a.length === 1 ? a[0] : a.length === 2 ? a.join(' and ') : `${a.length} areas`; };
+function shareLink(btn) {
+  saveNow();
+  if (isPhone()) { const t = shareText(plainLink('Greater Vancouver')); navigator.share({ title: t.subject, text: t.short.replace(/: \S+$/, '.'), url: t.url }).catch(() => {}); record('link').catch(() => {}); return; }
+  if (btn.parentElement.querySelector('.shmenu')) return closeMenu();
+  record('link').then((it) => { const link = linkOf(it), t = shareText(link);
+    shareMenu(btn.parentElement, t, { onCopy: () => copy(Promise.resolve(link)).then(() => alertMsg('Link copied.')), onQr: () => qrModal({ title: 'Your report QR code', text: 'Anyone who scans this with a phone camera opens your report. Great for open houses, flyers and signs.', url: link, file: `${P.slug}-${area.replace(/\s+/g, '-')}-QR.png` }) }); })
     .catch((e) => alertMsg(e.message, true));
 }
-let rpCtl = null;
+function shareImage(btn, ig) {
+  saveNow(); const kind = tab, f = ready.file;
+  if (isPhone() && canShareFiles(f)) {
+    if (ig) navigator.clipboard?.writeText(ready.cap).catch(() => {});
+    navigator.share(ig ? { files: [f] } : { files: [f], text: ready.cap }).then(() => ig && alertMsg('Caption copied. Paste it in Instagram.')).catch(() => {});
+    record(kind).catch(() => {}); return;
+  }
+  if (!ig && !isPhone() && canShareFiles(f)) { navigator.share({ files: [f], text: ready.cap }).catch(() => {}); record(kind).catch(() => {}); return; }
+  record(kind).then((it) => qrModal(ig ? { title: 'Post it from your phone', text: 'Instagram only takes posts and stories from a phone. Scan this with your phone camera.', url: `${location.origin}/s/${P.slug}?v=${it.id}&k=${kind}${cfg.demo ? `&area=${encodeURIComponent(it.area)}` : ""}`,
+      steps: [`Your ${kind} opens on your phone. Tap <b>Share to Instagram</b>.`, `Choose <b>${kind === 'story' ? 'Story' : 'Post'}</b> in Instagram.`, 'Your caption is copied for you. Paste it and publish.'] }
+    : { title: 'Send it to your phone', text: 'Scan this with your phone camera to open the image there, then share it anywhere.', url: `${location.origin}/s/${P.slug}?v=${it.id}&k=${kind}${cfg.demo ? `&area=${encodeURIComponent(it.area)}` : ""}` }))
+    .catch((e) => alertMsg(e.message, true));
+}
 async function preview() {
-  const pv = $('#pv'); if (!pv) return; const A = agent(), pro = isPro(); closeDrop();
-  $('#zm') && ($('#zm').hidden = !(tab === 'report' || tab === 'phone'));
+  drawActs();
+  const pv = $('#pv'); if (!pv) return; const A = agent(), pro = isPro(), city = area !== 'Greater Vancouver';
   const locked = (what) => `<div class="frame pad"><div class="lockbox" style="max-width:360px;text-align:center"><b>${what} are part of Pro</b><span>Upgrade to download them with your branding.</span></div></div>`;
   if (tab === 'report' || tab === 'phone') { const top = pv.querySelector('.frame')?.scrollTop || 0;
     pv.innerHTML = tab === 'phone' ? '<div class="phonewrap"><div class="frame phone"><div id="rp"></div></div></div>' : '<div class="frame"><div id="rp"></div></div>';
-    if (tab === 'report') applyZoom(); rpCtl = mountReport($('#rp'), D, A, { areas: pro ? areas : ['Greater Vancouver'], embedded: true, onAreas: (l) => setAreas(l) }); pv.querySelector('.frame').scrollTop = top; flagChange(); }
-  else if (tab === 'insta') { if (!pro) return void (pv.innerHTML = locked('Instagram images'));
-    const kind = igKind, a = areas[0];
-    pv.innerHTML = `<div class="igtop"><div class="seg2" role="group">${[['post', 'Post'], ['story', 'Story']].map(([k, l]) => `<button type="button" data-ig="${k}" aria-pressed="${k === kind}">${l}</button>`).join('')}</div>
-      <div class="igbtns"><button type="button" class="btn sm ghost" data-igdo="dl">${sv('dl')}Download</button><button type="button" class="btn sm ghost" data-igdo="cap">${sv('cap')}Copy caption</button><button type="button" class="btn sm" data-igdo="ig">${sv('ig')}Share to Instagram</button></div></div><div class="frame pad ${kind}"></div>`;
-    pv.querySelector('.igtop').onclick = (e) => { const k = e.target.closest('[data-ig]'); if (k) { igKind = k.dataset.ig; return preview(); }
-      const d = e.target.closest('[data-igdo]'); if (!d) return; saveNow(); if (d.dataset.igdo === 'dl') act(igKind, record(igKind)); else if (d.dataset.igdo === 'cap') act('caption', record('caption')); else shareImage(true); };
-    const c = await socialImage(D, A, a, kind); if (tab !== 'insta' || igKind !== kind) return; pv.querySelector('.frame').replaceChildren(c);
-    ready = { files: [], cap: caption(D, A, a, reportLink(location.origin, P, [a])) }; toFile(c, `${a.replace(/\s+/g, '-')}-${D.month.replace(' ', '-')}-${kind}.png`).then((f) => { if (igKind === kind && f) ready.files = [f]; }); }
+    mountReport($('#rp'), D, A, { embedded: true }); pv.querySelector('.frame').scrollTop = top; }
+  else if (tab === 'post' || tab === 'story') { if (!pro) return void (pv.innerHTML = locked('Social images')); pv.innerHTML = `<div class="frame pad ${tab}"></div>`; const kind = tab, c = await socialImage(D, A, area, kind); if (tab !== kind) return; pv.firstElementChild.replaceChildren(c);
+    ready = { file: null, cap: caption(D, A, area, plainLink()) }; toFile(c, `${area.replace(/\s+/g, '-')}-${D.month.replace(' ', '-')}-${kind}.png`).then((f) => { if (tab === kind) ready.file = f; }); }
   else { if (!pro) return void (pv.innerHTML = locked('PDF downloads')); if (!P.slug) return void (pv.innerHTML = '<div class="frame pad"><p class="muted">Add your name first.</p></div>');
-    pv.innerHTML = `<div class="frame"><iframe title="PDF preview" src="/r/${P.slug}/print?area=${encodeURIComponent(areas.join('|'))}&preview=${encodeURIComponent(JSON.stringify(current()))}"></iframe></div>`; }
+    pv.innerHTML = `<div class="frame"><iframe title="PDF preview" src="/r/${P.slug}/print?area=${encodeURIComponent(area)}&preview=${encodeURIComponent(JSON.stringify(current()))}"></iframe></div>`; }
 }
 
 /* ---------- My reports ---------- */
@@ -487,7 +463,7 @@ function drawHistory() {
   let last = '', rows = '';
   for (const it of list) { const d = day(it.created_at); if (d !== last) { rows += `<h4 class="dayh">${d}</h4>`; last = d; }
     const live = ['link', 'email', 'caption'].includes(it.kind);
-    rows += `<div class="hrow" data-id="${it.id}"><span class="ic">${icon(it.kind)}</span><div class="hi"><b>${esc(namesOf(it.area))} · ${KIND[it.kind][0]}</b>
+    rows += `<div class="hrow" data-id="${it.id}"><span class="ic">${icon(it.kind)}</span><div class="hi"><b>${esc(it.area)} · ${KIND[it.kind][0]}</b>
       <span>${time(it.created_at)} · ${live ? 'Always shows the newest numbers' : `${esc(it.month)} numbers`}</span>${isPro() ? `<span class="hid">${hidden(it)}</span>` : ''}</div>
       <div class="ab">${it.kind === 'link' ? '<button class="btn sm ghost" data-verb="open">Open</button>' : ''}<button class="btn sm${it.kind === 'link' ? '' : ' ghost'}" data-verb="go">${KIND[it.kind][1]}</button>
       <button class="rm2" data-verb="del" aria-label="Remove from My reports" title="Remove"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div></div>`; }

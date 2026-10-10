@@ -1,10 +1,11 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Greater Vancouver Market Report</title>
-<link rel="stylesheet" href="/css/report.css"><style>body{margin:0}</style></head><body>
+<link rel="stylesheet" href="/css/report.css"><link rel="stylesheet" href="/css/board.css"><style>body{margin:0}</style></head><body>
 <div id="sample" class="sample" hidden>Sample report with a made-up person. <a href="/">Get your own</a></div>
 <div id="root"><p style="text-align:center;padding:60px 20px;font-family:system-ui">Loading the report…</p></div>
 <script type="module">
-import { mountReport, areasOf, areaList, fromHash, palette, SAMPLES, loadFonts } from '/js/report.js';
+import { areasOf, slug, SAMPLES, loadFonts } from '/js/report.js';
+import { mountReport } from '/js/board.js';
 const s = location.pathname.split('/')[2], q = new URLSearchParams(location.search);
 const r = await fetch('/api/report?slug=' + encodeURIComponent(s) + (q.get('v') ? '&v=' + encodeURIComponent(q.get('v')) : '')), j = await r.json();
 const root = document.getElementById('root');
@@ -14,10 +15,11 @@ else {
   if (j.sample) { A = SAMPLES[q.get('s')] || SAMPLES.sarah; document.getElementById('sample').hidden = false; }
   // The dashboard's live preview passes the agent's unsaved choices.
   if (q.get('preview')) try { const o = JSON.parse(q.get('preview')); A = { ...A, theme: o.theme || A.theme, show: o.show || A.show }; } catch {}
-  const fromView = j.view?.area ? areaList(j.view.area, j.report) : null, fromQ = q.get('area') ? areaList(q.get('area'), j.report) : null;
-  const areas = location.hash.length > 1 ? fromHash(location.hash, j.report) : fromView || fromQ || ['Greater Vancouver'];
-  document.title = `${areas.join(', ')} Market Report, ${j.report.month} | ${A.name}`;
-  loadFonts([A.theme?.font || 'modern']); document.body.style.background = palette(A.theme).bg;
-  mountReport(root, j.report, A, { areas });
+  const area = j.view?.area || q.get('area') || areasOf(j.report).find((a) => slug(a) === location.hash.slice(1));
+  document.title = `${area || 'Greater Vancouver'} Market Report, ${j.report.month} | ${A.name}`;
+  const pick = (q.get('areas') || '').split(',').filter(Boolean), areas = areasOf(j.report).filter((a) => pick.includes(slug(a))).sort((a, b) => pick.indexOf(slug(a)) - pick.indexOf(slug(b)));
+  loadFonts([A.theme?.font || 'modern']);
+  mountReport(root, j.report, A, { area, areas });
+  document.body.style.background = getComputedStyle(root).backgroundColor;
 }
 </script></body></html>
