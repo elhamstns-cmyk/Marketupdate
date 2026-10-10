@@ -133,7 +133,7 @@
 .rpt .trend .tfacts span{background:var(--tn);border-radius:999px;padding:7px 13px;font-size:.84rem;color:var(--mut)}.rpt .trend .tfacts b{color:var(--ink)}
 .rpt .tchart{display:grid;gap:8px}.rpt .tch{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap}
 .rpt .tch b{font-size:.95rem}.rpt .tch>span{font-size:.82rem;color:var(--mut)}
-.rpt .tcv{position:relative}.rpt .tcv svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
+.rpt .tcv{position:relative}.rpt .tcv svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y pinch-zoom}
 .rpt .leg{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.86rem;font-weight:600}.rpt .leg:empty{display:none}.rpt .leg span{display:inline-flex;align-items:center;gap:7px}.rpt .leg i{width:18px;height:4px;border-radius:3px}
 .rpt .seg{display:inline-flex;border:1px solid var(--ln);border-radius:10px;padding:3px;gap:2px}
 .rpt .seg button{font:inherit;font-weight:700;font-size:.85rem;padding:6px 12px;border:0;border-radius:7px;background:transparent;color:var(--ink);cursor:pointer;white-space:nowrap}
@@ -188,14 +188,24 @@
   .rpt .btn{flex:0 1 auto;min-width:170px}.rpt .mailw{flex:0 1 auto;min-width:170px}
   .rpt .row{grid-template-columns:190px 1fr 110px 80px;padding:10px 12px}.rpt .row .v{display:contents}.rpt .row .v small{text-align:right}
 }
-/* wide desktop: the report on the left, the agent and contact form stay in view on the right */
+/* wide desktop: the contact box can sit on the side (agent's choice) */
 @container (min-width:1040px){
-  .rpt .wrap{max-width:1360px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:36px 52px;padding:40px 52px 56px;align-items:start}
-  .rpt .wrap>*{grid-column:1}
-  .rpt .mast,.rpt .title,.rpt .hlhead,.rpt .csmast,.rpt .bdmast,.rpt .bdwho,.rpt footer{grid-column:1/-1}
-  .rpt .wrap>section.ask{grid-column:2;grid-row:3/span 8;position:sticky;top:24px}
-  .st-highlights .wrap>section.ask{grid-row:3/span 8}
-  .rpt .sign{display:none}.rpt .askwho{display:flex}
-  .rpt .ask .btn,.rpt .ask .mailw{flex-basis:100%}.rpt .ask h2{font-size:1.25rem}
+  .rpt.cside .wrap{max-width:1360px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:36px 52px;padding:40px 52px 56px;align-items:start}
+  .rpt.cside .wrap>*{grid-column:1}
+  .rpt.cside .mast,.rpt.cside .title,.rpt.cside .hlhead,.rpt.cside .csmast,.rpt.cside .bdmast,.rpt.cside .bdwho,.rpt.cside footer{grid-column:1/-1}
+  .rpt.cside .wrap>section.ask{grid-column:2;grid-row:2/span 8;position:sticky;top:24px}
+  .rpt.cside .askwho{display:flex}.rpt.cside .ask .btn,.rpt.cside .ask .mailw{flex-basis:100%}
 }
+/* calm area bar */
+.rpt .abar{display:flex;flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px}
+.rpt .areasel{width:auto;min-width:230px;font-weight:700}
+.rpt .addsel{width:auto;min-width:240px;font-weight:600;color:var(--act);border-style:dashed}
+.rpt .linkb{font:inherit;font-weight:700;color:var(--act);background:none;border:0;padding:8px 2px;cursor:pointer}.rpt .linkb.muted{color:var(--mut)}
+.rpt .abar>select+.linkb,.rpt .abar>select+.addsel{margin-right:auto}
+.rpt .cmpline{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px}.rpt .cmpline .ca{display:inline-flex;align-items:center;gap:7px;font-weight:600}
+.rpt .cmpline .ca i{width:10px;height:10px;border-radius:50%}.rpt .cmpline .ca button{border:0;background:var(--tn);color:var(--mut);width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:.7rem}
+.rpt .cmpact{display:flex;gap:14px}
+.rpt .one{display:flex;flex-direction:column;gap:inherit}
+.rpt .many{gap:14px}
+.rpt .mean h3{font-size:1rem}
 @media (prefers-reduced-motion:reduce){.rpt *{transition:none!important}}

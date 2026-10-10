@@ -19,7 +19,7 @@ export const roleLabel = (A) => (A.role === 'broker' ? 'Mortgage broker' : 'REAL
 /* ---------- what the agent chooses to show (Pro) ---------- */
 export const SHOW_NUMBERS = [['prices', 'Benchmark prices'], ['changes', 'Price changes'], ['sold', 'Homes sold'], ['forsale', 'Homes for sale'], ['days', 'Days on market'], ['market', 'Market type']];
 export const SHOW_SECTIONS = [['summary', 'The short version'], ['meaning', 'What this means'], ['trend', '12-month trend'], ['compare', 'Area comparison'], ['picker', 'Clients can pick areas']];
-export const DEFAULT_SHOW = { prices: true, changes: true, sold: true, forsale: true, days: true, market: true, detached: true, townhome: true, condo: true, summary: true, meaning: true, trend: true, compare: true, picker: true };
+export const DEFAULT_SHOW = { prices: true, changes: true, sold: true, forsale: false, days: false, market: true, detached: true, townhome: true, condo: true, summary: true, meaning: true, trend: false, compare: false, picker: true };
 export function showOf(A) { const s = { ...DEFAULT_SHOW, ...((A && A.show) || {}) }; if (!TYPES.some((t) => s[t])) TYPES.forEach((t) => (s[t] = true)); return s; }
 export const typesOf = (sh) => TYPES.filter((t) => sh[t]);
 export const monthKey = (m) => { const M = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], x = /^(\w+) (\d{4})$/.exec(m || ''); return x ? `${x[2]}-${String(M.indexOf(x[1]) + 1).padStart(2, '0')}` : ''; };
@@ -207,16 +207,16 @@ export function meaning(D, area, sh = DEFAULT_SHOW, A = {}) {
   const weak = R.filter((x) => x.ratio != null && x.ratio < 12).map((x) => SOLDLAB[x.t].toLowerCase()), broker = A.role === 'broker';
   let buy, sell;
   if (r < 12) {
-    buy = `${sh.forsale ? `With ${a.toLocaleString()} homes for sale and only` : 'With only'} about ${per} of every 100 listings selling each month, you have time to compare and room to negotiate${weak.length && weak.length < R.length ? `, especially on ${listJoin(weak)}` : ''}.`;
-    sell = `Price it right from day one.${dom ? ` Homes now take about ${dom} days to sell.` : ''}${sh.changes && m != null && m < -0.2 ? ` Prices slipped ${pc(m)} in the last month alone.` : ''}${sh.sold ? ` Well-priced homes still sell: ${s.toLocaleString()} did in ${mon}.` : ''}`;
+    buy = `You have time to compare and room to negotiate${weak.length && weak.length < R.length ? `, especially on ${listJoin(weak)}` : ''}.`;
+    sell = `Price it right from day one.${dom ? ` Homes take about ${dom} days to sell.` : sh.changes && m != null && m < -0.2 ? ` Prices slipped ${pc(m)} in the last month.` : ''}`;
   } else if (r <= 20) {
-    buy = 'Neither side has a clear edge. Good homes still get attention, so be ready when the right one comes up.';
-    sell = `Price close to recent sales and your home should sell in a reasonable time${dom ? `, about ${dom} days right now` : ''}.`;
+    buy = 'Neither side has the edge. Be ready when the right home comes up.';
+    sell = `Price close to recent sales and it should sell in good time${dom ? ` (about ${dom} days now)` : ''}.`;
   } else {
-    buy = `Homes are moving fast: about ${per} of every 100 listings sold this month. Be ready to act quickly when you find the right one.`;
-    sell = `Demand is strong. Good presentation and the right price can bring strong offers${dom ? `, with homes selling in about ${dom} days` : ''}.`;
+    buy = 'Homes are moving fast. Be ready to act when you find the right one.';
+    sell = 'Demand is strong. The right price and good presentation can bring strong offers.';
   }
-  if (broker) buy += ' A pre-approval holds your rate while you shop.';
+  if (broker) buy += ' A pre-approval holds your rate while you look.';
   return { buy, sell };
 }
 
@@ -232,12 +232,12 @@ const MKS = { "Buyer's market": "Buyer's", 'Balanced market': 'Balanced', "Selle
 // The numbers for one home type in one area, as label / value / note, in the order the agent sees them.
 export function metrics(D, area, t, sh) {
   const o = get(D, area, t), out = [], ly = D.month.replace(/\d+$/, (y) => y - 1).split(' ')[0];
-  if (sh.prices) out.push({ k: 'prices', l: 'Benchmark price', v: o.price ? money(o.price) : 'n/a', s: sh.changes && o.price ? `${arrow(o.yoy)} <span data-sh="changes">vs last year</span>` : !o.price ? 'Too few sales for a benchmark' : '' });
+  if (sh.prices) out.push({ k: 'prices', l: 'Typical price', v: o.price ? money(o.price) : 'n/a', s: sh.changes && o.price ? `${arrow(o.yoy)} <span data-sh="changes">vs last year</span>` : !o.price ? 'Too few sales for a benchmark' : '' });
   else if (sh.changes) out.push({ k: 'changes', l: 'Price change', v: o.price ? arrow(o.yoy) : 'n/a', s: 'vs last year' });
   if (sh.sold) out.push({ k: 'sold', l: 'Homes sold', v: (o.sales ?? 0).toLocaleString(), s: o.salesLy ? `${arrow(((o.sales - o.salesLy) / o.salesLy) * 100)} vs last year` : `in ${D.month.split(' ')[0]}` });
   if (sh.forsale) out.push({ k: 'forsale', l: 'Homes for sale', v: (o.active ?? 0).toLocaleString(), s: o.activeLy ? `${arrow(((o.active - o.activeLy) / o.activeLy) * 100, false)} vs last year` : 'listed now' });
   if (sh.days && o.dom != null) out.push({ k: 'days', l: 'Days on market', v: String(o.dom), s: o.domLy == null ? 'average' : o.dom > o.domLy ? `${o.dom - o.domLy} days longer than last year` : o.dom < o.domLy ? `${o.domLy - o.dom} days faster than last year` : `same as last ${ly}` });
-  if (sh.market && o.ratio != null && o.active) out.push({ k: 'market', l: 'Market', v: MKS[market(o.ratio)], meter: meterHTML(o.ratio), s: `${o.ratio.toFixed(1)}% of listings sold`, cls: 'mkt' });
+  if (sh.market && o.ratio != null && o.active) out.push({ k: 'market', l: 'Market', v: market(o.ratio), meter: meterHTML(o.ratio), s: '', cls: 'mkt' });
   return { o, out };
 }
 const metHTML = (m) => `<div class="mt ${m.cls || ''}" data-sh="${m.k}"><span class="lab">${m.l}</span><span class="num">${m.v}</span>${m.meter || ''}${m.s ? `<span class="sub">${m.s}</span>` : ''}</div>`;
@@ -255,12 +255,12 @@ export function typesHTML(layout, D, area, sh) {
     return `<div class="tcard" data-sh="${t}"><span class="tlab">${T1[t]}</span>${head ? `<div class="hd" data-sh="${head.k}"><span class="num big2">${head.v}</span>${head.s ? `<span class="sub">${head.s}</span>` : ''}</div>` : ''}${rest.map((m) => `<div class="kv" data-sh="${m.k}"><span>${m.l}</span><b>${m.v}</b>${m.meter || ''}</div>`).join('')}</div>`; }).join('')}</div>`;
 }
 export const shortHTML = (D, area, sh) => { const pts = shortVersion(D, area, sh); return pts.length ? `<ol class="svl">${pts.map((p, i) => `<li><i>${i + 1}</i><span>${p}</span></li>`).join('')}</ol>` : ''; };
-export const meaningHTML = (D, area, sh, A) => { const m = meaning(D, area, sh, A); return m ? `<div class="mean"><div><h3><span class="mi">${ICON2.key}</span>If you're buying</h3><p>${m.buy}</p></div><div><h3><span class="mi">${ICON2.sign}</span>If you're selling</h3><p>${m.sell}</p></div></div>` : ''; };
+export const meaningHTML = (D, area, sh, A) => { const m = meaning(D, area, sh, A); return m ? `<div class="mean"><div><h3>If you're buying</h3><p>${m.buy}</p></div><div><h3>If you're selling</h3><p>${m.sell}</p></div></div>` : ''; };
 const ICON2 = { key: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M15 8l2 2"/></svg>', sign: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5M4 5h14v8H4"/><path d="M8 9h6"/></svg>' };
 // A table of the chosen areas side by side, plus one sentence that says what stands out.
 export function compareHTML(D, areas, type, sh, cols) {
   const rows = areas.map((a, i) => ({ a, c: cols[i], ...get(D, a, type) }));
-  const th = [sh.prices && 'Benchmark price', sh.changes && '1 year', sh.sold && 'Homes sold', sh.days && 'Days on market', sh.market && 'Market'].filter(Boolean);
+  const th = [sh.prices && 'Typical price', sh.changes && '1 year', sh.sold && 'Homes sold', sh.days && 'Days on market', sh.market && 'Market'].filter(Boolean);
   const td = (r) => [sh.prices && (r.price ? money(r.price) : 'n/a'), sh.changes && (r.price ? arrow(r.yoy) : ''), sh.sold && (r.sales ?? 0).toLocaleString(), sh.days && (r.dom ?? '—'), sh.market && (market(r.ratio) ? `<span class="mpill m${r.ratio < 12 ? 'b' : r.ratio <= 20 ? 'n' : 's'}">${MKS[market(r.ratio)]}</span>` : '')].filter((x) => x !== false);
   const P = rows.filter((r) => r.price && r.yoy != null), words = [];
   if (sh.changes && P.length > 1) { const lo = [...P].sort((x, y) => x.yoy - y.yoy)[0], hi = [...P].sort((x, y) => y.yoy - x.yoy)[0];
@@ -280,111 +280,109 @@ export function mastHTML(layout, A, D) {
   return `<div class="mast">${whoBlock(A)}</div><header class="title"><p class="monthpill"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>${esc(D.month)} report</p><h1><span data-id="aname"></span> Market Report</h1></header>`;
 }
 
-// opts.areas: the areas to open on (first is the main one). opts.city: lock to those areas (no picker).
-// opts.onAreas(list): called when the reader adds or removes an area. opts.embedded: inside the dashboard.
+// opts.areas: the areas to open on (first is the main one). opts.city: lock to those areas (no choosing).
+// opts.onAreas(list): called when the reader changes areas. opts.embedded: inside the dashboard.
+// One area at a time. "Compare" switches the page to a chart and table for 2 to 4 areas.
 export function mountReport(root, D, A, opts = {}) {
   A = withPhone(A);
   const AREAS = areasOf(D), F = esc(first(A)), ask = askCopy(A), sh = showOf(A), TS = typesOf(sh), layout = layoutOf(A.theme), pal = palette(A.theme);
-  const S = { areas: areaList(opts.areas || opts.area, D), cur: 0, type: null, mode: 'pct', intent: null };
-  const canPick = AREAS.length > 1 && !opts.city && sh.picker !== false, TX = TS.length > 1 ? ['all', ...TS] : TS; S.type = TX[0];
+  const S = { areas: areaList(opts.areas || opts.area, D), intent: null, edit: false, adding: false };
+  const canPick = AREAS.length > 1 && !opts.city && sh.picker !== false, type = TS.length === 3 ? 'all' : TS[0], ptype = type === 'all' ? 'composite' : type;
   const anyPrice = sh.prices || sh.changes, endKey = monthKey(D.month), hasHist = !!D.history;
-  const email = A.contact_email || '', phone = A.phone || '';
-  root.className = `rpt st-${layout}`; root.style.cssText = themeVars(A.theme);
+  const email = A.contact_email || '', phone = A.phone || '', side = A.theme?.contact === 'side';
+  root.className = `rpt st-${layout}${side ? ' cside' : ''}`; root.style.cssText = themeVars(A.theme);
   root.innerHTML = `<div class="wrap">
 ${mastHTML(layout, A, D)}
-${canPick || TX.length > 1 ? `<section class="pick" data-sh="picker"><div class="pickrow">${canPick ? `<div class="chipsel"><span class="lab">${sh.picker ? 'Areas' : ''}</span><div class="achips" data-id="achips"></div><label class="addw"><span class="sr">Add an area</span><select data-id="add"></select></label></div>` : ''}
-  ${TX.length > 1 ? `<label class="typew"><span class="lab">Home type</span><select data-id="htype">${TX.map((t) => `<option value="${t}">${t === 'all' ? 'All home types' : T1[t]}</option>`).join('')}</select></label>` : ''}</div></section>` : ''}
-<div class="atabs" data-id="atabs" role="tablist" hidden></div>
+${canPick ? '<section class="abar" data-sh="picker" data-id="abar"></section>' : ''}
+<div class="one" data-id="one">
 ${sh.summary ? `<section class="sv" data-sh="summary"><h2>The short version</h2><div data-id="sv"></div></section>` : ''}
-<section class="types" data-sh="types"><h2 class="th" data-id="types-h"></h2><div data-id="types"></div>${anyPrice ? `<p class="small muted">Benchmark price is the MLS® HPI price of a typical home.${typesNote(sh) ? ' ' + typesNote(sh) + '.' : ''}</p>` : ''}</section>
-${sh.meaning ? `<section class="meanw" data-sh="meaning"><h2>What this means</h2><div data-id="mean"></div></section>` : ''}
+<section class="types" data-sh="types"><div data-id="types"></div>${anyPrice ? `<p class="small muted">Typical price is the MLS® HPI benchmark price.${typesNote(sh) ? ' ' + typesNote(sh) + '.' : ''}</p>` : ''}</section>
+${sh.meaning ? `<section class="meanw" data-sh="meaning"><div data-id="mean"></div></section>` : ''}
 ${sh.trend && hasHist && (anyPrice || sh.sold) ? `<section class="trend" data-sh="trend"><h2>The last 12 months</h2>
-  ${anyPrice ? `<div class="tchart"><div class="tch"><b data-id="t1h"></b><span class="seg sm" data-id="mode" hidden><button type="button" data-m="pct" aria-pressed="true">% change</button><button type="button" data-m="price" aria-pressed="false">Price</button></span></div><div class="leg" data-id="leg"></div><div class="tfacts" data-id="tfacts"></div><div class="tcv" data-id="t1"></div><p class="small muted" data-id="t1s"></p></div>` : ''}
+  ${anyPrice ? `<div class="tchart"><div class="tch"><b data-id="t1h"></b><span data-id="t1s"></span></div><div class="tfacts" data-id="tfacts"></div><div class="tcv" data-id="t1"></div></div>` : ''}
   ${sh.sold ? '<div class="tchart"><div class="tch"><b data-id="t2h"></b><span data-id="t2s"></span></div><div class="tcv" data-id="t2"></div></div>' : ''}</section>` : ''}
-${sh.compare && anyPrice ? `<section class="cmp" data-sh="compare"><h2 data-id="cmp-h">How the areas compare</h2><p class="muted small" data-id="cmp-sub"></p><div data-id="cmp"></div></section>` : ''}
+${sh.compare && anyPrice ? `<section class="cmp" data-sh="compare"><h2>How the areas compare</h2><p class="muted small" data-id="rank-sub"></p><div data-id="rank"></div></section>` : ''}
+</div>
+<section class="many" data-id="many" hidden><h2 data-id="mh"></h2><div class="tcv" data-id="mchart"></div><p class="small muted" data-id="mnote"></p><div data-id="mtable"></div></section>
 <section class="ask"><div class="askwho">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><div class="nm">${esc(A.name || '')}</div><div class="rl">${[roleLabel(A), A.brokerage].filter(Boolean).map(esc).join(' · ')}</div></div></div><h2>${ask.h}</h2><p>${ask.p}</p>
   <div class="field"><label>${ask.lab}<input type="text" data-id="where" placeholder="${ask.ph}"></label></div>
   <div><span class="lab">I am</span><div class="chips" data-id="intent" role="group" aria-label="I am">${ask.chips.map((c) => `<button type="button">${esc(c)}</button>`).join('')}</div></div>
   <div><span class="lab">Your message to ${F}</span><p class="msg" data-id="msg"></p></div>
   <div class="btns">${email ? `<span class="mailw"><button type="button" class="btn" data-id="mail" aria-haspopup="true" aria-expanded="false">Email ${F}</button><span class="mailmenu" data-id="mailmenu" hidden></span></span>` : ''}${phone ? `<a class="btn alt" data-id="sms" href="#">Text ${F}</a>` : ''}<button class="btn alt" type="button" data-id="copy">Copy message</button></div>
   <div class="contact">${email ? `<span>${esc(email)}</span>` : ''}${phone ? `<span>${esc(phone)}</span>` : ''}${A.website ? `<span>${esc(A.website.replace(/^https?:\/\//, ''))}</span>` : ''}</div></section>
-<div class="sign">${whoBlock(A)}</div>
 <footer>${esc(sourceLine(D))}</footer></div>`;
   const $ = (id) => root.querySelector(`[data-id="${id}"]`), put = (id, v, html) => { const e = $(id); if (e) e[html ? 'innerHTML' : 'textContent'] = v; };
   const cols = () => areaColours(pal.fill);
-
-  function text() { const cur = S.areas[S.cur]; const w = $('where').value.trim() || (cur === 'Greater Vancouver' ? 'my area' : cur); return ask.msg(w, S.type, S.intent); }
+  const left = () => AREAS.filter((a) => !S.areas.includes(a));
+  const addSel = (label) => `<select class="addsel" data-id="add"><option value="">${label}</option>${left().map((a) => `<option>${esc(a)}</option>`).join('')}</select>`;
+  function text() { const cur = S.areas[0]; const w = $('where').value.trim() || (cur === 'Greater Vancouver' ? 'my area' : cur); return ask.msg(w, type, S.intent); }
   function msg() {
     const t = text(); $('msg').textContent = t;
     if ($('sms')) { const d = phone.replace(/\D/g, ''); $('sms').href = `sms:+${d.length === 11 && d[0] === '1' ? d : '1' + d}?&body=${encodeURIComponent(t)}`; }
     if ($('mailmenu')) { const e = encodeURIComponent, su = e(ask.subj), bd = e(t);
       put('mailmenu', `<a href="https://mail.google.com/mail/?view=cm&fs=1&to=${e(email)}&su=${su}&body=${bd}" target="_blank" rel="noopener">Gmail</a><a href="https://outlook.office.com/mail/deeplink/compose?to=${e(email)}&subject=${su}&body=${bd}" target="_blank" rel="noopener">Outlook</a><a href="mailto:${esc(email)}?subject=${su}&body=${bd}">Email app</a><button type="button" data-copy-email>Copy email address</button>`, true); }
   }
-  function drawPicker() {
-    if ($('achips')) { const C = cols(); put('achips', S.areas.map((a, i) => `<span class="achip"><i style="background:${C[i]}"></i>${esc(a)}${S.areas.length > 1 ? `<button type="button" data-rm="${i}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join(''), true);
-      const left = AREAS.filter((a) => !S.areas.includes(a)), full = S.areas.length >= MAX_AREAS;
-      put('add', `<option value="">${full ? `Up to ${MAX_AREAS} areas` : S.areas.length > 1 ? '+ Add another area' : '+ Add an area to compare'}</option>${full ? '' : left.map((a) => `<option>${esc(a)}</option>`).join('')}`, true); $('add').disabled = full; }
-    const tabs = $('atabs'); tabs.hidden = S.areas.length < 2;
-    if (!tabs.hidden) { const C = cols(); tabs.innerHTML = S.areas.map((a, i) => `<button type="button" role="tab" aria-selected="${i === S.cur}" data-tab="${i}"><i style="background:${C[i]}"></i>${esc(a)}</button>`).join(''); }
+  // The calm bar under the masthead: one area, or the list being compared.
+  function drawBar() {
+    if (!$('abar')) return; const C = cols(), many = S.areas.length > 1;
+    if (!many) put('abar', `<select class="areasel" data-id="one-area" aria-label="Area">${AREAS.map((a) => `<option${a === S.areas[0] ? ' selected' : ''}>${esc(a)}</option>`).join('')}</select>
+      ${S.adding ? addSel('Choose an area to compare') : '<button type="button" class="linkb" data-act="compare">+ Compare with another area</button>'}`, true);
+    else put('abar', `<div class="cmpline"><b>Comparing</b>${S.areas.map((a, i) => `<span class="ca"><i style="background:${C[i]}"></i>${esc(a)}${S.edit ? `<button type="button" data-rm="${i}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}
+      ${S.edit && S.areas.length < MAX_AREAS ? addSel('+ Add an area') : ''}</div>
+      <div class="cmpact"><button type="button" class="linkb" data-act="edit">${S.edit ? 'Done' : 'Edit'}</button><button type="button" class="linkb muted" data-act="back">✕ Back to one area</button></div>`, true);
+    if ($('add')) { if (S.adding) $('add').focus(); }
   }
   function render() {
-    if (S.cur >= S.areas.length) S.cur = 0;
-    const area = S.areas[S.cur], type = S.type, multi = S.areas.length > 1;
-    root.querySelectorAll('[data-id=aname]').forEach((e) => (e.textContent = area));
-    if ($('htype')) $('htype').value = type;
-    drawPicker();
+    const area = S.areas[0], many = S.areas.length > 1;
+    root.querySelectorAll('[data-id=aname]').forEach((e) => (e.textContent = many ? `${S.areas.length} areas` : area));
+    drawBar(); $('one').hidden = many; $('many').hidden = !many;
+    if (many) { drawMany(); return msg(); }
     put('sv', shortHTML(D, area, sh), true);
-    put('types-h', `${area} at a glance`);
     put('types', typesHTML(layout, D, area, sh), true);
     put('mean', meaningHTML(D, area, sh, A), true);
     drawTrend();
-    if ($('cmp')) {
-      if (multi) { put('cmp-h', 'How your areas compare'); put('cmp-sub', `${type === 'all' ? 'All home types' : T1[type]}, ${D.month}.`); put('cmp', compareHTML(D, S.areas, type, sh, cols()), true); }
-      else { const rows = Object.keys(D.areas).map((a) => ({ a, ...(type === 'all' ? get(D, a, 'all') : D.areas[a][type]) })).filter((r) => r.price > 0).sort((x, y) => (sh.prices ? y.price - x.price : y.yoy - x.yoy));
-        const max = sh.prices ? rows[0].price : Math.max(...rows.map((r) => Math.abs(r.yoy))) || 1;
-        put('cmp-h', 'How the areas compare');
-        put('cmp-sub', `${type === 'all' ? 'Overall' : T1[type]} ${sh.prices ? 'benchmark price by area' : 'price change by area over the past year'}.${canPick ? ' Tap an area to add it to your comparison.' : ''}`);
-        put('cmp', `<div class="rank"><div class="row rh" aria-hidden="true"><span class="nm">Area</span><span></span><span class="v">${sh.prices ? `<span>${type === 'all' ? 'Benchmark' : T1[type]} price</span>` : ''}${sh.changes ? '<small>1-yr change</small>' : ''}</span></div>` + rows.map((r) => `<${canPick ? 'button type="button"' : 'div'} class="row${r.a === area ? ' on' : ''}" data-a="${esc(r.a)}"><span class="nm">${esc(r.a)}</span><span><span class="bar" style="display:block;width:${(((sh.prices ? r.price : Math.abs(r.yoy)) / max) * 100).toFixed(1)}%"></span></span><span class="v">${sh.prices ? money(r.price) : ''}${sh.changes ? (sh.prices ? `<small>${chg(r.yoy)}</small>` : chg(r.yoy)) : ''}</span></${canPick ? 'button' : 'div'}>`).join('') + '</div>', true); }
-    }
+    if ($('rank')) { const rows = Object.keys(D.areas).map((a) => ({ a, ...(type === 'all' ? get(D, a, 'all') : D.areas[a][type]) })).filter((r) => r.price > 0).sort((x, y) => (sh.prices ? y.price - x.price : y.yoy - x.yoy));
+      const max = sh.prices ? rows[0].price : Math.max(...rows.map((r) => Math.abs(r.yoy))) || 1;
+      put('rank-sub', `${type === 'all' ? 'All home types' : T1[type]}: ${sh.prices ? 'typical price by area' : 'price change by area over the past year'}.`);
+      put('rank', `<div class="rank">${rows.map((r) => `<div class="row${r.a === area ? ' on' : ''}"><span class="nm">${esc(r.a)}</span><span><span class="bar" style="display:block;width:${(((sh.prices ? r.price : Math.abs(r.yoy)) / max) * 100).toFixed(1)}%"></span></span><span class="v">${sh.prices ? money(r.price) : ''}${sh.changes ? (sh.prices ? `<small>${chg(r.yoy)}</small>` : chg(r.yoy)) : ''}</span></div>`).join('')}</div>`, true); }
     msg();
   }
-  function drawTrend() {
-    if (!$('t1') && !$('t2')) return;
-    const area = S.areas[S.cur], type = S.type, pt = type === 'all' ? 'composite' : type, multi = S.areas.length > 1, C = cols();
-    if ($('t1')) {
-      const list = S.areas.map((a, i) => ({ name: a, color: C[i], rows: priceSeries(D.history, a, pt, endKey) })), have = list.filter((s) => s.rows.length > 1);
-      $('mode').hidden = !multi || have.length < 2; put('leg', multi && have.length > 1 ? have.map((s) => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('') : '', true);
-      if (multi && have.length > 1) {
-        put('t1h', `${type === 'all' ? 'Benchmark price, all home types' : `${T1[type]} benchmark price`}${S.mode === 'pct' ? ': change over 12 months' : ''}`);
-        put('tfacts', ''); multiChart($('t1'), have, { mode: S.mode, label: `${T1[type]} price by area` });
-        put('t1s', S.mode === 'pct' ? 'Every area starts at 0%, so you can see which is rising or falling faster, even when prices are very different.' + (have.length < list.length ? ` No 12-month history yet for ${list.filter((s) => s.rows.length < 2).map((s) => s.name).join(', ')}.` : '') : '');
-        root.querySelectorAll('[data-m]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.m === S.mode));
-      } else { const ps = priceSeries(D.history, area, pt, endKey);
-        put('t1h', type === 'all' ? 'Benchmark price, all home types' : `${T1[type]} benchmark price`);
-        put('t1s', ps.length ? `${area} · ${monthName(ps[0][0])} to ${monthName(endKey)}` : `${area} · not enough history yet`);
-        put('tfacts', sh.changes ? trendFacts(ps).map(([b, t]) => `<span><b>${b}</b> ${t}</span>`).join('') : '', true); lineChart($('t1'), ps, { label: `${T1[type]} benchmark price in ${area}` }); }
-    }
-    if ($('t2')) { const ss = salesSeries(D.history, area, type === 'all' ? TS : [type], endKey);
-      put('t2h', `${SOLDLAB[type]} sold each month`); put('t2s', ss.rows.length > 1 ? `${ss.group === 'Grand Totals' ? 'Greater Vancouver' : ss.group}${ss.group !== area && ss.group !== 'Grand Totals' ? ' (whole area)' : ''} · ${monthName(ss.rows[0][0])} to ${monthName(endKey)}` : 'Not enough history yet');
-      barChart($('t2'), ss.rows, { label: `${T1[type]} sales in ${ss.group}` }); }
+  function drawMany() {
+    const C = cols(), name = type === 'all' ? 'Home prices' : `${T1[type]} prices`;
+    put('mh', `${name} over 12 months`);
+    const list = S.areas.map((a, i) => ({ name: a, color: C[i], rows: hasHist ? priceSeries(D.history, a, ptype, endKey) : [] })).filter((x) => x.rows.length > 1);
+    if (list.length > 1) { multiChart($('mchart'), list, { mode: 'pct', label: name }); put('mnote', 'Every area starts at 0%, so you can see which one is rising or falling faster.'); }
+    else { put('mchart', ''); put('mnote', ''); }
+    put('mtable', compareHTML(D, S.areas, type, { ...sh, sold: false, days: false, prices: sh.prices || !sh.changes, changes: sh.changes || !sh.prices, market: sh.market }, C), true);
   }
-  if (window.ResizeObserver && ($('t1') || $('t2'))) { let w = 0, tm; new ResizeObserver(() => { const cw = root.clientWidth; if (Math.abs(cw - w) > 20) { w = cw; clearTimeout(tm); tm = setTimeout(drawTrend, 120); } }).observe(root); }
-  const changed = () => { render(); opts.onAreas?.(S.areas.slice()); if (!opts.embedded && canPick) try { history.replaceState(null, '', location.pathname + location.search + '#' + areaHash(S.areas)); } catch {} };
+  function drawTrend() {
+    if (!$('t1') && !$('t2')) return; const area = S.areas[0];
+    if ($('t1')) { const ps = priceSeries(D.history, area, ptype, endKey);
+      put('t1h', type === 'all' ? 'Typical price, all home types' : `${T1[type]} typical price`); put('t1s', ps.length ? `${monthName(ps[0][0])} to ${monthName(endKey)}` : 'Not enough history yet');
+      put('tfacts', sh.changes ? trendFacts(ps).map(([b, t]) => `<span><b>${b}</b> ${t}</span>`).join('') : '', true); lineChart($('t1'), ps, { label: `Typical price in ${area}` }); }
+    if ($('t2')) { const ss = salesSeries(D.history, area, type === 'all' ? TS : [type], endKey);
+      put('t2h', `${SOLDLAB[type]} sold each month`); put('t2s', ss.rows.length > 1 ? `${ss.group === 'Grand Totals' ? 'Greater Vancouver' : ss.group}${ss.group !== area && ss.group !== 'Grand Totals' ? ' (whole area)' : ''}` : 'Not enough history yet');
+      barChart($('t2'), ss.rows, { label: `Sales in ${ss.group}` }); }
+  }
+  if (window.ResizeObserver) { let w = 0, tm; new ResizeObserver(() => { const cw = root.clientWidth; if (Math.abs(cw - w) > 20) { w = cw; clearTimeout(tm); tm = setTimeout(() => (S.areas.length > 1 ? drawMany() : drawTrend()), 120); } }).observe(root); }
+  const changed = () => { render(); opts.onAreas?.(S.areas.slice()); if (!opts.embedded && canPick) try { history.replaceState(null, '', location.pathname + location.search + (S.areas.length > 1 || S.areas[0] !== 'Greater Vancouver' ? '#' + areaHash(S.areas) : '')); } catch {} };
   root.addEventListener('click', (e) => {
-    const rm = e.target.closest('[data-rm]'); if (rm) { S.areas.splice(+rm.dataset.rm, 1); S.cur = 0; return changed(); }
-    const tb = e.target.closest('[data-tab]'); if (tb) { S.cur = +tb.dataset.tab; return render(); }
-    const md = e.target.closest('[data-m]'); if (md) { S.mode = md.dataset.m; return drawTrend(); }
-    const rw = e.target.closest('.rank button.row'); if (rw) { const a = rw.dataset.a; if (!S.areas.includes(a) && S.areas.length < MAX_AREAS) { S.areas.push(a); S.cur = S.areas.length - 1; changed(); } else if (S.areas.includes(a)) { S.cur = S.areas.indexOf(a); render(); } if (!opts.embedded) $('types-h').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    const ac = e.target.closest('[data-act]');
+    if (ac) { const a = ac.dataset.act; if (a === 'compare') { S.adding = true; drawBar(); } else if (a === 'edit') { S.edit = !S.edit; drawBar(); } else if (a === 'back') { S.areas = [S.areas[0]]; S.edit = false; changed(); } return; }
+    const rm = e.target.closest('[data-rm]'); if (rm) { S.areas.splice(+rm.dataset.rm, 1); if (S.areas.length < 2) S.edit = false; return changed(); }
     if (e.target.closest('[data-id=mail]')) { const m = $('mailmenu'), open = m.hidden; m.hidden = !open; $('mail').setAttribute('aria-expanded', String(open)); return; }
     if (e.target.closest('[data-copy-email]')) { navigator.clipboard?.writeText(email).then(() => { e.target.textContent = 'Copied'; }).catch(() => {}); return; }
     if ($('mailmenu') && !$('mailmenu').hidden && !e.target.closest('.mailw')) { $('mailmenu').hidden = true; $('mail').setAttribute('aria-expanded', 'false'); }
   });
-  if ($('add')) $('add').addEventListener('change', (e) => { const a = e.target.value; if (a && !S.areas.includes(a) && S.areas.length < MAX_AREAS) { S.areas.push(a); S.cur = S.areas.length - 1; changed(); } });
-  if ($('htype')) $('htype').addEventListener('change', (e) => { S.type = e.target.value; render(); });
+  root.addEventListener('change', (e) => {
+    if (e.target.dataset.id === 'one-area') { S.areas = [e.target.value]; return changed(); }
+    if (e.target.dataset.id === 'add') { const a = e.target.value; if (a && !S.areas.includes(a) && S.areas.length < MAX_AREAS) { S.areas.push(a); S.adding = false; changed(); } }
+  });
+  root.addEventListener('focusout', (e) => { if (e.target.dataset?.id === 'add' && S.adding && !e.target.value) setTimeout(() => { if (S.adding) { S.adding = false; drawBar(); } }, 150); });
   $('where').addEventListener('input', msg);
   $('intent').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const on = b.getAttribute('aria-pressed') === 'true';
     $('intent').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', String(!on)); S.intent = on ? null : b.textContent; msg(); });
   $('copy').addEventListener('click', () => { navigator.clipboard.writeText(text()).then(() => { $('copy').textContent = 'Copied'; setTimeout(() => ($('copy').textContent = 'Copy message'), 1800); }).catch(() => {}); });
   render();
-  return { setAreas: (list) => { S.areas = areaList(list, D); S.cur = 0; render(); } };
+  return { setAreas: (list) => { S.areas = areaList(list, D); render(); } };
 }
