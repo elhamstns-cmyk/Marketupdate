@@ -1,4 +1,4 @@
-import { mountReport, SECTIONS, layoutOf, DEFAULT_LAYOUT, MAX_AREAS, sameLayout } from './board.js';
+import { mountReport, SECTIONS, layoutOf, DEFAULT_LAYOUT, MAX_AREAS, sameLayout, PAIRABLE, USES_TYPES, USES_AREAS, TYPE_KEYS } from './board.js';
 import { esc, areasOf, STYLES, FONTS, BASIC_THEME, loadFonts, SHOW_NUMBERS, SHOW_SECTIONS, DEFAULT_SHOW, TYPES, T1, showOf, monthKey, COVERS } from './report.js';
 import { reportLink, emailDraft, caption, socialImage, download } from './exports.js';
 import { sv, isPhone, canShareFiles, toFile, shareMenu, closeMenu, qrModal } from './share.js';
@@ -207,7 +207,7 @@ function showPreview() {
 
 /* ---------- dashboard ---------- */
 let P = {}, D = null, active = false, area = 'Greater Vancouver', tab = 'report', view = 'create', HIST = [], filter = 'all';
-const DETAILS = [['name', 'Your name', 'text', 'Jane Smith'], ['brokerage', 'Brokerage', 'text', 'Your brokerage'], ['contact_email', 'Email for clients', 'email', 'you@email.com'], ['website', 'Website (optional)', 'text', 'Your website (optional)']];
+const DETAILS = [['name', 'Your name', 'text', 'Jane Smith'], ['brokerage', 'Brokerage', 'text', 'Your brokerage'], ['contact_email', 'Email for clients', 'email', 'you@email.com'], ['website', 'Website (optional)', 'text', 'Website (optional)']];
 const ACCENTS = ['#0f6b4f', '#14233f', '#1d4f9c', '#b3202e', '#d0a94a', '#6b3fa0', '#111312'], BGS = ['#ffffff', '#f7f4ee', '#eef3fb', '#111312'];
 const isPro = () => P.plan === 'pro';
 const theme = () => (isPro() ? { style: 'modern', ...STYLES.modern, ...(P.theme || {}) } : BASIC_THEME);
@@ -286,7 +286,7 @@ function drawNav() { const n = $('#subnav'); if (!n) return;
   n.innerHTML = `<div class="sn" role="tablist">${[['create', 'Create'], ['history', `My reports${HIST.length ? ` <span class="cnt">${HIST.length}</span>` : ''}`], ['account', 'Account']].map(([k, l]) => `<button type="button" role="tab" data-view="${k}" aria-selected="${view === k}">${l}</button>`).join('')}</div>`; }
 function show(v) {
   view = ['create', 'history', 'account'].includes(v) ? v : 'create'; saveNow();
-  main.innerHTML = `<div class="subnav" id="subnav"></div><div id="page"></div>`; drawNav();
+  main.innerHTML = `<div class="subnav" id="subnav"></div><div id="page" class="pg-${view}"></div>`; drawNav();
   $('#subnav').onclick = (e) => { const b = e.target.closest('[data-view]'); if (b && b.dataset.view !== view) show(b.dataset.view); };
   if (view === 'history') drawHistory(); else if (view === 'account') drawAccount(); else dashboard();
   window.scrollTo(0, 0);
@@ -304,153 +304,176 @@ async function saveNow() {
   return saving;
 }
 
+/* ---------- Create: the report on the left, a panel on the right ---------- */
+// The agent sees exactly what clients see. Click a section to edit it (Data / Settings), add sections, reorder them,
+// and save the layout as "My template" so every new month opens the same way.
+const firstArea = () => layoutOf(agent(), D).areas[0];
+const layoutName = () => { const a = layoutOf(agent(), D).areas; return a.length === 1 ? a[0] : a.length === 2 ? a.join(' and ') : `${a.length} areas`; };
+const shareText = (link) => { const n = layoutName(); return { url: link, subject: `${n} market update: ${D.month}`, short: `Here is the ${D.month} market update for ${n}: ${link}`, body: emailDraft(D, agent(), firstArea(), link).text }; };
+const avatar = () => (P.photo ? `<img src="${esc(P.photo)}" alt="">` : `<span class="ini">${esc((P.name || '?').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase())}</span>`);
+const SEC = Object.fromEntries(SECTIONS.map(([k, l, d]) => [k, { l, d }]));
+const SIC = { numbers: '#', trend: '∿', market: '⇆', types: '⌂', growth: '↗', summary: '≡', sold: '▮', compare: '☰', contact: '✉' };
+const TYPE_NAME = { detached: 'Detached', townhome: 'Townhouse', condo: 'Condo' };
+let PS = { m: 'list', k: null, tab: 'data' };
+const cur = () => layoutOf(agent(), D);
+const snap = (L) => ({ sections: L.sections, areas: L.areas, agentTop: L.agentTop, clientAreas: L.clientAreas, view: L.view, conf: L.conf });
+const mode = () => (P.show?.mode === 'template' && P.show?.template ? 'template' : 'default');
+// Every layout change goes through here. On "My template", the template follows along.
+function setLayout(patch, redraw = true) {
+  const L = { ...cur(), ...patch }, sh = { ...showOf(P), ...snap(L) };
+  if (sh.mode === 'template') sh.template = snap(L);
+  P.show = sh; touch('show'); drawTop(); if (redraw) preview(); drawPanel();
+}
+const setConf = (k, patch) => { const c = { ...cur().conf }, x = { ...(c[k] || {}), ...patch }; Object.keys(x).forEach((f) => x[f] === undefined && delete x[f]); c[k] = x; setLayout({ conf: c }); };
+
 function dashboard() {
   const pg = $('#page');
   if (!D) { pg.innerHTML = `<div class="c">${steps(4)}<h2>Your first report is on its way</h2><p class="lead">We will email you as soon as this month's report is published.</p></div>`; return; }
-  loadFonts(Object.keys(FONTS));
-  pg.innerHTML = `<div class="app"><div class="side">
-    ${cfg.demo ? '<p class="note">Preview mode: nothing is saved to a server and no payment is taken.</p>' : ''}${noticeOk ? `<p class="note ok">${esc(noticeOk)}</p>` : ''}${!cfg.demo && P.email_verified === false ? `<p class="note warn" id="cfm">Please confirm your email. We sent a link to <b>${esc(P.email || '')}</b>. <a href="#" id="cfmagain">Send it again</a></p>` : ''}${qs.has('welcome') ? `<p class="note ok">You are subscribed${P.name ? ', ' + esc(P.name.trim().split(/\s+/)[0]) : ''}. Welcome aboard.</p>` : ''}
-    <div class="sec"><div class="hd"><h3>1 · Your details</h3><span class="ok small" id="saved"></span></div>
-      <div class="two">${DETAILS.map(([k, l, t, ph]) => `<input type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}" aria-label="${l}">`).join('')}
-        <div class="phonef"><span>+1</span><input type="tel" data-k="phone" value="${esc(localPhone(P.phone))}" placeholder="604-555-0100" aria-label="Phone"></div>
-        <select data-k="role" aria-label="I am a"><option value="realtor"${P.role !== 'broker' ? ' selected' : ''}>I'm a REALTOR®</option><option value="broker"${P.role === 'broker' ? ' selected' : ''}>I'm a mortgage broker</option></select></div>
-
-      <div class="two">${['photo', 'logo'].map((k) => `<div class="upw"><label class="up"><span id="ph-${k}"></span><span>Your ${k}<br><b id="lb-${k}"></b></span><input type="file" accept="image/*" data-img="${k}"></label><button type="button" class="rm" data-rm="${k}" aria-label="Remove your ${k}" title="Remove" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>`).join('')}</div></div>
-    <div class="sec" id="look"></div>
-    <div class="sec" id="showsec"></div>
-    <div class="sec" id="send"></div></div>
-    <div class="main"><div class="hd"><div style="display:flex;gap:12px;align-items:center"><button type="button" class="sidetog" id="sidetog" aria-label="Hide or show the settings panel" title="Hide or show settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><div><h3 style="font-size:1.35rem">Your ${esc(D.month)} report</h3><span class="live">Live preview. Changes show instantly.</span></div></div>
-      <div class="seg" id="tabs" role="group" aria-label="Preview">${[['report', 'Report'], ['phone', 'Phone'], ['post', 'Post'], ['story', 'Story'], ['pdf', 'PDF']].map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${k === tab}">${l}</button>`).join('')}</div></div>
-      <div class="pvact" id="pvact"></div><div id="pv"></div></div></div>`;
-  thumbs(); drawLook(); drawShow(); drawSend(); preview(); noticeOk = '';
-  if ($('#cfmagain')) $('#cfmagain').onclick = async (e) => { e.preventDefault(); const ok = await sendConfirm(P.email); alertMsg(ok ? 'Sent. Check your inbox.' : 'Please wait a minute and try again.', !ok); };
-  const side = $('.side');
-  side.addEventListener('input', (e) => { const k = e.target.dataset.k; if (!k || k === 'gvr_member') return; let v = e.target.value.trim();
-    if (k === 'website' && v && !/^https?:\/\//.test(v)) v = 'https://' + v; if (k === 'phone') v = fullPhone(v); P[k] = v; touch(k); later(); if (k === 'name') drawSend();  });
-  side.addEventListener('change', async (e) => { if (e.target.dataset.k === 'gvr_member') { P.gvr_member = e.target.checked; return touch('gvr_member'); } if (e.target.dataset.k === 'phone') e.target.value = localPhone(e.target.value);
-    const k = e.target.dataset.img; if (!k || !e.target.files[0]) return;
-    try { const v = await pickImage(k, e.target.files[0]); if (v) { P[k] = v; touch(k); thumbs(); preview(); } } catch (err) { alertMsg(err.message, true); } e.target.value = ''; });
-  side.addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (!b) return; const k = b.dataset.rm; P[k] = ''; touch(k); thumbs(); preview(); alertMsg(`Your ${k} was removed.`); });
-  const app = $('.app'); try { if (localStorage.getItem('mup_side') === 'closed') app.classList.add('closed'); } catch {}
-  $('#sidetog').onclick = () => { app.classList.toggle('closed'); try { localStorage.setItem('mup_side', app.classList.contains('closed') ? 'closed' : 'open'); } catch {} setTimeout(preview, 260); };
-  $('#pvact').onchange = (e) => { if (e.target.id !== 'area2') return; area = e.target.value; if ($('#area')) $('#area').value = area; preview(); };
-  $('#pvact').onclick = (e) => { const s2 = e.target.closest('[data-share]'); if (s2 && !s2.disabled) return s2.dataset.share === 'link' ? shareLink(s2) : shareImage(s2, s2.dataset.share === 'ig');
-    const b = e.target.closest('[data-do]'); if (!b || b.disabled) return; saveNow(); act(b.dataset.do, record(b.dataset.do), b.dataset.verb); };
-  $('#tabs').onclick = (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; $('#tabs').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b)); preview(); };
+  $('#subnav').hidden = true; PS = { m: P.name ? 'list' : 'details', k: null, tab: 'data' };
+  const notes = [cfg.demo ? 'Preview mode: nothing is saved to a server and no payment is taken.' : '', noticeOk, qs.has('welcome') ? `You are subscribed${P.name ? ', ' + P.name.trim().split(/\s+/)[0] : ''}. Welcome aboard.` : ''].filter(Boolean);
+  pg.innerHTML = `<div class="dbar"><div class="crumb"><button type="button" class="lk" data-go="history">Your reports</button><span>/</span><b>${esc(D.month)}</b><span class="ok small" id="saved"></span></div>
+    <div class="dact"><span id="laysel"></span><span class="shwrap"><button type="button" class="btn sm ghost" id="sharebtn">Share</button></span><button type="button" class="btn sm" id="pvbtn">Preview</button>
+    <button type="button" class="me" data-go="account" title="Your account"><span class="av">${avatar()}</span><span class="who"><b>${esc(P.name || 'Add your name')}</b><small>${esc(P.brokerage || '')}</small></span></button></div></div>
+    <div class="dwrap"><div class="dleft">${notes.map((n) => `<p class="dnote">${esc(n)}</p>`).join('')}${!cfg.demo && P.email_verified === false ? `<p class="dnote warn">Please confirm your email. We sent a link to <b>${esc(P.email || '')}</b>. <a href="#" id="cfmagain">Send it again</a></p>` : ''}<div id="dban"></div><div id="rp"></div></div><aside class="dpanel" id="dpanel"></aside></div>`;
+  noticeOk = ''; drawTop(); preview(); wirePanel(); drawPanel();
+  pg.onclick = (e) => { const g = e.target.closest('[data-go]'); if (g) return show(g.dataset.go);
+    if (e.target.id === 'cfmagain') { e.preventDefault(); return sendConfirm(P.email).then((ok) => alertMsg(ok ? 'Sent. Check your inbox.' : 'Please wait a minute and try again.', !ok)); }
+    if (e.target.id === 'savetpl') { e.preventDefault(); P.show = { ...showOf(P), ...snap(cur()), mode: 'template', template: snap(cur()) }; touch('show'); drawTop(); drawPanel(); return alertMsg('Saved as your template. Every new month opens this way.'); }
+    if (e.target.closest('#pvbtn')) { if (!ready()) return; saveNow(); return act('link', record('link'), 'open'); }
+    if (e.target.closest('#sharebtn')) return shareDrop(e.target.closest('#sharebtn')); };
+  pg.onchange = (e) => { if (e.target.id !== 'layout') return; const v = e.target.value, t = P.show?.template;
+    if (v === 'template' && t) P.show = { ...showOf(P), ...t, mode: 'template' };
+    else P.show = { ...showOf(P), ...snap({ ...DEFAULT_LAYOUT, areas: cur().areas }), mode: 'default' };
+    touch('show'); PS = { m: 'list' }; drawTop(); preview(); drawPanel(); };
   if (dirty.size) touch([...dirty][0]);
 }
-const thumbs = () => { for (const k of ['photo', 'logo']) { $('#lb-' + k).textContent = P[k] ? 'Change' : 'Add';
+// Top bar: layout picker; banner above the report while the default is in use.
+function drawTop() {
+  const ls = $('#laysel'), ban = $('#dban'); if (!ls) return; const w = $('.dbar .who b'); if (w) w.textContent = P.name || 'Add your name'; const a = $('.dbar .av'); if (a) a.innerHTML = avatar();
+  if (!isPro()) { ls.innerHTML = ''; ban.innerHTML = ''; return; }
+  const m = mode(), t = P.show?.template;
+  ls.innerHTML = `<label class="lay">Layout: <select id="layout" aria-label="Layout"><option value="default"${m === 'default' ? ' selected' : ''}>Default</option>${t ? `<option value="template"${m === 'template' ? ' selected' : ''}>My template</option>` : ''}</select></label>`;
+  ban.innerHTML = m === 'template' ? '' : `<div class="dbanner">${sameLayout(cur(), { ...DEFAULT_LAYOUT }) ? 'This is the default layout. Add, move or remove sections, then save it as your template for every month.' : 'You changed the layout. Save it as your template so every new month opens this way.'}<a href="#" id="savetpl">Save as my template</a></div>`;
+}
+function drawSend() { drawTop(); }
+const ready = () => { if (P.name && P.slug) return true; alertMsg('Add your name first.', true); PS = { m: 'details' }; drawPanel(); return false; };
+function preview() {
+  const rp = $('#rp'); if (!rp) return;
+  mountReport(rp, D, agent(), { embedded: true, ...(isPro() ? { edit: (L) => setLayout({ areas: L.areas, view: L.view }, false), selected: PS.m === 'edit' ? PS.k : null, adding: PS.m === 'add',
+    onSelect: (k) => { PS = { m: 'edit', k, tab: PS.k === k ? PS.tab : 'data' }; drawPanel(); if (innerWidth < 1000) $('#dpanel').scrollIntoView({ behavior: 'smooth' }); },
+    onAdd: () => { PS = { m: 'add' }; $('#rp')._select?.(null); $('#rp')._adding?.(true); drawPanel(); } } : {}) });
+}
+let pvT; const later = () => { clearTimeout(pvT); pvT = setTimeout(() => { preview(); drawTop(); }, 160); };
+const thumbs = () => { for (const k of ['photo', 'logo']) { if (!$('#lb-' + k)) continue; $('#lb-' + k).textContent = P[k] ? 'Change' : 'Add';
   $('#ph-' + k).innerHTML = P[k] ? `<img${k === 'photo' ? ' class="round"' : ''} src="${P[k]}" alt="">` : '<span class="ph">+</span>'; $(`[data-rm="${k}"]`).hidden = !P[k]; } };
-let pvT; const later = () => { clearTimeout(pvT); pvT = setTimeout(preview, 140); };
 
-function drawLook() {
-  const el = $('#look');
-  if (!isPro()) { el.innerHTML = `<h3>2 · Make it yours</h3><div class="lockbox"><span>Essentials uses one clean white and blue design. With Pro you choose your own colours, background and font, and start from three report styles.</span><button class="btn sm" id="up1">Upgrade to Pro</button></div>`; $('#up1').onclick = portal; return; }
-  const t = theme();
-  el.innerHTML = `<h3>2 · Make it yours</h3>
-    <span class="lbl">Start from a style</span><div class="three">${Object.entries(STYLES).map(([k, s]) => `<button type="button" class="opt" data-style="${k}" aria-pressed="${t.style === k}"><i style="background:linear-gradient(135deg,${s.bg} 60%,${s.ac} 60%)"></i>${s.label}</button>`).join('')}</div>
-    <span class="lbl">Theme colour</span><div class="sw">${ACCENTS.map((c) => `<button type="button" data-ac="${c}" style="background:${c}" aria-label="Colour ${c}" aria-pressed="${t.ac.toLowerCase() === c}"></button>`).join('')}<label class="pick" title="Any colour"><input type="color" data-pick="ac" value="${t.ac}" aria-label="Choose any theme colour"></label></div>
-    <span class="lbl">Background</span><div class="sw">${BGS.map((c) => `<button type="button" data-bg="${c}" style="background:${c}" aria-label="Background ${c}" aria-pressed="${t.bg.toLowerCase() === c}"></button>`).join('')}<label class="pick" title="Any colour"><input type="color" data-pick="bg" value="${t.bg}" aria-label="Choose any background colour"></label></div>
-    <span class="lbl">Font</span><div class="fonts">${Object.entries(FONTS).map(([k, f]) => `<button type="button" class="opt f" data-font="${k}" style="font-family:${f.hf.replaceAll('"', "'")}" aria-pressed="${t.font === k}">${f.label}</button>`).join('')}</div>
-    <span class="lbl">PDF cover</span><div class="three">${Object.entries(COVERS).map(([k, l]) => `<button type="button" class="opt cvopt" data-cover="${k}" aria-pressed="${(t.cover || 'b') === k}"><i class="cvp cvp-${k}" style="--a:${t.ac}"><b></b><em></em></i>${l}</button>`).join('')}</div>`;
-  const set = (patch) => { P.theme = { ...theme(), ...patch }; touch('theme'); drawLook(); preview(); };
-  el.onclick = (e) => { const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.style) set({ style: b.dataset.style, ...STYLES[b.dataset.style] }); else if (b.dataset.ac) set({ ac: b.dataset.ac }); else if (b.dataset.bg) set({ bg: b.dataset.bg }); else if (b.dataset.font) set({ font: b.dataset.font }); else if (b.dataset.cover) { set({ cover: b.dataset.cover }); tab = 'pdf'; $('#tabs').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x.dataset.tab === 'pdf')); preview(); } };
-  el.oninput = (e) => { const k = e.target.dataset.pick; if (!k) return; P.theme = { ...theme(), [k]: e.target.value }; touch('theme'); later(); };
-}
-
-
-/* Your report: areas, sections and their order (Pro). Saved with the profile, so every new month uses it. */
-function drawShow() {
-  const el = $('#showsec');
-  if (!isPro()) { el.innerHTML = `<h3>3 · Your report</h3><div class="lockbox"><span>With Pro you pick your areas, choose and order the sections, and let clients compare areas on your report.</span><button class="btn sm" id="up3">Upgrade to Pro</button></div>`; $('#up3').onclick = portal; return; }
-  const L = layoutOf(P, D), ALL = areasOf(D), off = SECTIONS.filter(([k]) => !L.sections.includes(k)), name = Object.fromEntries(SECTIONS.map(([k, l, d]) => [k, [l, d]]));
-  const isDefault = sameLayout(L, DEFAULT_LAYOUT);
-  const tg = (k, l, on) => `<label class="tg"><input type="checkbox" data-lt="${k}"${on ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span><span>${l}</span></label>`;
-  el.innerHTML = `<div class="hd"><h3>3 · Your report</h3>${isDefault ? '' : '<button type="button" class="linkbtn" id="ltreset">Back to the default</button>'}</div>
-    <p class="small muted" style="margin-top:-4px">Saved as your template. Every new month opens this way.</p>
-    <span class="lbl">Areas <span class="hint">· up to ${MAX_AREAS}</span></span>
-    <div class="ltareas">${L.areas.map((a) => `<span class="ltchip">${esc(a)}${L.areas.length > 1 ? `<button type="button" data-lrm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}
-      ${L.areas.length < MAX_AREAS ? `<label class="ltadd">+ Add area<select id="ltadd" aria-label="Add an area"><option value="">Add an area</option>${ALL.filter((a) => !L.areas.includes(a)).map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}</div>
-    ${L.areas.length > 1 ? `<span class="lbl">Several areas show</span><div class="seg" id="ltview">${[['side', 'Side by side'], ['one', 'One at a time']].map(([k, l]) => `<button type="button" data-v="${k}" aria-pressed="${L.view === k}">${l}</button>`).join('')}</div>` : ''}
-    <div class="tgs">${tg('clientAreas', 'Clients can add or remove areas', L.clientAreas)}${tg('agentTop', 'My name and photo at the top', L.agentTop)}</div>
-    <span class="lbl">Sections, in order</span>
-    <ol class="ltsec">${L.sections.map((k, i) => `<li><span class="nm"><b>${name[k][0]}</b><span>${name[k][1]}</span></span><span class="mv"><button type="button" data-up="${k}" aria-label="Move ${name[k][0]} up"${i ? '' : ' disabled'}>↑</button><button type="button" data-dn="${k}" aria-label="Move ${name[k][0]} down"${i < L.sections.length - 1 ? '' : ' disabled'}>↓</button><button type="button" data-off="${k}" aria-label="Remove ${name[k][0]}"${L.sections.length > 1 ? '' : ' disabled'}>✕</button></span></li>`).join('')}</ol>
-    ${off.length ? `<span class="lbl">Add a section</span><div class="ltoff">${off.map(([k, l, d]) => `<button type="button" data-on="${k}"><b>+ ${l}</b><span>${d}</span></button>`).join('')}</div>` : ''}`;
-  const save = (patch) => { const cur = layoutOf(P, D); P.show = { ...showOf(P), ...cur, ...patch }; touch('show'); drawShow(); later(); };
-  el.onclick = (e) => { const b = e.target.closest('button'); if (!b || b.disabled) return; const L2 = layoutOf(P, D), s = [...L2.sections], d = b.dataset;
-    if (b.id === 'ltreset') return save({ sections: [...DEFAULT_LAYOUT.sections], agentTop: true, clientAreas: true, view: 'side' });
-    if (d.lrm) return save({ areas: L2.areas.filter((a) => a !== d.lrm) });
-    if (d.v) return save({ view: d.v });
-    if (d.on) return save({ sections: [...s, d.on] });
-    if (d.off) return save({ sections: s.filter((k) => k !== d.off) });
-    const k = d.up || d.dn; if (k) { const i = s.indexOf(k), j = d.up ? i - 1 : i + 1; [s[i], s[j]] = [s[j], s[i]]; return save({ sections: s }); } };
-  el.onchange = (e) => { if (e.target.id === 'ltadd' && e.target.value) return save({ areas: [...layoutOf(P, D).areas, e.target.value] });
-    const k = e.target.dataset.lt; if (k) save({ [k]: e.target.checked }); };
-}
-
-function drawSend() {
-  const el = $('#send'); if (!el) return; const pro = isPro(), areas = areasOf(D), ok = !!(P.name && P.slug);
-  if (!areas.includes(area)) area = 'Greater Vancouver';
-  el.innerHTML = `<h3>4 · Create and send</h3>${ok ? '' : '<p class="small muted">Add your name above and these unlock.</p>'}
-    <span class="lbl">Area for the PDF and Instagram images</span><select id="area" ${pro ? '' : 'disabled'}>${areas.map((a) => `<option${a === area ? ' selected' : ''}>${a}</option>`).join('')}</select>
-    <div class="acts">${[['link', 'Report link', 'Interactive report to text, email or share.', 1], ['email', 'Email for your clients', 'A finished message to paste into Gmail or your CRM.', 1],
-      ['pdf', 'PDF', 'A three-page report to print or attach.', pro], ['post', 'Instagram post', 'Square image with your branding.', pro], ['story', 'Instagram story', 'Tall image for stories.', pro], ['caption', 'Caption', 'Words to paste under your post.', pro]]
-      .map(([k, t, d, on]) => `<div class="act${on ? '' : ' off'}"><span class="ic">${icon(k)}</span><div><b>${t}</b><span>${d}</span></div><div class="ab">${k === 'link' && on ? `<button class="btn sm ghost" data-do="link" data-verb="open" ${ok ? '' : 'disabled'}>Open</button>` : ''}<button class="btn sm ${k === 'link' ? '' : 'ghost'}" data-do="${k}" ${ok && on ? '' : 'disabled'}>${on ? KIND[k][1] : 'Pro'}</button></div></div>`).join('')}</div>
-    <p class="small muted">${pro ? 'Everything you create is saved in <a href="#" data-go="history">My reports</a>, so you can find it again.' : 'Individual cities, PDF and social images are part of Pro. <a href="#" id="up2">Upgrade</a>'}</p>`;
-  $('#area').onchange = (e) => { area = e.target.value; preview(); };
-  if ($('#up2')) $('#up2').onclick = (e) => { e.preventDefault(); portal(); };
-  el.onclick = (e) => { const g = e.target.closest('[data-go]'); if (g) { e.preventDefault(); return show(g.dataset.go); }
-    const b = e.target.closest('[data-do]'); if (!b || b.disabled) return; saveNow(); act(b.dataset.do, record(b.dataset.do), b.dataset.verb); };
-}
-
-// Quick actions right above the preview: open, copy, share, download, Instagram.
-function drawActs() {
-  const el = $('#pvact'); if (!el) return; const ok = !!(P.name && P.slug), pro = isPro(); closeMenu();
-  const where = pro ? `<select class="pa-where" id="area2" aria-label="Area">${areasOf(D).map((a) => `<option${a === area ? ' selected' : ''}>${a}</option>`).join('')}</select>` : `<span class="pa-where">${esc(area)}</span>`;
-  const b = (k, label, verb, ghost, ic) => `<button class="btn sm${ghost ? ' ghost' : ''}" data-do="${k}"${verb ? ` data-verb="${verb}"` : ''}${ok ? '' : ' disabled'}>${ic ? sv(ic) : ''}${label}</button>`;
-  const sh = (what, label, ghost, ic) => `<button class="btn sm${ghost ? ' ghost' : ''}" data-share="${what}"${ok ? '' : ' disabled'}>${sv(ic)}${label}</button>`;
-  el.innerHTML = tab === 'report' || tab === 'phone' ? `<span class="pa-where">${esc(layoutName())}</span><span class="pa-btns">${b('link', 'Open', 'open', 1, 'open')}${b('link', 'Copy link', '', 1, 'link')}<span class="shwrap">${sh('link', 'Share', 0, 'share')}</span></span>`
-    : tab === 'post' || tab === 'story' ? (pro ? `${where}<span class="pa-btns">${b(tab, 'Download', '', 1, 'dl')}${b('caption', 'Copy caption', '', 1, 'cap')}${sh('image', 'Share', 1, 'share')}${sh('ig', '<span class="lg">Share to </span>Instagram', 0, 'ig')}</span>` : '')
-    : pro ? `${where}<span class="pa-btns">${b('pdf', 'Open PDF to save or print', '', 0, 'dl')}</span>` : '';
-}
-// What the phone needs ready before the tap (phones only allow sharing straight from a tap).
-let ready = { file: null, cap: '' };
-const plainLink = (a = area) => reportLink(location.origin, P, a);
-const shareText = (link) => { const n = layoutName(); return { url: link, subject: `${n} market update: ${D.month}`, short: `Here is the ${D.month} market update for ${n}: ${link}`, body: emailDraft(D, agent(), layoutOf(agent(), D).areas[0], link).text }; };
-const layoutName = () => { const a = layoutOf(agent(), D).areas; return a.length === 1 ? a[0] : a.length === 2 ? a.join(' and ') : `${a.length} areas`; };
-function shareLink(btn) {
-  saveNow();
-  if (isPhone()) { const t = shareText(plainLink('Greater Vancouver')); navigator.share({ title: t.subject, text: t.short.replace(/: \S+$/, '.'), url: t.url }).catch(() => {}); record('link').catch(() => {}); return; }
-  if (btn.parentElement.querySelector('.shmenu')) return closeMenu();
-  record('link').then((it) => { const link = linkOf(it), t = shareText(link);
-    shareMenu(btn.parentElement, t, { onCopy: () => copy(Promise.resolve(link)).then(() => alertMsg('Link copied.')), onQr: () => qrModal({ title: 'Your report QR code', text: 'Anyone who scans this with a phone camera opens your report. Great for open houses, flyers and signs.', url: link, file: `${P.slug}-${area.replace(/\s+/g, '-')}-QR.png` }) }); })
-    .catch((e) => alertMsg(e.message, true));
-}
-function shareImage(btn, ig) {
-  saveNow(); const kind = tab, f = ready.file;
-  if (isPhone() && canShareFiles(f)) {
-    if (ig) navigator.clipboard?.writeText(ready.cap).catch(() => {});
-    navigator.share(ig ? { files: [f] } : { files: [f], text: ready.cap }).then(() => ig && alertMsg('Caption copied. Paste it in Instagram.')).catch(() => {});
-    record(kind).catch(() => {}); return;
+/* ---------- the right panel ---------- */
+const tgl = (attr, l, on) => `<label class="tgr"><span>${l}</span><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>`;
+function drawPanel() {
+  const el = $('#dpanel'); if (!el) return; const L = cur(), pro = isPro();
+  $('#rp')?._select?.(PS.m === 'edit' ? PS.k : null); $('#rp')?._adding?.(PS.m === 'add');
+  const head = (t, back) => `<div class="ph">${back ? `<button type="button" class="back" data-p="list">‹ ${t}</button>` : `<h3>${t}</h3>`}${back ? '<button type="button" class="x" data-p="list" aria-label="Close">✕</button>' : ''}</div>`;
+  if (PS.m === 'details') {
+    el.innerHTML = `${head('Your details', !!P.name)}${P.name ? '' : '<p class="hint">Add your name, photo and contact details. They show on your report.</p>'}
+      <div class="fl2">${DETAILS.map(([k, l, t, ph]) => `<label>${l}<input type="${t}" data-k="${k}" value="${esc(P[k] || '')}" placeholder="${ph}"></label>`).join('')}
+      <label>Phone<div class="phonef"><span>+1</span><input type="tel" data-k="phone" value="${esc(localPhone(P.phone))}" placeholder="604-555-0100"></div></label>
+      <label>I am a<select data-k="role"><option value="realtor"${P.role !== 'broker' ? ' selected' : ''}>REALTOR®</option><option value="broker"${P.role === 'broker' ? ' selected' : ''}>Mortgage broker</option></select></label></div>
+      <div class="two">${['photo', 'logo'].map((k) => `<div class="upw"><label class="up"><span id="ph-${k}"></span><span>Your ${k}<br><b id="lb-${k}"></b></span><input type="file" accept="image/*" data-img="${k}"></label><button type="button" class="rm" data-rm="${k}" aria-label="Remove your ${k}" title="Remove" hidden>✕</button></div>`).join('')}</div>
+      <button type="button" class="btn wide" data-p="list">Done</button>`;
+    thumbs();
+  } else if (PS.m === 'add') {
+    el.innerHTML = `${head('Add a section')}<button type="button" class="x tr" data-p="list" aria-label="Close">✕</button><p class="hint">Click one to add it to the end of your report. Drag it in the list to move it.</p>
+      <div class="lib">${SECTIONS.filter(([k]) => k !== 'growth' || D.growth).map(([k, l, d]) => { const has = L.sections.includes(k); return `<div class="it${has ? ' done' : ''}"><span class="ic">${SIC[k]}</span><div><b>${l}</b><small>${d}</small></div>${has ? '<span class="added">Added</span>' : `<button type="button" class="add" data-addk="${k}">+ Add</button>`}</div>`; }).join('')}</div>`;
+  } else if (PS.m === 'edit' && L.sections.includes(PS.k)) {
+    const k = PS.k, c = L.conf[k] || {}, i = L.sections.indexOf(k);
+    let body = '';
+    if (PS.tab === 'data') {
+      if (!USES_AREAS.includes(k)) body = `<p class="hint">${k === 'compare' ? 'This section always shows every area, ranked by typical price.' : 'This section shows your photo, your details and a message box for clients. Change your details from "Your details".'}</p>`;
+      else { const own = !!c.areas, ar = c.areas || L.areas, free = areasOf(D).filter((a) => !ar.includes(a));
+        body = `<span class="lbl2">Areas in this section</span><div class="seg2"><button type="button" data-own="0" aria-pressed="${!own}">Same as the report</button><button type="button" data-own="1" aria-pressed="${own}">Choose</button></div>
+          ${own ? `<div class="chips2">${ar.map((a) => `<span class="chip2">${esc(a)}${ar.length > 1 ? `<button type="button" data-arm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}</div>
+            ${ar.length < MAX_AREAS ? `<label class="addl">+ Add an area (up to ${MAX_AREAS})<select data-aadd><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}`
+          : `<p class="hint">Uses the areas at the top of your report: ${L.areas.map(esc).join(', ')}.</p>`}
+          ${USES_TYPES.includes(k) ? `<span class="lbl2">Home types</span><div class="chips2">${TYPE_KEYS.map((t) => { const on = !c.types || c.types.includes(t); return `<button type="button" class="pill2${on ? ' on' : ''}" data-ty="${t}" aria-pressed="${on}">${TYPE_NAME[t]}${on ? ' ✓' : ''}</button>`; }).join('')}</div>` : ''}
+          <span class="lbl2">Compared with</span><div class="fake">Same month last year</div>`; }
+    } else {
+      const titled = !['numbers', 'contact'].includes(k);
+      body = `${titled ? `<span class="lbl2">Title</span><input class="inp2" data-title value="${esc(c.title || '')}" placeholder="${esc(SEC[k].l)}">
+        ${tgl('data-cf="sub"', 'Show the line under the title', c.sub !== false)}` : '<p class="hint">This section uses its own titles.</p>'}
+        ${k === 'market' ? tgl('data-cf="note"', 'Show a one-line explanation', c.note !== false) : ''}
+        ${PAIRABLE.includes(k) ? `<span class="lbl2">Size</span><select class="inp2" data-size><option value="half"${c.size !== 'full' ? ' selected' : ''}>Half width (sits next to another section)</option><option value="full"${c.size === 'full' ? ' selected' : ''}>Full width</option></select>` : ''}
+        <span class="lbl2">Position</span><div class="mv2"><button type="button" data-mv="-1"${i ? '' : ' disabled'}>↑ Move up</button><button type="button" data-mv="1"${i < L.sections.length - 1 ? '' : ' disabled'}>↓ Move down</button></div>
+        <button type="button" class="rmsec" data-hide${L.sections.length > 1 ? '' : ' disabled'}>Remove this section</button>`;
+    }
+    el.innerHTML = `${head('Edit section', true)}<p class="secname">${SEC[k].l}</p><div class="tabs2"><button type="button" data-tab="data" aria-selected="${PS.tab === 'data'}">Data</button><button type="button" data-tab="settings" aria-selected="${PS.tab === 'settings'}">Settings</button></div>${body}`;
+  } else {
+    PS = { m: 'list' };
+    el.innerHTML = `${head('Your report')}<button type="button" class="drow" data-p="details"><span class="av">${avatar()}</span><span><b>${esc(P.name || 'Add your name')}</b><small>${esc([P.brokerage, localPhone(P.phone)].filter(Boolean).join(' · ') || 'Your photo and details')}</small></span><span class="e">Edit ›</span></button>
+      ${pro ? `<p class="hint">Click a section on the left to edit it, or drag here to reorder.</p><span class="lbl2">Sections</span>
+      <ol class="slist">${L.sections.map((k) => `<li draggable="true" data-sk="${k}"><span class="h" aria-hidden="true">⋮⋮</span><span class="ic">${SIC[k]}</span><b>${esc(L.conf[k]?.title || SEC[k].l)}</b><button type="button" class="e" data-ek="${k}">Edit ›</button></li>`).join('')}</ol>
+      <button type="button" class="addbtn" data-p="add">+ Add a section</button>
+      <span class="lbl2">Options</span>${L.areas.length > 1 ? `<div class="seg2" style="margin-bottom:6px"><button type="button" data-vw="side" aria-pressed="${L.view === 'side'}">Side by side</button><button type="button" data-vw="one" aria-pressed="${L.view === 'one'}">One at a time</button></div>` : ''}
+      ${tgl('data-lt="agentTop"', 'Show my name and photo at the top', L.agentTop)}${tgl('data-lt="clientAreas"', 'Clients can add or remove areas', L.clientAreas)}
+      ${sameLayout(L, { ...DEFAULT_LAYOUT, areas: L.areas }) ? '' : '<button type="button" class="linkbtn" id="ltreset">Go back to the default layout</button>'}`
+      : `<div class="lockbox"><span>With Pro you choose your areas and sections, edit each one, and save your own template.</span><button type="button" class="btn sm" id="up4">Upgrade to Pro</button></div>`}`;
   }
-  if (!ig && !isPhone() && canShareFiles(f)) { navigator.share({ files: [f], text: ready.cap }).catch(() => {}); record(kind).catch(() => {}); return; }
-  record(kind).then((it) => qrModal(ig ? { title: 'Post it from your phone', text: 'Instagram only takes posts and stories from a phone. Scan this with your phone camera.', url: `${location.origin}/s/${P.slug}?v=${it.id}&k=${kind}${cfg.demo ? `&area=${encodeURIComponent(it.area)}` : ""}`,
-      steps: [`Your ${kind} opens on your phone. Tap <b>Share to Instagram</b>.`, `Choose <b>${kind === 'story' ? 'Story' : 'Post'}</b> in Instagram.`, 'Your caption is copied for you. Paste it and publish.'] }
-    : { title: 'Send it to your phone', text: 'Scan this with your phone camera to open the image there, then share it anywhere.', url: `${location.origin}/s/${P.slug}?v=${it.id}&k=${kind}${cfg.demo ? `&area=${encodeURIComponent(it.area)}` : ""}` }))
-    .catch((e) => alertMsg(e.message, true));
 }
-async function preview() {
-  drawActs();
-  const pv = $('#pv'); if (!pv) return; const A = agent(), pro = isPro(), city = area !== 'Greater Vancouver';
-  const locked = (what) => `<div class="frame pad"><div class="lockbox" style="max-width:360px;text-align:center"><b>${what} are part of Pro</b><span>Upgrade to download them with your branding.</span></div></div>`;
-  if (tab === 'report' || tab === 'phone') { const top = pv.querySelector('.frame')?.scrollTop || 0;
-    pv.innerHTML = tab === 'phone' ? '<div class="phonewrap"><div class="frame phone"><div id="rp"></div></div></div>' : '<div class="frame"><div id="rp"></div></div>';
-    mountReport($('#rp'), D, A, { embedded: true }); pv.querySelector('.frame').scrollTop = top; }
-  else if (tab === 'post' || tab === 'story') { if (!pro) return void (pv.innerHTML = locked('Social images')); pv.innerHTML = `<div class="frame pad ${tab}"></div>`; const kind = tab, c = await socialImage(D, A, area, kind); if (tab !== kind) return; pv.firstElementChild.replaceChildren(c);
-    ready = { file: null, cap: caption(D, A, area, plainLink()) }; toFile(c, `${area.replace(/\s+/g, '-')}-${D.month.replace(' ', '-')}-${kind}.png`).then((f) => { if (tab === kind) ready.file = f; }); }
-  else { if (!pro) return void (pv.innerHTML = locked('PDF downloads')); if (!P.slug) return void (pv.innerHTML = '<div class="frame pad"><p class="muted">Add your name first.</p></div>');
-    pv.innerHTML = `<div class="frame"><iframe title="PDF preview" src="/r/${P.slug}/print?area=${encodeURIComponent(area)}&preview=${encodeURIComponent(JSON.stringify(current()))}"></iframe></div>`; }
+// One set of listeners for the panel, whatever it is showing.
+function wirePanel() {
+  const el = $('#dpanel'); if (!el || el._w) return; el._w = 1;
+  el.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset, L = cur(), k = PS.k;
+    if (d.p) { PS = { m: d.p }; return drawPanel(); }
+    if (d.ek) { PS = { m: 'edit', k: d.ek, tab: 'data' }; drawPanel(); return $(`#rp .sx[data-k="${d.ek}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    if (d.tab) { PS.tab = d.tab; return drawPanel(); }
+    if (d.addk) { setLayout({ sections: [...L.sections, d.addk] }); PS = { m: 'edit', k: d.addk, tab: 'data' }; drawPanel(); preview(); return setTimeout(() => $(`#rp .sx[data-k="${d.addk}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80); }
+    if (d.own) return setConf(k, { areas: d.own === '1' ? [...L.areas] : undefined });
+    if (d.arm) return setConf(k, { areas: (L.conf[k]?.areas || L.areas).filter((a) => a !== d.arm) });
+    if (d.ty) { const on = L.conf[k]?.types || [...TYPE_KEYS], next = on.includes(d.ty) ? on.filter((t) => t !== d.ty) : [...on, d.ty];
+      if (!next.length) return alertMsg('Keep at least one home type.', true); return setConf(k, { types: next.length === 3 ? undefined : TYPE_KEYS.filter((t) => next.includes(t)) }); }
+    if (d.mv) { const s2 = [...L.sections], i = s2.indexOf(k), j = i + +d.mv; [s2[i], s2[j]] = [s2[j], s2[i]]; setLayout({ sections: s2 }); return setTimeout(() => $(`#rp .sx[data-k="${k}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80); }
+    if ('hide' in d) { setLayout({ sections: L.sections.filter((x) => x !== k) }); PS = { m: 'list' }; return drawPanel(); }
+    if (d.vw) return setLayout({ view: d.vw });
+    if (b.id === 'ltreset') return setLayout({ ...DEFAULT_LAYOUT, areas: L.areas });
+    if (b.id === 'up4') return portal();
+    if (d.rm) { P[d.rm] = ''; touch(d.rm); thumbs(); later(); return alertMsg(`Your ${d.rm} was removed.`); } });
+  el.addEventListener('change', async (e) => { const t = e.target, k = PS.k;
+    if (t.matches('[data-aadd]') && t.value) return setConf(k, { areas: [...(cur().conf[k]?.areas || cur().areas), t.value] });
+    if (t.dataset.cf) return setConf(k, { [t.dataset.cf]: t.checked ? undefined : false });
+    if (t.matches('[data-size]')) return setConf(k, { size: t.value === 'full' ? 'full' : undefined });
+    if (t.dataset.lt) return setLayout({ [t.dataset.lt]: t.checked });
+    if (t.dataset.k === 'role') { P.role = t.value; touch('role'); return later(); }
+    if (t.dataset.k === 'phone') t.value = localPhone(t.value);
+    const im = t.dataset.img; if (!im || !t.files[0]) return;
+    try { const v = await pickImage(im, t.files[0]); if (v) { P[im] = v; touch(im); thumbs(); later(); } } catch (err) { alertMsg(err.message, true); } t.value = ''; });
+  let tT; el.addEventListener('input', (e) => { const t = e.target;
+    if (t.matches('[data-title]')) { clearTimeout(tT); tT = setTimeout(() => setConf(PS.k, { title: t.value.trim() || undefined }), 350); return; }
+    const k = t.dataset.k; if (!k || k === 'role') return; let v = t.value.trim();
+    if (k === 'website' && v && !/^https?:\/\//.test(v)) v = 'https://' + v; if (k === 'phone') v = fullPhone(v); P[k] = v; touch(k); later(); });
+  // Drag to reorder the sections list.
+  let drag = null;
+  el.addEventListener('dragstart', (e) => { const li = e.target.closest('[data-sk]'); if (!li) return; drag = li.dataset.sk; li.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', drag); } catch {} });
+  el.addEventListener('dragover', (e) => { const li = e.target.closest('[data-sk]'); if (!li || !drag) return; e.preventDefault(); el.querySelectorAll('[data-sk]').forEach((x) => x.classList.toggle('over', x === li && x.dataset.sk !== drag)); });
+  el.addEventListener('dragend', () => { drag = null; el.querySelectorAll('[data-sk]').forEach((x) => x.classList.remove('dragging', 'over')); });
+  el.addEventListener('drop', (e) => { const li = e.target.closest('[data-sk]'); if (!li || !drag) return; e.preventDefault(); const s2 = cur().sections.filter((x) => x !== drag), at = s2.indexOf(li.dataset.sk);
+    const from = cur().sections.indexOf(drag), to = cur().sections.indexOf(li.dataset.sk); s2.splice(from < to ? at + 1 : at, 0, drag); drag = null; setLayout({ sections: s2 }); });
+}
+
+/* Share: one calm menu for everything you send or download. */
+function shareDrop(btn) {
+  if (btn.parentElement.querySelector('.shmenu')) return closeMenu(); if (!ready()) return;
+  saveNow(); closeMenu(); const pro = isPro(), m = document.createElement('div'); m.className = 'shmenu dmenu'; m.setAttribute('role', 'menu');
+  const it = (k, ic, l, sub, off) => `<button type="button" role="menuitem" data-s="${k}"${off ? ' disabled' : ''}><span class="i">${sv(ic)}</span><span><b>${l}</b>${sub ? `<small>${sub}</small>` : ''}</span></button>`;
+  m.innerHTML = `<p class="mh">Send your report</p>${it('copy', 'link', 'Copy link', 'Paste it in a text, email or post')}${it('email', 'mail', 'Email for your clients', 'A finished message to paste into Gmail or your CRM')}${it('qr', 'qr', 'QR code', 'For open houses, flyers and signs')}${isPhone() ? it('native', 'share', 'Share from this phone') : ''}
+    <hr><p class="mh">Download${pro ? '' : ' <span class="pro">Pro</span>'}</p>${it('pdf', 'dl', 'PDF', 'To print or attach', !pro)}${it('post', 'ig', 'Instagram post', 'Square image with your branding', !pro)}${it('story', 'ig', 'Instagram story', 'Tall image for stories', !pro)}${it('caption', 'cap', 'Copy caption', 'Words for under your post', !pro)}
+    ${pro ? `<p class="mn">Images and PDF are for ${esc(firstArea())}, your first area.</p>` : ''}`;
+  btn.parentElement.appendChild(m);
+  m.onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b || b.disabled) return; const k = b.dataset.s; closeMenu(); area = firstArea();
+    if (k === 'copy') return act('link', record('link'));
+    if (k === 'email') return act('email', record('email'));
+    if (k === 'native') { const t = shareText(reportLink(location.origin, P, 'Greater Vancouver')); navigator.share({ title: t.subject, text: t.short.replace(/: \S+$/, '.'), url: t.url }).catch(() => {}); return record('link').catch(() => {}); }
+    if (k === 'qr') return record('link').then((x) => qrModal({ title: 'Your report QR code', text: 'Anyone who scans this with a phone camera opens your report.', url: linkOf(x), file: `${P.slug}-QR.png` })).catch((er) => alertMsg(er.message, true));
+    act(k, record(k)); };
+  setTimeout(() => document.addEventListener('click', function off(ev) { if (!ev.target.closest('.dmenu') && !ev.target.closest('#sharebtn')) { closeMenu(); document.removeEventListener('click', off, true); } }, true));
 }
 
 /* ---------- My reports ---------- */

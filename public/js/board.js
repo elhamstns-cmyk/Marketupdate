@@ -17,16 +17,35 @@ export const SECTIONS = [
 ];
 const SEC_IDS = SECTIONS.map((s) => s[0]);
 export const MAX_AREAS = 6;
-export const DEFAULT_LAYOUT = { sections: [...SEC_IDS], areas: ['Greater Vancouver'], agentTop: true, clientAreas: true, view: 'side' };
+// One calm look for every report: white cards on soft grey, blue accent, Inter.
+export const CALM = { style: 'calm', ac: '#1d4fbf', bg: '#ffffff', font: 'modern' };
+export const DEFAULT_LAYOUT = { sections: SEC_IDS.filter((k) => k !== 'compare'), areas: ['Greater Vancouver'], agentTop: true, clientAreas: true, view: 'side', conf: {} };
 // The agent's saved layout, cleaned against this month's data.
 export function layoutOf(A, D) {
   const s = (A && A.show) || {}, all = D ? areasOf(D) : null;
   const sections = Array.isArray(s.sections) ? s.sections.filter((k, i, a) => SEC_IDS.includes(k) && a.indexOf(k) === i) : [...DEFAULT_LAYOUT.sections];
   let areas = Array.isArray(s.areas) ? s.areas.filter((a, i, x) => typeof a === 'string' && x.indexOf(a) === i && (!all || all.includes(a))).slice(0, MAX_AREAS) : [];
   if (!areas.length) areas = ['Greater Vancouver'];
-  return { sections, areas, agentTop: s.agentTop !== false, clientAreas: s.clientAreas !== false, view: s.view === 'one' ? 'one' : 'side' };
+  return { sections, areas, agentTop: s.agentTop !== false, clientAreas: s.clientAreas !== false, view: s.view === 'one' ? 'one' : 'side', conf: cleanConf(s.conf, all) };
 }
-export const sameLayout = (a, b) => JSON.stringify([a.sections, a.agentTop, a.clientAreas, a.view]) === JSON.stringify([b.sections, b.agentTop, b.clientAreas, b.view]);
+// Per-section choices: title, its own areas, home types, line under the title, explanation, width.
+export const TYPE_KEYS = ['detached', 'townhome', 'condo'];
+export function cleanConf(c, all) {
+  const o = {}; if (!c || typeof c !== 'object') return o;
+  for (const k of SEC_IDS) { const x = c[k]; if (!x || typeof x !== 'object') continue; const y = {};
+    if (typeof x.title === 'string' && x.title.trim()) y.title = x.title.trim().slice(0, 70);
+    if (Array.isArray(x.areas)) { const a = x.areas.filter((v, i, z) => typeof v === 'string' && z.indexOf(v) === i && (!all || all.includes(v))).slice(0, MAX_AREAS); if (a.length) y.areas = a; }
+    if (Array.isArray(x.types)) { const t = x.types.filter((v) => TYPE_KEYS.includes(v)); if (t.length && t.length < 3) y.types = t; }
+    for (const f of ['sub', 'note']) if (x[f] === false) y[f] = false;
+    if (x.size === 'full') y.size = 'full';
+    if (Object.keys(y).length) o[k] = y; }
+  return o;
+}
+export const sameLayout = (a, b) => JSON.stringify([a.sections, a.agentTop, a.clientAreas, a.view, a.conf || {}]) === JSON.stringify([b.sections, b.agentTop, b.clientAreas, b.view, b.conf || {}]);
+// Which sections can be set to half or full width, and which use areas or home types.
+export const PAIRABLE = ['trend', 'market', 'summary', 'sold'];
+export const USES_TYPES = ['market', 'types', 'growth', 'sold'];
+export const USES_AREAS = ['numbers', 'trend', 'market', 'types', 'growth', 'summary', 'sold'];
 
 /* ---------- small helpers ---------- */
 const COL = ['#2f6fe0', '#e5892c', '#1f9a55', '#8e4fd0', '#d64f7a', '#1a9fb0'];
@@ -55,26 +74,31 @@ function niceStep(range, n) { const raw = range / n, p = 10 ** Math.floor(Math.l
 // opts.area: open on this area. opts.areas: open with these areas. opts.embedded: inside the dashboard.
 export function mountReport(root, D, A, opts = {}) {
   A = A && A.phone ? { ...A, phone: phoneFmt(A.phone) } : A || {};
-  const L = layoutOf(A, D), ALL = areasOf(D), endKey = monthKey(D.month), mon = D.month.split(' ')[0];
+  const L = layoutOf(A, D), ED = typeof opts.edit === 'function', ALL = areasOf(D), endKey = monthKey(D.month), mon = D.month.split(' ')[0];
   const lastYear = D.month.replace(/\d+$/, (y) => y - 1), F = esc(first(A)), ask = askCopy(A);
   let start = L.areas;
   if (opts.areas?.length) { const x = opts.areas.filter((a) => ALL.includes(a)); if (x.length) start = x.slice(0, MAX_AREAS); }
   else if (opts.area && ALL.includes(opts.area) && opts.area !== 'Greater Vancouver') start = L.areas.includes(opts.area) ? L.areas : [opts.area];
   const S = { areas: [...start], focus: opts.area && start.includes(opts.area) ? opts.area : start[0], view: L.view, soldArea: null, gType: 'composite', gYears: 2, intent: null };
-  const canEdit = L.clientAreas && ALL.length > 1;
-  const colour = (a) => COL[Math.max(0, S.areas.indexOf(a)) % COL.length];
+  const canEdit = (ED || L.clientAreas) && ALL.length > 1;
+  const XTRA = [], colour = (a) => { let i = S.areas.indexOf(a); if (i < 0) { if (!XTRA.includes(a)) XTRA.push(a); i = S.areas.length + XTRA.indexOf(a); } return COL[i % COL.length]; };
+  const CF = (k) => L.conf[k] || {};
+  const areasFor = (k) => CF(k).areas || shown();
+  const typesFor = (k) => TYPE_ROWS.filter(([t]) => !CF(k).types || CF(k).types.includes(t));
   const shown = () => (S.view === 'one' && S.areas.length > 1 ? [S.focus] : S.areas);
   const all = (a) => get(D, a, 'all');
 
-  const p = palette(A.theme), dark = lum(p.bg) < 0.35;
+  const TH = CALM, p = palette(TH), dark = lum(p.bg) < 0.35;
   root.classList.add('bd'); root.classList.toggle('dark', dark);
-  root.style.cssText = themeVars(A.theme) + `;--pg:${dark ? p.bg : mix(p.ink, p.bg, 0.045)};--card:${dark ? mix(p.ink, p.bg, 0.07) : p.bg};--dn:${dark ? '#ff7d6b' : '#d6452f'};--up:${dark ? '#4fc98b' : '#1a8f4e'};--hl:${mix(p.fill, p.bg, 0.1)};--soft:${mix(p.fill, p.bg, 0.28)}`;
+  root.style.cssText = themeVars(TH) + `;--ink:#1b2430;--mut:#6b7380;--ln:#e6e8ee;--pg:${dark ? p.bg : '#f3f4f7'};--card:${dark ? mix(p.ink, p.bg, 0.07) : p.bg};--dn:${dark ? '#ff7d6b' : '#d6452f'};--up:${dark ? '#4fc98b' : '#1a8f4e'};--hl:${mix(p.fill, p.bg, 0.1)};--soft:${mix(p.fill, p.bg, 0.28)};--bar:#4f86e8`;
 
   /* ----- section renderers: each returns [html, after-draw hook] ----- */
-  const card = (id, h, sub, body, extra = '') => `<section class="cd cd-${id}" data-sec="${id}"><div class="ch-h"><div><h3>${h}</h3>${sub ? `<p class="sub">${sub}</p>` : ''}</div>${extra}</div>${body}</section>`;
+  const card = (id, h, sub, body, extra = '', raw) => { const c = raw ? {} : CF(id); if (c.title) h = esc(c.title); if (c.sub === false) sub = '';
+    return `<section class="cd cd-${id}" data-sec="${id}"><div class="ch-h"><div><h3>${h}</h3>${sub ? `<p class="sub">${sub}</p>` : ''}</div>${extra}</div>${body}</section>`; };
+  const note = (k, t) => (CF(k).note === false ? '' : `<p class="note">${t}</p>`);
   const R = {};
   R.numbers = () => {
-    const sh = shown();
+    const sh = areasFor('numbers');
     if (sh.length === 1) {
       const a = sh[0], o = all(a), dd = o.dom != null && o.domLy != null ? o.dom - o.domLy : null;
       const k = (lab, val, chg) => `<div class="kpi"><span class="kl">${lab}</span><b class="kv">${val}</b><span class="kc">${chg}</span></div>`;
@@ -85,38 +109,47 @@ export function mountReport(root, D, A, opts = {}) {
         k('Days on market (average)', o.dom != null ? `${o.dom} days` : '—', dd == null ? (o.dom == null ? '<span class="na">not published</span>' : '') : dd === 0 ? `Same as ${lastYear}` : `${Math.abs(dd)} day${Math.abs(dd) === 1 ? '' : 's'} ${dd > 0 ? 'longer' : 'shorter'} than ${lastYear}`),
       ].join('')}</div>`;
     }
-    const t = (h, sub, c2, c3, row) => card('numbers', h, sub, `<table class="tb"><thead><tr><th>Area</th><th>${c2}</th><th>${c3}</th></tr></thead><tbody>${sh.map((a) => `<tr><td><span class="ma">${dot(colour(a))}${esc(a)}</span></td>${row(all(a))}</tr>`).join('')}</tbody></table>`);
+    const t = (h, sub, c2, c3, row) => card('numbers', h, sub, `<table class="tb"><thead><tr><th>Area</th><th>${c2}</th><th>${c3}</th></tr></thead><tbody>${sh.map((a) => `<tr><td><span class="ma">${dot(colour(a))}${esc(a)}</span></td>${row(all(a))}</tr>`).join('')}</tbody></table>`, '', true);
     return `<div class="trio" data-sec="numbers">${[
       t('Typical home price', `${mon}, and the change from ${lastYear}`, 'Typical price', 'Change in 1 year', (o) => `<td class="n">${o.price ? money(o.price) : '—'}</td><td>${arrow(o.yoy)}</td>`),
       t('Homes sold', `In ${mon}, and the change from ${lastYear}`, 'Homes sold', 'Change in 1 year', (o) => `<td class="n">${o.sales != null ? N(o.sales) : '—'}</td><td>${arrow(pctOf(o.sales, o.salesLy))}</td>`),
       t('Homes for sale', 'Listed now, and how long homes take to sell', 'For sale', 'Days on market', (o) => `<td class="n">${o.active != null ? N(o.active) : '—'}</td><td>${o.dom != null ? `${o.dom} days` : '<span class="na">not published</span>'}</td>`),
     ].join('')}</div>`;
   };
-  R.trend = () => { const one = shown().length === 1;
-    return card('trend', 'Typical price over 12 months', one ? `${esc(shown()[0])}, MLS® HPI benchmark price` : `Change since ${mName(addM(endKey, -11))} ${addM(endKey, -11).slice(0, 4)}, so areas with very different prices are easy to compare`,
-      `${one ? '' : `<div class="leg">${shown().map((a) => `<span><i style="background:${colour(a)}"></i>${esc(a)}</span>`).join('')}</div>`}<div class="lc" data-chart="trend"></div>`); };
-  R.market = () => card('market', "Buyer's or seller's market?", 'Based on how many homes for sale sold this month',
-    `<div class="mtr">${shown().map((a) => { const r = all(a).ratio, x = r == null ? null : (Math.min(r, 36) / 36) * 100;
+  R.trend = () => { const sh = areasFor('trend'), one = sh.length === 1;
+    return card('trend', 'Typical price over 12 months', one ? `${esc(sh[0])}, MLS® HPI benchmark price` : `Change since ${mName(addM(endKey, -11))} ${addM(endKey, -11).slice(0, 4)}, so areas with very different prices are easy to compare`,
+      `${one ? '' : `<div class="leg">${sh.map((a) => `<span><i style="background:${colour(a)}"></i>${esc(a)}</span>`).join('')}</div>`}<div class="lc" data-chart="trend"></div>`); };
+  R.market = () => { const sh = areasFor('market'), pos = (r) => (Math.min(r, 36) / 36) * 100;
+    if (sh.length === 1) { const a = sh[0], o = all(a), r = o.ratio, m = mkt(r);
+      const rows = typesFor('market').map(([t, l]) => [l, get(D, a, t).ratio]).filter((x) => x[1] != null);
+      return card('market', "Buyer's or seller's market?", `${esc(a)}: homes for sale that sold this month`,
+        `${r == null ? '<p class="na">Not enough sales to call it.</p>' : `<div class="big"><span class="pin" style="left:${pos(r)}%">${Math.round(r)}% · ${m === 'Balanced' ? 'Balanced market' : m + ' market'}</span><div class="mbar lg"><i style="left:${pos(r)}%;background:var(--ink)"></i></div>
+        <div class="bscale"><span style="width:33.3%">Buyer's</span><span style="width:22.2%">Balanced</span><span class="r">Seller's</span></div></div>`}
+        ${rows.length ? `<div class="mtr sm">${rows.map(([l, x]) => `<div class="mrow" tabindex="0"><span class="ma">${l}</span><div class="mbar"><i style="left:${pos(x)}%;background:var(--ink)"></i><span class="tip" style="left:${pos(x)}%">${x.toFixed(1)}% sold</span></div><b class="mk">${mkt(x)}</b></div>`).join('')}</div>` : ''}
+        ${note('market', 'Under 12% sold: buyers have more choice and time to negotiate. Over 20% sold: homes go fast and sellers have the edge.')}`); }
+    return card('market', "Buyer's or seller's market?", 'Based on how many homes for sale sold this month',
+    `<div class="mtr">${sh.map((a) => { const r = all(a).ratio, x = r == null ? null : pos(r);
       return `<div class="mrow" tabindex="0"><span class="ma">${dot(colour(a))}${esc(a)}</span><div class="mbar">${x == null ? '' : `<i style="left:${x}%;background:${colour(a)}"></i><span class="tip" style="left:${x}%">${r.toFixed(1)}% sold</span>`}</div><b class="mk">${mkt(r) || '—'}</b></div>`; }).join('')}
       <div class="mscale"><span></span><div><span style="width:33.3%">Buyer's</span><span style="width:22.2%">Balanced</span><span class="r">Seller's</span></div><span></span></div></div>
-      <p class="note">Under 12% sold: buyers have more choice and time to negotiate. Over 20% sold: homes go fast and sellers have the edge.</p>`);
-  R.types = () => { const sh = shown();
+      ${note('market', 'Under 12% sold: buyers have more choice and time to negotiate. Over 20% sold: homes go fast and sellers have the edge.')}`); };
+  R.types = () => { const sh = areasFor('types'), TR = typesFor('types');
     if (sh.length === 1) { const a = sh[0];
-      return card('types', 'Prices by home type', `${esc(a)}, typical price and the change since ${lastYear}`, `<div class="tiles">${TYPE_ROWS.map(([t, l]) => { const o = get(D, a, t);
+      return card('types', 'Prices by home type', `${esc(a)}, typical price and the change since ${lastYear}`, `<div class="tiles" style="--tc:${TR.length}">${TR.map(([t, l]) => { const o = get(D, a, t);
         return `<div class="tile">${house(t, 38)}<div><span class="kl">${l}</span><b class="kv sm">${o.price ? money(o.price) : '—'}</b>${o.price ? arrow(o.yoy, 'in 1 year') : '<span class="na">not published</span>'}</div></div>`; }).join('')}</div>`); }
-    return card('types', 'Prices by home type', `Typical price, and the change since ${lastYear}`, `<div class="scroll"><table class="tb ht"><thead><tr><th>Home type</th>${sh.map((a) => `<th>${dot(colour(a))}${esc(a)}</th>`).join('')}</tr></thead><tbody>${TYPE_ROWS.map(([t, l]) => `<tr><td><span class="hn">${house(t)}${l}</span></td>${sh.map((a) => { const o = get(D, a, t); return `<td><b class="n">${o.price ? money(o.price) : '—'}</b>${o.price ? arrow(o.yoy, 'in 1 year') : '<span class="na">not published</span>'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`); };
-  R.growth = () => card('growth', 'Long-term price growth', 'How much the typical price changed over the years', `<div class="gt">${[['composite', 'All homes'], ['detached', 'Detached'], ['townhome', 'Townhouses'], ['condo', 'Condos']].map(([k, l]) => `<button type="button" class="tab" data-gt="${k}" aria-pressed="${S.gType === k}">${house(k, 22)}${l}</button>`).join('')}</div><div class="gb" data-chart="growth"></div>`,
-    shown().length === 1 ? '' : `<div class="seg" role="group" aria-label="Years">${[3, 5, 10].map((y, i) => `<button type="button" data-gy="${i}" aria-pressed="${S.gYears === i}">${y} years</button>`).join('')}</div>`);
-  R.summary = () => card('summary', 'Summary', shown().length > 1 ? `Across your ${shown().length} areas` : esc(shown()[0]), `<ol class="sum">${summaryPoints(shown()).map((t, i) => `<li><em>${i + 1}</em><span>${t}</span></li>`).join('')}</ol>`);
-  R.sold = () => { const sh = shown(); if (!sh.includes(S.soldArea)) S.soldArea = sh[0];
-    return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, `${sh.length > 1 ? `<div class="mini">${sh.map((a) => `<button type="button" data-sa="${esc(a)}" aria-pressed="${a === S.soldArea}">${dot(colour(a))}${esc(a)}</button>`).join('')}</div>` : ''}<div data-chart="sold"></div>`); };
+    return card('types', 'Prices by home type', `Typical price, and the change since ${lastYear}`, `<div class="scroll"><table class="tb ht"><thead><tr><th>Home type</th>${sh.map((a) => `<th>${dot(colour(a))}${esc(a)}</th>`).join('')}</tr></thead><tbody>${TR.map(([t, l]) => `<tr><td><span class="hn">${house(t)}${l}</span></td>${sh.map((a) => { const o = get(D, a, t); return `<td><b class="n">${o.price ? money(o.price) : '—'}</b>${o.price ? arrow(o.yoy, 'in 1 year') : '<span class="na">not published</span>'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`); };
+  R.growth = () => { const ts = typesFor('growth').map(([t]) => t), tabs = [['composite', 'All homes'], ['detached', 'Detached'], ['townhome', 'Townhouses'], ['condo', 'Condos']].filter(([k]) => (k === 'composite' ? ts.length === 3 : ts.includes(k)));
+    if (!tabs.some(([k]) => k === S.gType)) S.gType = tabs[0][0];
+    return card('growth', 'Long-term price growth', 'How much the typical price changed over the years', `<div class="gt">${tabs.length > 1 ? tabs.map(([k, l]) => `<button type="button" class="tab" data-gt="${k}" aria-pressed="${S.gType === k}">${house(k, 22)}${l}</button>`).join('') : ''}</div><div class="gb" data-chart="growth"></div>`,
+    areasFor('growth').length === 1 ? '' : `<div class="seg" role="group" aria-label="Years">${[3, 5, 10].map((y, i) => `<button type="button" data-gy="${i}" aria-pressed="${S.gYears === i}">${y} years</button>`).join('')}</div>`); };
+  R.summary = () => { const sh = areasFor('summary'); return card('summary', 'Summary', sh.length > 1 ? `Across your ${sh.length} areas` : esc(sh[0]), `<ol class="sum">${summaryPoints(sh).map((t, i) => `<li><em>${i + 1}</em><span>${t}</span></li>`).join('')}</ol>`); };
+  R.sold = () => { const sh = areasFor('sold'); if (!sh.includes(S.soldArea)) S.soldArea = sh[0];
+    return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, `${CF('sold').areas && sh.length > 1 ? `<div class="mini">${sh.map((a) => `<button type="button" data-sa="${esc(a)}" aria-pressed="${a === S.soldArea}">${dot(colour(a))}${esc(a)}</button>`).join('')}</div>` : ''}<div data-chart="sold"></div>`); };
   R.compare = () => card('compare', 'How areas compare', `Typical home price in every area, with the change from ${lastYear}.${canEdit ? ' Tap an area to add it.' : ''}`, `<div class="rank" data-chart="rank"></div>`);
-  R.contact = () => `<section class="cd cd-contact" data-sec="contact"><div class="who">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><h3>${ask.h}</h3><p class="sub">${esc([A.name, roleLabel(A), A.brokerage].filter(Boolean).join(' · '))}</p></div></div>
-    <p class="lead">${ask.p}</p><div class="cgrid"><label class="fl">${ask.lab}<input type="text" data-id="where" placeholder="${ask.ph}"></label>
+  R.contact = () => `<section class="cd cd-contact" data-sec="contact"><div class="crow">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div class="cx"><h3>Questions about your area?</h3><p class="sub">${esc([A.name, roleLabel(A), A.brokerage, A.phone].filter(Boolean).join(' · '))}</p></div><button type="button" class="btn" data-id="ctog">Contact ${F}</button></div>
+    <div class="cbox" data-id="cbox" hidden><div class="cgrid"><label class="fl">${ask.lab}<input type="text" data-id="where" placeholder="${ask.ph}"></label>
     <div><span class="fl">I am</span><div class="chips" data-id="intent" role="group" aria-label="I am">${ask.chips.map((c) => `<button type="button" aria-pressed="false">${esc(c)}</button>`).join('')}</div></div></div>
     <div><span class="fl">Your message to ${F}</span><p class="msg" data-id="msg"></p></div>
-    <div class="btns">${A.contact_email ? `<a class="btn" data-id="mail" href="#">Email ${F}</a>` : ''}${A.phone ? `<a class="btn alt" data-id="sms" href="#">Text ${F}</a>` : ''}<button class="btn alt" type="button" data-id="copy">Copy message</button></div>
-    <div class="contact">${[A.contact_email, A.phone, A.website && A.website.replace(/^https?:\/\//, '')].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join('')}</div></section>`;
+    <div class="btns">${A.contact_email ? `<a class="btn" data-id="mail" href="#">Email ${F}</a>` : ''}${A.phone ? `<a class="btn alt" data-id="sms" href="#">Text ${F}</a>` : ''}<button class="btn alt" type="button" data-id="copy">Copy message</button></div></div></section>`;
 
   function summaryPoints(sh) {
     const o = Object.fromEntries(sh.map((a) => [a, all(a)])), out = [];
@@ -142,7 +175,7 @@ export function mountReport(root, D, A, opts = {}) {
   /* ----- charts, drawn after the cards are on the page ----- */
   const C = {};
   C.trend = (el) => {
-    const sh = shown(), one = sh.length === 1, keys = Array.from({ length: 12 }, (_, i) => addM(endKey, i - 11));
+    const sh = areasFor('trend'), one = sh.length === 1, keys = Array.from({ length: 12 }, (_, i) => addM(endKey, i - 11));
     const ser = sh.map((a) => { const h = D.history?.price?.composite?.[a] || {}, base = h[keys.find((k) => h[k])];
       return { a, c: one ? 'var(--ac)' : colour(a), v: keys.map((k) => (h[k] ? (one ? h[k] : (h[k] / base - 1) * 100) : null)) }; }).filter((s) => s.v.filter((x) => x != null).length > 1);
     if (!ser.length) { el.innerHTML = '<p class="na">Not enough history for this area yet.</p>'; return; }
@@ -168,12 +201,12 @@ export function mountReport(root, D, A, opts = {}) {
   };
   C.sold = (el) => {
     const a = S.soldArea, g = salesGroup(a), keys = Array.from({ length: 12 }, (_, i) => addM(endKey, i - 11));
-    const rows = keys.map((k) => [k, ['detached', 'townhome', 'condo'].reduce((n, t) => (n == null || D.history?.sales?.[t]?.[g]?.[k] == null ? null : n + D.history.sales[t][g][k]), 0)]);
+    const rows = keys.map((k) => [k, typesFor('sold').map(([t]) => t).reduce((n, t) => (n == null || D.history?.sales?.[t]?.[g]?.[k] == null ? null : n + D.history.sales[t][g][k]), 0)]);
     let i0 = rows.length - 1; while (i0 >= 0 && rows[i0][1] != null) i0--; const rs = rows.slice(i0 + 1);
     const sub = root.querySelector('[data-id="soldsub"]');
     if (rs.length < 2) { el.innerHTML = '<p class="na">Monthly sales are not published for this area.</p>'; if (sub) sub.textContent = a; return; }
     const name = g === 'Grand Totals' ? 'Greater Vancouver' : g, mx = Math.max(...rs.map((r) => r[1])) * 1.16;
-    if (sub) sub.textContent = `${name === a ? a : `${name} (whole area)`} · detached, attached and apartment sales`;
+    if (sub) sub.textContent = `${name === a ? a : `${name} (whole area)`}${areasFor('sold').length > 1 && !CF('sold').areas ? ' · tap an area above to see its own' : ''}${CF('sold').types ? ' · ' + typesFor('sold').map(([, l]) => l.toLowerCase() + 's').join(' and ') : ''}`;
     el.innerHTML = `<div class="bars">${rs.map(([k, v], i) => `<div class="bc${i === rs.length - 1 ? ' now' : ''}"><div class="bp"><div class="bb" style="height:${(v / mx) * 100}%"></div><span class="bn" style="bottom:calc(${(v / mx) * 100}% + 4px)">${N(v)}</span></div><span class="bm">${mName(k)}</span></div>`).join('')}</div><p class="yr">${mName(rs[0][0])} ${rs[0][0].slice(0, 4)} to ${mName(endKey)} ${endKey.slice(0, 4)}</p>`;
     const box = el.querySelector('.bars'), bcs = [...box.children];
     bcs.forEach((b) => { const on = () => { bcs.forEach((x) => x.classList.toggle('h', x === b)); box.classList.add('hov'); };
@@ -182,7 +215,7 @@ export function mountReport(root, D, A, opts = {}) {
   };
   C.growth = (el) => {
     const G = D.growth?.[S.gType] || {}, p = S.gYears, yrs = [3, 5, 10][p], tn = { composite: '', detached: 'detached homes', townhome: 'townhouses', condo: 'condos' }[S.gType];
-    const sh = shown(), have = sh.filter((a) => G[a]), miss = sh.filter((a) => !G[a]);
+    const sh = areasFor('growth'), have = sh.filter((a) => G[a]), miss = sh.filter((a) => !G[a]);
     if (!have.length) { el.innerHTML = '<p class="na">Long-term numbers are not published for this home type here.</p>'; return; }
     if (sh.length === 1) return growthOne(el, sh[0], G, tn);
     const vals = have.map((a) => G[a][p]), lo = Math.min(0, ...vals), hi = Math.max(0, ...vals), span = hi - lo || 1, L0 = lo - span * 0.22, H0 = hi + span * 0.3, X = (v) => ((v - L0) / (H0 - L0)) * 100;
@@ -215,20 +248,28 @@ export function mountReport(root, D, A, opts = {}) {
 
   /* ----- page ----- */
   const PAIR = { trend: 7, market: 5, summary: 6, sold: 6 };
-  function rows(secs) { const out = []; for (let i = 0; i < secs.length; i++) { const a = secs[i], b = secs[i + 1]; if (PAIR[a] && PAIR[b]) { out.push([a, b]); i++; } else out.push([a]); } return out; }
+  const pairs = (k) => PAIR[k] && CF(k).size !== 'full';
+  function rows(secs) { const out = []; for (let i = 0; i < secs.length; i++) { const a = secs[i], b = secs[i + 1]; if (pairs(a) && pairs(b)) { out.push([a, b]); i++; } else out.push([a]); } return out; }
   function areaBar() {
     if (!canEdit && S.areas.length < 2) return '';
     const free = ALL.filter((a) => !S.areas.includes(a)), one = S.view === 'one' && S.areas.length > 1;
-    return `<div class="abar"><span class="al">Areas</span><div class="chs">${S.areas.map((a) => `<span class="chip${one && a === S.focus ? ' on' : ''}${one ? ' tabby' : ''}" ${one ? `data-focus="${esc(a)}" role="button" tabindex="0"` : ''}>${dot(colour(a))}${esc(a)}${canEdit && S.areas.length > 1 ? `<button type="button" class="x" data-rm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}
+    return `<div class="abar"><span class="al">Areas</span><div class="chs">${S.areas.map((a) => `<span class="chip tabby${one && a === S.focus ? ' on' : ''}" ${one ? `data-focus="${esc(a)}"` : `data-sa="${esc(a)}"`} role="button" tabindex="0">${dot(colour(a))}${esc(a)}${canEdit && S.areas.length > 1 ? `<button type="button" class="x" data-rm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}
       ${canEdit && S.areas.length < MAX_AREAS && free.length ? `<label class="add">+ Add area<select data-id="add" aria-label="Add an area"><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}</div>
       ${S.areas.length > 1 ? `<div class="seg" role="group" aria-label="How to show several areas"><button type="button" data-view="side" aria-pressed="${S.view === 'side'}">Side by side</button><button type="button" data-view="one" aria-pressed="${S.view === 'one'}">One at a time</button></div>` : ''}</div>`;
   }
+  const NAME = Object.fromEntries(SECTIONS.map(([k, l]) => [k, l]));
+  // Agent view: click a section to edit it (outlined, with an "Editing" tag); "+ Add a section" at the end.
+  function sec(k) { const h = R[k](); return ED ? `<div class="sx${opts.selected === k ? ' ed' : ''}" data-k="${k}">${h}</div>` : h; }
+  const addBox = () => `<button type="button" class="addsec2${opts.adding ? ' on' : ''}" data-addsec>+ Add a section</button>`;
+  root._select = (k) => root.querySelectorAll('.sx').forEach((x) => x.classList.toggle('ed', x.dataset.k === k));
+  root._adding = (on) => root.querySelector('.addsec2')?.classList.toggle('on', !!on);
+  function saveLayout(patch) { Object.assign(L, patch); if (ED) opts.edit({ ...L }); }
   function draw() {
     const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1);
     const head = sh.length === 1 ? `${esc(sh[0])} Market Report` : `Market Report: ${sh.length} areas`;
     root.innerHTML = `<div class="bw"><header class="top"><div><h1>${head}</h1><p class="sub">${esc(D.month)} · Source: Greater Vancouver REALTORS®</p></div>
       ${L.agentTop && A.name ? `<div class="agent">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><b>${esc(A.name)}</b><span>${esc([roleLabel(A), A.brokerage].filter(Boolean).join(' · '))}</span>${A.phone ? `<span>${esc(A.phone)}</span>` : ''}</div>${A.logo ? `<img class="lg" src="${esc(A.logo)}" alt="">` : ''}</div>` : ''}</header>
-      ${areaBar()}${rows(secs).map((r) => (r.length === 2 ? `<div class="pair" style="grid-template-columns:${PAIR[r[0]]}fr ${PAIR[r[1]]}fr">${R[r[0]]()}${R[r[1]]()}</div>` : R[r[0]]())).join('')}
+      ${areaBar()}${rows(secs).map((r) => (r.length === 2 ? `<div class="pair" style="grid-template-columns:${PAIR[r[0]]}fr ${PAIR[r[1]]}fr">${sec(r[0])}${sec(r[1])}</div>` : sec(r[0]))).join('')}${ED ? addBox() : ''}
       <footer>${esc(sourceLine(D))}</footer></div>`;
     charts(); wire();
   }
@@ -238,28 +279,34 @@ export function mountReport(root, D, A, opts = {}) {
   function msg() { if (!q('msg')) return; const t = text(); q('msg').textContent = t;
     if (q('mail')) q('mail').href = `mailto:${A.contact_email}?subject=${encodeURIComponent(ask.subj)}&body=${encodeURIComponent(t)}`;
     if (q('sms')) { const d = String(A.phone).replace(/\D/g, ''); q('sms').href = `sms:+${d.length === 11 && d[0] === '1' ? d : '1' + d}?&body=${encodeURIComponent(t)}`; } }
-  function remember() { if (opts.embedded) return; try { const u = new URL(location.href); u.searchParams.set('areas', S.areas.map(slug).join(',')); u.hash = ''; history.replaceState(null, '', u.toString().replace(/%2C/g, ',')); } catch {} }
-  function setAreas(next, focus) { S.areas = next.slice(0, MAX_AREAS); if (!S.areas.includes(S.focus)) S.focus = S.areas[0]; if (focus) S.focus = focus; remember(); draw(); }
+  function remember() { if (opts.embedded || ED) return; try { const u = new URL(location.href); u.searchParams.set('areas', S.areas.map(slug).join(',')); u.hash = ''; history.replaceState(null, '', u.toString().replace(/%2C/g, ',')); } catch {} }
+  function setAreas(next, focus) { S.areas = next.slice(0, MAX_AREAS); if (ED) saveLayout({ areas: [...S.areas] }); if (!S.areas.includes(S.focus)) S.focus = S.areas[0]; if (focus) S.focus = focus; remember(); draw(); }
   function wire() {
     if (q('where')) { q('where').addEventListener('input', msg); msg(); }
   }
   root.onclick = (e) => {
     const t = e.target, b = (s) => t.closest(s);
+    if (ED && b('[data-addsec]')) return opts.onAdd?.();
+    if (ED && b('.sx') && !b('button,a,input,select,label,.mrow,[data-chart="trend"]')) { const k = b('.sx').dataset.k; root._select(k); opts.onSelect?.(k); }
     if (b('[data-rm]')) { e.stopPropagation(); const a = b('[data-rm]').dataset.rm; return setAreas(S.areas.filter((x) => x !== a)); }
     if (b('[data-focus]')) { S.focus = b('[data-focus]').dataset.focus; return draw(); }
-    if (b('[data-view]')) { S.view = b('[data-view]').dataset.view; return draw(); }
+    if (b('[data-view]')) { S.view = b('[data-view]').dataset.view; if (ED) saveLayout({ view: S.view }); return draw(); }
+    if (b('[data-id="ctog"]')) { const x = q('cbox'); x.hidden = !x.hidden; if (!x.hidden) q('where')?.focus(); return; }
+    if (b('[data-mv]')) { const x = b('[data-mv]'), s2 = [...L.sections], i = s2.indexOf(x.dataset.k), j = i + +x.dataset.mv; if (j < 0 || j >= s2.length) return; [s2[i], s2[j]] = [s2[j], s2[i]]; saveLayout({ sections: s2 }); return draw(); }
+    if (b('[data-hide]')) { saveLayout({ sections: L.sections.filter((k) => k !== b('[data-hide]').dataset.hide) }); return draw(); }
+    if (b('[data-show]')) { saveLayout({ sections: [...L.sections, b('[data-show]').dataset.show] }); draw(); return root.querySelector('.addsec')?.previousElementSibling?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     if (b('[data-add]') && canEdit) { const a = b('[data-add]').dataset.add; if (S.areas.includes(a)) { if (S.view === 'one') { S.focus = a; draw(); } return; }
       if (S.areas.length >= MAX_AREAS) return; setAreas([...S.areas, a], a); return root.querySelector('.abar')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     if (b('[data-more]')) { S.rankAll = !S.rankAll; return C.rank(root.querySelector('[data-chart="rank"]')); }
     if (b('[data-gt]')) { S.gType = b('[data-gt]').dataset.gt; root.querySelectorAll('[data-gt]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.gt === S.gType)); return C.growth(root.querySelector('[data-chart="growth"]')); }
     if (b('[data-gy]')) { S.gYears = +b('[data-gy]').dataset.gy; root.querySelectorAll('[data-gy]').forEach((x) => x.setAttribute('aria-pressed', +x.dataset.gy === S.gYears)); return C.growth(root.querySelector('[data-chart="growth"]')); }
-    if (b('[data-sa]')) { S.soldArea = b('[data-sa]').dataset.sa; root.querySelectorAll('[data-sa]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.sa === S.soldArea)); return C.sold(root.querySelector('[data-chart="sold"]')); }
+    if (b('[data-sa]')) { S.soldArea = b('[data-sa]').dataset.sa; const el = root.querySelector('[data-chart="sold"]'); if (el) { C.sold(el); el.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } return; }
     if (b('.mrow')) { const r = b('.mrow'), on = !r.classList.contains('h'); root.querySelectorAll('.mrow').forEach((x) => x.classList.remove('h')); r.classList.toggle('h', on); return; }
     if (b('[data-id="intent"] button')) { const x = b('button'), on = x.getAttribute('aria-pressed') === 'true'; q('intent').querySelectorAll('button').forEach((y) => y.setAttribute('aria-pressed', 'false')); x.setAttribute('aria-pressed', String(!on)); S.intent = on ? null : x.textContent; return msg(); }
     if (b('[data-id="copy"]')) { navigator.clipboard?.writeText(text()).then(() => { q('copy').textContent = 'Copied'; setTimeout(() => q('copy') && (q('copy').textContent = 'Copy message'), 1800); }).catch(() => {}); }
   };
   root.onchange = (e) => { if (e.target.dataset.id === 'add' && e.target.value) setAreas([...S.areas, e.target.value], e.target.value); };
-  root.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-focus]')) { e.preventDefault(); S.focus = e.target.dataset.focus; draw(); } };
+  root.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-focus],[data-sa]')) { e.preventDefault(); e.target.click(); } };
   draw();
   if (root._ro) root._ro.disconnect();
   if (window.ResizeObserver) { let w = root.clientWidth, tm; root._ro = new ResizeObserver(() => { const cw = root.clientWidth; if (Math.abs(cw - w) > 24) { w = cw; clearTimeout(tm); tm = setTimeout(charts, 120); } }); root._ro.observe(root); }

@@ -18,7 +18,7 @@ else {
   const area = j.view?.area || q.get('area') || areasOf(j.report).find((a) => slug(a) === location.hash.slice(1));
   document.title = `${area || 'Greater Vancouver'} Market Report, ${j.report.month} | ${A.name}`;
   const pick = (q.get('areas') || '').split(',').filter(Boolean), areas = areasOf(j.report).filter((a) => pick.includes(slug(a))).sort((a, b) => pick.indexOf(slug(a)) - pick.indexOf(slug(b)));
-  loadFonts([A.theme?.font || 'modern']);
+  loadFonts(['modern']);
   mountReport(root, j.report, A, { area, areas });
   document.body.style.background = getComputedStyle(root).backgroundColor;
 }
