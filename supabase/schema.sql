@@ -76,3 +76,25 @@ create table if not exists instagram (
 alter table instagram enable row level security;
 -- Public image bucket Instagram fetches the post and story from.
 insert into storage.buckets (id, name, public) values ('social', 'social', true) on conflict (id) do nothing;
+
+-- October 2026: personal links (a client's own link with their name and neighbourhood) and what clients looked at
+create table if not exists personal_links (
+  id text primary key,                -- short id used in the link, e.g. /r/jane-smith?p=Ab3dE9xY
+  user_id uuid not null references profiles(id) on delete cascade,
+  name text not null,                 -- e.g. the Chen family
+  city text not null, hood text not null, type text default 'd',
+  opens int default 0, last_opened_at timestamptz,
+  created_at timestamptz default now()
+);
+create index if not exists personal_links_user on personal_links (user_id, created_at desc);
+alter table personal_links enable row level security;
+create table if not exists hood_views (
+  id bigserial primary key,
+  user_id uuid not null references profiles(id) on delete cascade,
+  link_id text references personal_links(id) on delete set null,   -- empty for the general link (anonymous)
+  city text, hood text, kind text,    -- kind: pick (chose their area), peek (looked at another), compare
+  created_at timestamptz default now()
+);
+create index if not exists hood_views_user_time on hood_views (user_id, created_at desc);
+alter table hood_views enable row level security;
+alter table profiles add column if not exists weekly_email boolean default true;

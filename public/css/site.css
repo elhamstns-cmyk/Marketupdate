@@ -388,3 +388,24 @@ body.oncreate>.nav{display:none}
 .pvr .lbl2{display:grid;gap:4px;font-size:.8rem;font-weight:650;color:#55606e;margin:10px 0 2px}
 .pvr .tgr{padding:5px 0}.pvr .cap{min-height:96px}
 .slist li .e{display:none;opacity:1}.slist li:hover .e,.slist li.sel .e{display:inline-block}
+/* Neighbourhoods panel */
+.okline{margin-top:12px;background:#f1f8f4;color:#137a40;border-radius:9px;padding:9px 11px;font-size:.8rem;font-weight:600}
+#dpanel textarea.inp2{width:100%;resize:vertical;font:inherit;line-height:1.5}
+.tgr small.muted{font-weight:400}
+/* Personal links */
+.plm{position:fixed;inset:0;z-index:70;background:rgba(20,26,40,.45);display:grid;place-items:center;padding:16px}
+.plbox{background:#fff;border-radius:16px;width:min(760px,100%);max-height:90vh;overflow:auto;padding:20px 22px;display:grid;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.plh{display:flex;gap:12px;align-items:flex-start}.plh h3{margin:0}.plh p{margin:4px 0 0}.plh .x{margin-left:auto;border:0;background:none;font-size:18px;cursor:pointer;color:#6b7380}
+.plf{display:grid;grid-template-columns:1.4fr 1fr 1.2fr .9fr auto;gap:8px}
+.plf input,.plf select{border:1px solid #dfe3ea;border-radius:9px;padding:10px 11px;font:inherit;font-size:14px;min-width:0;background:#fff}
+.pll{display:grid}
+.plr{display:grid;grid-template-columns:1fr 1.6fr auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid #f0f1f4;font-size:14px}
+.plr small{display:block;color:#6b7380;font-size:12.5px}.pla{font-size:13px;color:#3d4653}.plb{display:flex;gap:6px;align-items:center}
+.plx{border:0;background:none;color:#9aa1ab;cursor:pointer;font-size:14px;padding:4px}
+.pltag{display:inline-block;background:#fff4d6;color:#7a5a00;font-size:11px;font-weight:800;border-radius:6px;padding:2px 7px;margin-right:6px}
+.pltag2{display:inline-block;background:#eef2fb;color:#1d4fbf;font-size:10.5px;font-weight:800;border-radius:5px;padding:2px 7px}
+.plsoon{border:1px dashed #cfd9ee;border-radius:12px;padding:11px 13px;font-size:13px;color:#55606e}
+@media (max-width:700px){.plf{grid-template-columns:1fr 1fr}.plf input{grid-column:1/-1}.plf .btn{grid-column:1/-1}.plr{grid-template-columns:1fr auto}.pla{grid-column:1/-1;grid-row:2}}
+.plbox{width:min(880px,100%)}.plbox .btn{background:#1d4fbf;border-color:#1d4fbf;color:#fff}
+.plf{grid-template-columns:1.3fr 1fr 1.3fr 1fr auto}
+.plbox .linkbtn{color:#2f6fe0;font-weight:650}

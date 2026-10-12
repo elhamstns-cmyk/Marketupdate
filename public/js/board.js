@@ -2,6 +2,7 @@
 // mountReport(root, D, A, opts) draws it with the agent's branding (A) and layout (A.show).
 import { get, money, esc, slug, areasOf, themeVars, palette, mix, lum, phoneFmt, roleLabel, askCopy, first, sourceLine, market, monthKey, TN } from './report.js';
 import { salesGroup } from './charts.js';
+import { makeHoods, BLOCKS } from './hoods.js';
 
 /* ---------- sections and layout ---------- */
 export const SECTIONS = [
@@ -9,6 +10,7 @@ export const SECTIONS = [
   ['trend', 'Typical price over 12 months', 'Line graph, one line per area'],
   ['market', "Buyer's or seller's market?", 'Where each area sits on the scale'],
   ['types', 'Prices by home type', 'Detached, townhouse and condo, with pictures'],
+  ['hoods', 'Neighbourhoods', "Your client's neighbourhood, every neighbourhood at a glance, who grew most"],
   ['growth', 'Long-term price growth', 'Growth over 3, 5 and 10 years'],
   ['summary', 'Summary', 'The key points in plain words'],
   ['sold', 'Homes sold each month', 'Bar chart of the last 12 months'],
@@ -38,9 +40,19 @@ export function cleanConf(c, all) {
     if (Array.isArray(x.types)) { const t = x.types.filter((v) => TYPE_KEYS.includes(v)); if (t.length && t.length < 3) y.types = t; }
     for (const f of ['sub', 'note']) if (x[f] === false) y[f] = false;
     if (x.size === 'full') y.size = 'full';
+    if (k === 'hoods') Object.assign(y, cleanHoods(x));
     if (Object.keys(y).length) o[k] = y; }
   return o;
 }
+// Neighbourhoods: city, the neighbourhood shown first, what to compare with, home type, blocks switched off, the agent's take.
+const NAME_OK = (v) => typeof v === 'string' && v.length > 1 && v.length < 60;
+export function cleanHoods(x) { const y = {};
+  for (const f of ['city', 'home', 'cmp']) if (NAME_OK(x[f])) y[f] = x[f];
+  if (['d', 't', 'c'].includes(x.type)) y.type = x.type;
+  if (Array.isArray(x.off)) { const o = x.off.filter((b, i, a) => BLOCKS.some(([k]) => k === b) && a.indexOf(b) === i); if (o.length) y.off = o; }
+  if (x.take === 'off' || x.take === 'own') y.take = x.take;
+  if (typeof x.text === 'string' && x.text.trim()) y.text = x.text.trim().slice(0, 600);
+  return y; }
 export const sameLayout = (a, b) => JSON.stringify([a.sections, a.agentTop, a.clientAreas, a.view, a.conf || {}]) === JSON.stringify([b.sections, b.agentTop, b.clientAreas, b.view, b.conf || {}]);
 // Which sections can be set to half or full width, and which use areas or home types.
 export const PAIRABLE = ['trend', 'market', 'summary', 'sold'];
@@ -91,6 +103,9 @@ export function mountReport(root, D, A, opts = {}) {
   const TH = CALM, p = palette(TH), dark = lum(p.bg) < 0.35;
   root.classList.add('bd'); root.classList.toggle('dark', dark);
   root.style.cssText = themeVars(TH) + `;--ink:#1b2430;--mut:#6b7380;--ln:#e6e8ee;--pg:${dark ? p.bg : '#f3f4f7'};--card:${dark ? mix(p.ink, p.bg, 0.07) : p.bg};--dn:${dark ? '#ff7d6b' : '#d6452f'};--up:${dark ? '#4fc98b' : '#1a8f4e'};--hl:${mix(p.fill, p.bg, 0.1)};--soft:${mix(p.fill, p.bg, 0.28)};--bar:#4f86e8`;
+  // Neighbourhoods keep their own state (the client's area, what they looked at) while the rest of the report redraws.
+  const HO = D.hoods && Object.keys(D.hoods).length ? makeHoods({ D, A, conf: CF('hoods'), areas: start, edit: ED || !!opts.embedded, personal: opts.personal, vars: root.style.cssText,
+    track: ED || opts.embedded ? null : opts.track, onCity: ED ? (c) => saveLayout({ conf: { ...L.conf, hoods: { ...CF('hoods'), city: c, home: undefined, cmp: undefined } } }) : null }) : null;
 
   /* ----- section renderers: each returns [html, after-draw hook] ----- */
   const card = (id, h, sub, body, extra = '', raw) => { const c = raw ? {} : CF(id); if (c.title) h = esc(c.title); if (c.sub === false) sub = '';
@@ -141,10 +156,11 @@ export function mountReport(root, D, A, opts = {}) {
     if (!tabs.some(([k]) => k === S.gType)) S.gType = tabs[0][0];
     return card('growth', 'Long-term price growth', 'How much the typical price changed over the years', `<div class="gt">${tabs.length > 1 ? tabs.map(([k, l]) => `<button type="button" class="tab" data-gt="${k}" aria-pressed="${S.gType === k}">${house(k, 22)}${l}</button>`).join('') : ''}</div><div class="gb" data-chart="growth"></div>`,
     areasFor('growth').length === 1 ? '' : `<div class="seg" role="group" aria-label="Years">${[3, 5, 10].map((y, i) => `<button type="button" data-gy="${i}" aria-pressed="${S.gYears === i}">${y} years</button>`).join('')}</div>`); };
+  R.hoods = () => card('hoods', 'Neighbourhoods', 'Typical home prices by neighbourhood, and how they changed', '<div data-chart="hoods"></div>', HO ? HO.extra() : '');
   R.summary = () => { const sh = areasFor('summary'); return card('summary', 'Summary', sh.length > 1 ? `Across your ${sh.length} areas` : esc(sh[0]), `<ol class="sum">${summaryPoints(sh).map((t, i) => `<li><em>${i + 1}</em><span>${t}</span></li>`).join('')}</ol>`); };
   R.sold = () => { const sh = areasFor('sold'); if (!sh.includes(S.soldArea)) S.soldArea = sh[0];
     return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, `${CF('sold').areas && sh.length > 1 ? `<div class="mini">${sh.map((a) => `<button type="button" data-sa="${esc(a)}" aria-pressed="${a === S.soldArea}">${dot(colour(a))}${esc(a)}</button>`).join('')}</div>` : ''}<div data-chart="sold"></div>`); };
-  R.compare = () => card('compare', 'How areas compare', `Typical home price in every area, with the change from ${lastYear}.${canEdit ? ' Tap an area to add it.' : ''}`, `<div class="rank" data-chart="rank"></div>`);
+  R.compare = () => card('compare', 'How areas compare', `Typical home price in every area, with the change from ${lastYear}.${canEdit ? ' Tap an area to add it to the report.' : ''}`, `<div class="rank" data-chart="rank"></div>`);
   R.contact = () => `<section class="cd cd-contact" data-sec="contact"><div class="crow">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div class="cx"><h3>Questions about your area?</h3><p class="sub">${esc([A.name, roleLabel(A), A.brokerage, A.phone].filter(Boolean).join(' · '))}</p></div><button type="button" class="btn" data-id="ctog">Contact ${F}</button></div>
     <div class="cbox" data-id="cbox" hidden><div class="cgrid"><label class="fl">${ask.lab}<input type="text" data-id="where" placeholder="${ask.ph}"></label>
     <div><span class="fl">I am</span><div class="chips" data-id="intent" role="group" aria-label="I am">${ask.chips.map((c) => `<button type="button" aria-pressed="false">${esc(c)}</button>`).join('')}</div></div></div>
@@ -174,6 +190,7 @@ export function mountReport(root, D, A, opts = {}) {
 
   /* ----- charts, drawn after the cards are on the page ----- */
   const C = {};
+  C.hoods = (el) => HO && HO.mount(el);
   C.trend = (el) => {
     const sh = areasFor('trend'), one = sh.length === 1, keys = Array.from({ length: 12 }, (_, i) => addM(endKey, i - 11));
     const ser = sh.map((a) => { const h = D.history?.price?.composite?.[a] || {}, base = h[keys.find((k) => h[k])];
@@ -239,12 +256,25 @@ export function mountReport(root, D, A, opts = {}) {
       <div class="hb axis"><span></span><div class="trk">${ticks.map((t) => `<span style="left:${X(t)}%">${t > 0 ? '+' : ''}${t}%</span>`).join('')}</div></div></div>
       <div class="ins"><p>Typical price of ${esc(what)} in <b>${esc(a)}</b>.</p><p>${[2, 1, 0].map(line).join('<br>')}</p><p class="note">Change in the MLS® Home Price Index benchmark price. Past growth doesn't guarantee future growth.</p></div></div>`;
   }
+  const IC = { pin: '<path d="M12 21s-6-5.6-6-10a6 6 0 1 1 12 0c0 4.4-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>', home: HOUSE.detached, tag: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="7.5" r="1.4"/>', ud: '<path d="M8 4v16M4 8l4-4 4 4M16 20V4M12 16l4 4 4-4"/>' };
+  const ic = (k) => `<i class="hi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg></i>`;
   C.rank = (el) => {
     const rows = ALL.map((a) => ({ a, ...all(a) })).filter((r) => r.price).sort((x, y) => y.price - x.price), max = rows[0]?.price || 1;
-    const cut = 8, list = S.rankAll ? rows : rows.filter((r, i) => i < cut || S.areas.includes(r.a));
-    el.innerHTML = list.map((r) => { const on = S.areas.includes(r.a);
-      return `<${canEdit ? 'button type="button"' : 'div'} class="rr${on ? ' on' : ''}" data-add="${esc(r.a)}"><span class="ma">${on ? dot(colour(r.a)) : '<i class="dt off"></i>'}${esc(r.a)}</span><span class="rb"><i style="width:${((r.price / max) * 100).toFixed(1)}%${on ? `;background:${colour(r.a)}` : ''}"></i></span><b class="n">${money(r.price)}</b>${arrow(r.yoy)}</${canEdit ? 'button' : 'div'}>`; }).join('') + (rows.length > list.length || S.rankAll ? `<button type="button" class="more" data-more>${S.rankAll ? 'Show fewer' : `Show all ${rows.length} areas`}</button>` : '');
+    const cut = 8, list = S.rankAll ? rows : rows.filter((r, i) => i < cut || S.areas.includes(r.a)), tag = canEdit ? 'button type="button"' : 'div', end = canEdit ? 'button' : 'div';
+    // Column titles with small pictures, so everyone can tell what each part means.
+    const head = `<div class="rr rh${canEdit ? ' ed' : ''}" aria-hidden="true"><span>${ic('pin')}Area</span><span>${ic('home')}Typical home price <em>· longer bar = higher price</em></span><span class="r">${ic('tag')}Price</span><span class="r">${ic('ud')}In 1 year</span>${canEdit ? '<span></span>' : ''}</div>`;
+    el.innerHTML = head + list.map((r) => { const on = S.areas.includes(r.a);
+      return `<${tag} class="rr${on ? ' on' : ''}${canEdit ? ' ed' : ''}${S.flash === r.a ? ' flash' : ''}" data-add="${esc(r.a)}"${canEdit ? ` aria-pressed="${on}" title="${on ? 'On your report. Tap to remove.' : 'Tap to add to the report'}"` : ''} style="${on ? `--ac2:${colour(r.a)}` : ''}"><span class="ma">${on ? dot(colour(r.a)) : '<i class="dt off"></i>'}${esc(r.a)}</span><span class="rb"><i style="width:${((r.price / max) * 100).toFixed(1)}%${on ? `;background:${colour(r.a)}` : ''}"></i></span><b class="n">${money(r.price)}</b>${arrow(r.yoy)}${canEdit ? `<span class="tk">${on ? '✓' : '+'}</span>` : ''}</${end}>`; }).join('')
+      + (rows.length > list.length || S.rankAll ? `<button type="button" class="more" data-more>${S.rankAll ? 'Show fewer' : `Show all ${rows.length} areas`}</button>` : '');
+    S.flash = null;
   };
+  // A short message at the bottom of the screen, with an Undo.
+  function toast(msg, undo) { document.querySelector('.bdtoast')?.remove(); const t = document.createElement('div'); t.className = 'bdtoast'; t.setAttribute('role', 'status');
+    t.innerHTML = `<span>${msg}</span>${undo ? '<button type="button">Undo</button>' : ''}`; document.body.appendChild(t);
+    if (undo) t.querySelector('button').onclick = () => { t.remove(); undo(); };
+    clearTimeout(toast.t); toast.t = setTimeout(() => t.remove(), 4000); }
+  // Change the areas without the page jumping: keep the section you tapped in the same place.
+  function keepPlace(sel, fn) { const a = root.querySelector(sel), y0 = a ? a.getBoundingClientRect().top : null; fn(); const b2 = root.querySelector(sel); if (y0 != null && b2) scrollBy(0, b2.getBoundingClientRect().top - y0); }
 
   /* ----- page ----- */
   const PAIR = { trend: 7, market: 5, summary: 6, sold: 6 };
@@ -287,7 +317,7 @@ export function mountReport(root, D, A, opts = {}) {
   }
   if (ED) root.onpointerdown = (e) => { const h = e.target.closest('[data-drag]'); if (h && e.button === 0) startDrag(e, h.dataset.drag); };
   function draw() {
-    const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1);
+    const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1).filter((k) => k !== 'hoods' || HO);
     const head = sh.length === 1 ? `${esc(sh[0])} Market Report` : `Market Report: ${sh.length} areas`;
     root.innerHTML = `<div class="bw"><header class="top"><div><h1>${head}</h1><p class="sub">${esc(D.month)} · Source: Greater Vancouver REALTORS®</p></div>
       ${L.agentTop && A.name ? `<div class="agent">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><b>${esc(A.name)}</b><span>${esc([roleLabel(A), A.brokerage].filter(Boolean).join(' · '))}</span>${A.phone ? `<span>${esc(A.phone)}</span>` : ''}</div>${A.logo ? `<img class="lg" src="${esc(A.logo)}" alt="">` : ''}</div>` : ''}</header>
@@ -319,8 +349,11 @@ export function mountReport(root, D, A, opts = {}) {
     if (b('[data-mv]')) { const x = b('[data-mv]'), s2 = [...L.sections], i = s2.indexOf(x.dataset.k), j = i + +x.dataset.mv; if (j < 0 || j >= s2.length) return; [s2[i], s2[j]] = [s2[j], s2[i]]; saveLayout({ sections: s2 }); return draw(); }
     if (b('[data-hide]')) { saveLayout({ sections: L.sections.filter((k) => k !== b('[data-hide]').dataset.hide) }); return draw(); }
     if (b('[data-show]')) { saveLayout({ sections: [...L.sections, b('[data-show]').dataset.show] }); draw(); return root.querySelector('.addsec')?.previousElementSibling?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-    if (b('[data-add]') && canEdit) { const a = b('[data-add]').dataset.add; if (S.areas.includes(a)) { if (S.view === 'one') { S.focus = a; draw(); } return; }
-      if (S.areas.length >= MAX_AREAS) return; setAreas([...S.areas, a], a); return root.querySelector('.abar')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    if (b('[data-add]') && canEdit) { const a = b('[data-add]').dataset.add, before = [...S.areas], undo = () => keepPlace('.cd-compare', () => setAreas(before));
+      if (S.areas.includes(a)) { if (S.areas.length < 2) return toast('Your report needs at least one area.');
+        keepPlace('.cd-compare', () => setAreas(S.areas.filter((x) => x !== a))); return toast(`<b>${esc(a)}</b> removed from the report`, undo); }
+      if (S.areas.length >= MAX_AREAS) return toast(`You can compare up to ${MAX_AREAS} areas. Remove one first.`);
+      S.flash = a; keepPlace('.cd-compare', () => setAreas([...S.areas, a])); return toast(`✓ <b>${esc(a)}</b> added to the report`, undo); }
     if (b('[data-more]')) { S.rankAll = !S.rankAll; return C.rank(root.querySelector('[data-chart="rank"]')); }
     if (b('[data-gt]')) { S.gType = b('[data-gt]').dataset.gt; root.querySelectorAll('[data-gt]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.gt === S.gType)); return C.growth(root.querySelector('[data-chart="growth"]')); }
     if (b('[data-gy]')) { S.gYears = +b('[data-gy]').dataset.gy; root.querySelectorAll('[data-gy]').forEach((x) => x.setAttribute('aria-pressed', +x.dataset.gy === S.gYears)); return C.growth(root.querySelector('[data-chart="growth"]')); }
@@ -329,7 +362,7 @@ export function mountReport(root, D, A, opts = {}) {
     if (b('[data-id="intent"] button')) { const x = b('button'), on = x.getAttribute('aria-pressed') === 'true'; q('intent').querySelectorAll('button').forEach((y) => y.setAttribute('aria-pressed', 'false')); x.setAttribute('aria-pressed', String(!on)); S.intent = on ? null : x.textContent; return msg(); }
     if (b('[data-id="copy"]')) { navigator.clipboard?.writeText(text()).then(() => { q('copy').textContent = 'Copied'; setTimeout(() => q('copy') && (q('copy').textContent = 'Copy message'), 1800); }).catch(() => {}); }
   };
-  root.onchange = (e) => { if (e.target.dataset.id === 'add' && e.target.value) setAreas([...S.areas, e.target.value], e.target.value); };
+  root.onchange = (e) => { if (e.target.matches('[data-hcity]')) return HO?.setCity(e.target.value); if (e.target.dataset.id === 'add' && e.target.value) setAreas([...S.areas, e.target.value], e.target.value); };
   root.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-focus],[data-sa]')) { e.preventDefault(); e.target.click(); } };
   draw();
   if (root._ro) root._ro.disconnect();

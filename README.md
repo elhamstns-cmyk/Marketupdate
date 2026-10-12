@@ -24,3 +24,8 @@ Plans: Essentials ($19/mo, $190/yr) is the Greater Vancouver report in a fixed w
 The report's "Long-term price growth" section uses the 3, 5 and 10-year changes from the MLS® HPI tables in GVR's monthly Stats Package. Add them to the month's report data before publishing:
 `python3 scripts/growth-from-gvr.py GVR-Stats-Package-October-2026.pdf report.json`
 If a month has no growth data, that section is simply left out.
+
+## Neighbourhoods
+The "Neighbourhoods" section uses GVR's **HPI Benchmark Summary Excel** (GVR portal > Market stats/reports > HPI Benchmark Summary Excel). Download this month's file and January's, then:
+`python3 scripts/hoods-from-gvr.py "2026-10-GVR Benchmark Summary Report.xlsx" "2026-01-GVR Benchmark Summary Report.xlsx" report.json`
+In January, leave out the second file. `scripts/gvr-neighbourhoods.json` says which city each neighbourhood is in (from the GVR Stats Centre area list).

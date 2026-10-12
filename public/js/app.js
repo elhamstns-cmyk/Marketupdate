@@ -2,6 +2,7 @@ import { mountReport, SECTIONS, layoutOf, DEFAULT_LAYOUT, MAX_AREAS, sameLayout,
 import { esc, areasOf, STYLES, FONTS, BASIC_THEME, loadFonts, SHOW_NUMBERS, SHOW_SECTIONS, DEFAULT_SHOW, TYPES, T1, showOf, monthKey, COVERS } from './report.js';
 import { reportLink, emailDraft, caption, socialImage, download } from './exports.js';
 import { calmImage, calmCaption, imgOpts, IMG_PARTS } from './social2.js';
+import { hoodCities, hoodNames, defaultCity, BLOCKS, HTYPES } from './hoods.js';
 import { sv, isPhone, canShareFiles, toFile, shareMenu, closeMenu, qrModal } from './share.js';
 
 const $ = (s) => document.querySelector(s), main = $('#main');
@@ -314,7 +315,7 @@ const layoutName = () => { const a = layoutOf(agent(), D).areas; return a.length
 const shareText = (link) => { const n = layoutName(); return { url: link, subject: `${n} market update: ${D.month}`, short: `Here is the ${D.month} market update for ${n}: ${link}`, body: emailDraft(D, agent(), firstArea(), link).text }; };
 const avatar = () => (P.photo ? `<img src="${esc(P.photo)}" alt="">` : `<span class="ini">${esc((P.name || '?').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase())}</span>`);
 const SEC = Object.fromEntries(SECTIONS.map(([k, l, d]) => [k, { l, d }]));
-const SIC = { numbers: '#', trend: '∿', market: '⇆', types: '⌂', growth: '↗', summary: '≡', sold: '▮', compare: '☰', contact: '✉' };
+const SIC = { numbers: '#', trend: '∿', market: '⇆', types: '⌂', hoods: '▦', growth: '↗', summary: '≡', sold: '▮', compare: '☰', contact: '✉' };
 const TYPE_NAME = { detached: 'Detached', townhome: 'Townhouse', condo: 'Condo' };
 const EYE = '<svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 let PS = { m: 'list', k: null, tab: 'data' }, ZOOM = 0.85, IGS = null;
@@ -385,6 +386,21 @@ function selectSec(k, scroll) { PS.k = k; $('#rp')?._select?.(k); $('#dpanel').q
 
 /* ---------- the right panel ---------- */
 const tgl = (attr, l, on) => `<label class="tgr"><span>${l}</span><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>`;
+// Neighbourhoods: everything starts on a sensible choice, so agents don't have to touch it.
+function hoodsPanel(c, L) {
+  const city = defaultCity(D, c, L.areas), names = hoodNames(D, city), sel = (attr, opts, cur) => `<select class="inp2" ${attr}>${opts.map(([v, l]) => `<option value="${esc(v)}"${v === (cur || '') ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+  const take = c.take || 'auto';
+  return `<span class="lbl2">City</span>${sel('data-hc="city"', hoodCities(D).map((x) => [x, x]), city)}
+    <span class="lbl2">Neighbourhood shown first</span>${sel('data-hc="home"', [['', 'Let each client pick'], ...names.map((n) => [n, n])], names.includes(c.home) ? c.home : '')}
+    <p class="hint">Or choose one, for example the area you farm. Clients can always pick their own.</p>
+    <span class="lbl2">Compare with</span>${sel('data-hc="cmp"', [['', `All of ${city}`], ...names.map((n) => [n, n])], names.includes(c.cmp) ? c.cmp : '')}
+    <span class="lbl2">Home type shown first</span>${sel('data-hc="type"', HTYPES.map(([t, l]) => [t, l]), c.type || 'd')}
+    <span class="lbl2">Blocks</span>${BLOCKS.map(([b, l, d]) => tgl(`data-hb="${b}"`, `${l} <small class="muted">· ${d}</small>`, !(c.off || []).includes(b))).join('')}
+    <span class="lbl2">Your take</span>${sel('data-hc="take"', [['auto', 'Write it for me each month'], ['own', 'In my own words'], ['off', "Don't show it"]], take)}
+    ${take === 'own' ? `<textarea class="inp2" data-htext rows="5" maxlength="600" placeholder="A few lines for your clients about this month">${esc(c.text || '')}</textarea>` : take === 'auto' ? '<p class="hint">Written from that month\'s numbers for the client\'s neighbourhood. Shows with your photo.</p>' : ''}
+    <div class="okline">✓ Updates by itself every month</div>
+    <button type="button" class="btn wide ghost" data-plinks style="margin-top:12px">Personal links for clients</button>`;
+}
 function drawPanel() {
   const el = $('#dpanel'); if (!el) return; const L = cur(), pro = isPro();
   $('#rp')?._select?.(PS.m === 'list' || PS.m === 'edit' ? PS.k : null); $('#rp')?._adding?.(PS.m === 'add');
@@ -405,7 +421,8 @@ function drawPanel() {
   } else if (PS.m === 'edit' && L.sections.includes(PS.k)) {
     const k = PS.k, c = L.conf[k] || {}, i = L.sections.indexOf(k);
     let b = '';
-    if (PS.tab === 'data') {
+    if (PS.tab === 'data' && k === 'hoods') b = hoodsPanel(c, L);
+    else if (PS.tab === 'data') {
       if (!USES_AREAS.includes(k)) b = `<p class="hint">${k === 'compare' ? 'This section always shows every area, ranked by typical price.' : 'This section shows your photo, your details and a message box for clients. Change your details from the menu under your photo.'}</p>`;
       else { const own = !!c.areas, ar = c.areas || L.areas, free = areasOf(D).filter((a) => !ar.includes(a));
         b = `<span class="lbl2">Areas in this section</span><div class="seg2"><button type="button" data-own="0" aria-pressed="${!own}">Same as the report</button><button type="button" data-own="1" aria-pressed="${own}">Choose</button></div>
@@ -461,11 +478,17 @@ function wirePanel() {
     if (d.vw) return setLayout({ view: d.vw });
     if (b.id === 'ltreset') { if (!confirm('Go back to the default sections and order?')) return; return setLayout({ ...DEFAULT_LAYOUT, areas: L.areas }); }
     if (b.id === 'savetpl') { P.show = { ...showOf(P), ...snap(cur()), mode: 'template', template: snap(cur()) }; touch('show'); drawTop(); drawPanel(); return alertMsg('Saved as your template. Every new month opens this way.'); }
+    if ('plinks' in d) return personalLinks();
     if (b.id === 'up4') return portal();
     if (d.rm) { P[d.rm] = ''; touch(d.rm); thumbs(); later(); return alertMsg(`Your ${d.rm} was removed.`); } });
   el.addEventListener('change', async (e) => { const t = e.target, k = PS.k, L = cur();
     if (t.dataset.on) { const s = t.dataset.on; if (t.checked) { setLayout({ sections: [...L.sections, s] }); PS = { m: 'list', k: s }; drawPanel(); return setTimeout(() => selectSec(s, true), 80); }
       if (L.sections.length < 2) { t.checked = true; return; } if (PS.k === s) PS.k = null; return setLayout({ sections: L.sections.filter((x) => x !== s) }); }
+    if (t.dataset.hc) { const f = t.dataset.hc, v = t.value || undefined;
+      if (f === 'city') return setConf('hoods', { city: v, home: undefined, cmp: undefined });
+      if (f === 'take') return setConf('hoods', { take: v === 'auto' ? undefined : v });
+      return setConf('hoods', { [f]: f === 'type' && v === 'd' ? undefined : v }); }
+    if (t.dataset.hb) { const off = (L.conf.hoods?.off || []).filter((x) => x !== t.dataset.hb); if (!t.checked) off.push(t.dataset.hb); return setConf('hoods', { off: off.length ? off : undefined }); }
     if (t.matches('[data-aadd]') && t.value) return setConf(k, { areas: [...(L.conf[k]?.areas || L.areas), t.value] });
     if (t.dataset.cf) return setConf(k, { [t.dataset.cf]: t.checked ? undefined : false });
     if (t.matches('[data-size]')) return setConf(k, { size: t.value === 'full' ? 'full' : undefined });
@@ -475,6 +498,7 @@ function wirePanel() {
     const im = t.dataset.img; if (!im || !t.files[0]) return;
     try { const v = await pickImage(im, t.files[0]); if (v) { P[im] = v; touch(im); thumbs(); later(); } } catch (err) { alertMsg(err.message, true); } t.value = ''; });
   let tT; el.addEventListener('input', (e) => { const t = e.target;
+    if (t.matches('[data-htext]')) { clearTimeout(tT); tT = setTimeout(() => setConf('hoods', { text: t.value.trim() || undefined }), 450); return; }
     if (t.matches('[data-title]')) { clearTimeout(tT); tT = setTimeout(() => setConf(PS.k, { title: t.value.trim() || undefined }), 350); return; }
     const k = t.dataset.k; if (!k || k === 'role') return; let v = t.value.trim();
     if (k === 'website' && v && !/^https?:\/\//.test(v)) v = 'https://' + v; if (k === 'phone') v = fullPhone(v); P[k] = v; touch(k); later(); });
@@ -503,16 +527,69 @@ function shareDrop(btn) {
   if (btn.parentElement.querySelector('.shmenu')) return closeMenu(); if (!ready()) return;
   saveNow(); closeMenu(); const pro = isPro(), m = document.createElement('div'); m.className = 'shmenu dmenu'; m.setAttribute('role', 'menu');
   const it = (k, ic, l, sub, off, pv) => `<button type="button" role="menuitem" data-s="${k}"${off ? ' disabled' : ''}><span class="i">${sv(ic)}</span><span><b>${l}</b>${sub ? `<small>${sub}</small>` : ''}</span>${pv ? `<em>${off ? 'Pro' : 'Preview ›'}</em>` : ''}</button>`;
-  m.innerHTML = `<p class="mh">Send your report</p>${it('copy', 'link', 'Copy link', 'Paste it in a text, email or post')}${it('email', 'mail', 'Email for your clients', 'A finished message for Gmail or your CRM')}${it('qr', 'qr', 'QR code', 'For open houses, flyers and signs')}${isPhone() ? it('native', 'share', 'Share from this phone') : ''}
+  m.innerHTML = `<p class="mh">Send your report</p>${it('copy', 'link', 'Copy link', 'Paste it in a text, email or post')}${it('email', 'mail', 'Email for your clients', 'A finished message for Gmail or your CRM')}${it('qr', 'qr', 'QR code', 'For open houses, flyers and signs')}${it('plinks', 'link', 'Personal links', 'One link per client, with their name and area', !pro)}${isPhone() ? it('native', 'share', 'Share from this phone') : ''}
     <hr><p class="mh">Images and PDF</p>${it('post', 'ig', 'Instagram post', 'Square image', !pro, 1)}${it('story', 'ig', 'Instagram story', 'Tall image', !pro, 1)}${it('pdf', 'dl', 'PDF', 'To print or attach', !pro, 1)}`;
   btn.parentElement.appendChild(m);
   m.onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b || b.disabled) return; const k = b.dataset.s; closeMenu();
     if (k === 'copy') return act('link', record('link'));
     if (k === 'email') return act('email', record('email'));
     if (k === 'native') { const t = shareText(reportLink(location.origin, P, 'Greater Vancouver')); navigator.share({ title: t.subject, text: t.short.replace(/: \S+$/, '.'), url: t.url }).catch(() => {}); return record('link').catch(() => {}); }
+    if (k === 'plinks') return personalLinks();
     if (k === 'qr') return record('link').then((x) => qrModal({ title: 'Your report QR code', text: 'Anyone who scans this with a phone camera opens your report.', url: linkOf(x), file: `${P.slug}-QR.png` })).catch((er) => alertMsg(er.message, true));
     openPreview(k); };
   setTimeout(() => document.addEventListener('click', function off(ev) { if (!ev.target.closest('.dmenu') && !ev.target.closest('#sharebtn')) { closeMenu(); document.removeEventListener('click', off, true); } }, true));
+}
+/* Personal links: one link per client, with their name and neighbourhood. Shows what each client looked at. */
+const PL_DEMO = 'mup_demo_plinks';
+const plLink = (it) => `${location.origin}/r/${P.slug}?p=${it.id}`;
+const ago = (d) => { if (!d) return ''; const m = (Date.now() - new Date(d)) / 6e4; return m < 60 ? 'just now' : m < 1440 ? `${Math.round(m / 60)} h ago` : m < 2880 ? 'yesterday' : `${Math.round(m / 1440)} days ago`; };
+const timesW = (n) => (n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`);
+async function personalLinks() {
+  if (!isPro()) return alertMsg('Personal links are part of Pro.', true);
+  if (!ready()) return;
+  document.querySelector('.plm')?.remove(); const W = document.createElement('div'); W.className = 'plm'; document.body.appendChild(W);
+  let data = { items: [], weekly: true, top: [] }, city = defaultCity(D, cur().conf.hoods || {}, cur().areas), err = '';
+  const close = () => { W.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => e.key === 'Escape' && close(); document.addEventListener('keydown', k1);
+  async function load() {
+    if (cfg.demo) { try { data.items = JSON.parse(localStorage.getItem(PL_DEMO) || '[]'); } catch { data.items = []; }
+      if (!data.items.length) data.items = [{ id: 'sample', name: 'the Chen family', city: 'Coquitlam', hood: 'Burke Mountain', type: 'd', opens: 3, last_opened_at: new Date(Date.now() - 2 * 864e5).toISOString(), looked: [['Westwood Plateau', 3], ['Maillardville', 1]], sample: true }];
+      data.top = [['Westwood Plateau', 9], ['Burke Mountain', 6], ['Coquitlam West', 4]]; return; }
+    try { data = await api('/api/links'); } catch (e) { err = e.message; }
+  }
+  const tname = (t) => (HTYPES.find(([k]) => k === t) || HTYPES[0])[1];
+  function draw() {
+    const names = hoodNames(D, city), it = (x) => { const looked = x.looked || [];
+      const act = looked.length ? `<span class="pltag">Curious</span>Looked at ${looked.map(([h, n]) => `<b>${esc(h)}</b> ${timesW(n)}`).join(', ')}`
+        : x.last_opened_at ? `Opened ${ago(x.last_opened_at)}${x.opens > 1 ? ` · ${x.opens} visits` : ''}, only looked at their area` : 'Not opened yet';
+      return `<div class="plr"><div><b>${esc(x.name)}</b><small>${esc(x.hood)} · ${esc(tname(x.type))}</small></div><div class="pla">${act}</div>
+        <div class="plb"><button type="button" class="linkbtn" data-plc="${esc(x.id)}">Copy link</button><button type="button" class="plx" data-pld="${esc(x.id)}" aria-label="Remove ${esc(x.name)}" title="Remove">✕</button></div></div>`; };
+    W.innerHTML = `<div class="plbox" role="dialog" aria-modal="true" aria-labelledby="plt"><div class="plh"><div><h3 id="plt">Personal links</h3><p class="muted small">Each client gets their own link with their name and neighbourhood. It updates itself every month, so send it once.</p></div><button type="button" class="x" data-plx aria-label="Close">✕</button></div>
+      <div class="plf"><input type="text" id="pln" maxlength="60" placeholder="Client name, e.g. the Chen family">
+        <select id="plcity" aria-label="City">${hoodCities(D).map((c) => `<option${c === city ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>
+        <select id="plh" aria-label="Neighbourhood"><option value="">Neighbourhood</option>${names.map((n) => `<option>${esc(n)}</option>`).join('')}</select>
+        <select id="plt2" aria-label="Home type">${HTYPES.map(([t, l]) => `<option value="${t}">${l}</option>`).join('')}</select>
+        <button type="button" class="btn" data-plmake>Create link</button></div>
+      ${err ? `<p class="err small">${esc(err)}</p>` : ''}
+      <div class="pll">${data.items.length ? data.items.map(it).join('') : '<p class="muted small center">No personal links yet. Add your first client above.</p>'}</div>
+      ${data.top?.length ? `<p class="small muted">Most-viewed neighbourhoods in the last 30 days (everyone who opened your report): ${data.top.map(([h, n]) => `${esc(h)} (${n})`).join(', ')}.</p>` : ''}
+      <label class="tgr"><span>Email me once a week with what clients looked at</span><input type="checkbox" data-plw${data.weekly !== false ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>
+      <div class="plsoon"><b>Add many at once</b> <span class="pltag2">Later</span><br>Upload a contact list or connect your CRM (like Follow Up Boss) to make links for everyone automatically.</div></div>`;
+  }
+  W.onclick = async (e) => { if (e.target === W || e.target.closest('[data-plx]')) return close(); const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.plc) { const x = data.items.find((i) => i.id === b.dataset.plc); return navigator.clipboard.writeText(plLink(x)).then(() => alertMsg(`Link for ${x.name} copied.`)).catch(() => alertMsg('Copying was blocked by the browser.', true)); }
+    if (b.dataset.pld) { const x = data.items.find((i) => i.id === b.dataset.pld); if (!confirm(`Remove the personal link for ${x.name}? The link will stop showing their name.`)) return;
+      data.items = data.items.filter((i) => i.id !== x.id); if (cfg.demo) { try { localStorage.setItem(PL_DEMO, JSON.stringify(data.items.filter((i) => !i.sample))); } catch {} } else api('/api/links', { action: 'delete', id: x.id }).catch((er) => alertMsg(er.message, true)); return draw(); }
+    if ('plmake' in b.dataset) { const name = $('#pln').value.trim(), hood = $('#plh').value, type = $('#plt2').value;
+      if (!name || !hood) return alertMsg('Add the client name and pick their neighbourhood.', true);
+      let x; b.disabled = true;
+      try { if (cfg.demo) { x = { id: Math.random().toString(36).slice(2, 10), name, city, hood, type, opens: 0, looked: [] }; data.items = [x, ...data.items.filter((i) => !i.sample)]; localStorage.setItem(PL_DEMO, JSON.stringify(data.items)); }
+        else { x = (await api('/api/links', { name, city, hood, type })).item; data.items = [x, ...data.items]; } }
+      catch (er) { b.disabled = false; return alertMsg(er.message, true); }
+      draw(); navigator.clipboard?.writeText(plLink(x)).then(() => alertMsg(`Link for ${name} created and copied. Paste it in a text or email to them.`)).catch(() => alertMsg(`Link for ${name} created.`)); } };
+  W.onchange = (e) => { const t = e.target;
+    if (t.id === 'plcity') { city = t.value; const n = $('#pln').value; draw(); $('#pln').value = n; }
+    if (t.matches('[data-plw]')) { data.weekly = t.checked; if (!cfg.demo) api('/api/links', { action: 'weekly', on: t.checked }).catch((er) => alertMsg(er.message, true)); alertMsg(t.checked ? 'Weekly email is on.' : 'Weekly email is off.'); } };
+  draw(); await load(); draw(); $('#pln')?.focus();
 }
 // The preview window: see the image (or PDF) first, choose what's on it, then download, post or send to a phone.
 async function openPreview(kind) {

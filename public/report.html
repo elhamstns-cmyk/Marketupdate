@@ -7,7 +7,7 @@
 import { areasOf, slug, SAMPLES, loadFonts } from '/js/report.js';
 import { mountReport } from '/js/board.js';
 const s = location.pathname.split('/')[2], q = new URLSearchParams(location.search);
-const r = await fetch('/api/report?slug=' + encodeURIComponent(s) + (q.get('v') ? '&v=' + encodeURIComponent(q.get('v')) : '')), j = await r.json();
+const r = await fetch('/api/report?slug=' + encodeURIComponent(s) + (q.get('v') ? '&v=' + encodeURIComponent(q.get('v')) : '') + (q.get('p') ? '&p=' + encodeURIComponent(q.get('p')) : '')), j = await r.json();
 const root = document.getElementById('root');
 if (!r.ok) root.innerHTML = `<p style="text-align:center;padding:60px 20px;font-family:system-ui">${j.error || 'This report is not available right now.'}</p>`;
 else {
@@ -19,7 +19,9 @@ else {
   document.title = `${area || 'Greater Vancouver'} Market Report, ${j.report.month} | ${A.name}`;
   const pick = (q.get('areas') || '').split(',').filter(Boolean), areas = areasOf(j.report).filter((a) => pick.includes(slug(a))).sort((a, b) => pick.indexOf(slug(a)) - pick.indexOf(slug(b)));
   loadFonts(['modern']);
-  mountReport(root, j.report, A, { area, areas });
+  // What a client looks at in Neighbourhoods goes to the agent (named only with a personal link).
+  const track = j.sample ? null : (kind, d) => { try { navigator.sendBeacon('/api/track', new Blob([JSON.stringify({ slug: s, p: j.personal?.id || '', kind, ...d })], { type: 'text/plain' })); } catch {} };
+  mountReport(root, j.report, A, { area, areas, personal: j.personal, track });
   document.body.style.background = getComputedStyle(root).backgroundColor;
 }
 </script></body></html>

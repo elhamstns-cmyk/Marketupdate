@@ -13,5 +13,11 @@
       "source": "/s/:slug",
       "destination": "/share"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/weekly",
+      "schedule": "0 16 * * 1"
+    }
   ]
 }
