@@ -1,14 +1,17 @@
 // The "Neighbourhoods" section: the client's own neighbourhood first, every neighbourhood in the city as coloured tiles,
 // who grew the most, two neighbourhoods side by side, and the agent's take. Data: D.hoods (see scripts/hoods-from-gvr.py).
 import { esc, money, first } from './report.js';
+import { HOOD_BLOCK_KEYS } from './layout.js';
 
 // Positions in each neighbourhood's numbers: [price, 1m, 3m, 6m, 1y, 3y, 5y, 10y, since January]
 const I = { p: 0, m1: 1, m3: 2, m6: 3, y1: 4, y3: 5, y5: 6, y10: 7, sj: 8 };
 export const HTYPES = [['d', 'Detached', 'detached homes'], ['t', 'Townhouse', 'townhouses'], ['c', 'Condo', 'condos']];
 const PERIODS = [['m1', 'Last month'], ['sj', 'Since January'], ['y1', '1 year'], ['y10', '10 years']];
 const SCALE = { m1: 5, sj: 10, y1: 15, y5: 30, y10: 60 };
-export const BLOCKS = [['hero', 'Their neighbourhood', 'Big price, and the change in dollars'], ['tiles', 'Tiles at a glance', 'Every neighbourhood, coloured'],
-  ['rank', 'Who grew the most', 'Ranked bars'], ['compare', 'Compare two', 'Side by side'], ['take', 'Your take', 'A short note with your photo']];
+// Labels for the parts an agent can switch off. The keys come from layout.js, so the server accepts exactly these.
+const BLOCK_LABELS = { hero: ['Their neighbourhood', 'Big price, and the change in dollars'], tiles: ['Tiles at a glance', 'Every neighbourhood, coloured'],
+  rank: ['Who grew the most', 'Ranked bars'], compare: ['Compare two', 'Side by side'], take: ['Your take', 'A short note with your photo'] };
+export const BLOCKS = HOOD_BLOCK_KEYS.map((k) => [k, ...BLOCK_LABELS[k]]);
 const CITY = '*';
 
 export const hoodCities = (D) => Object.keys(D.hoods || {}).sort();

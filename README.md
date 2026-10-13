@@ -7,7 +7,7 @@ Branded monthly Greater Vancouver market reports for REALTORS®, sold by subscri
 - `supabase/schema.sql` database tables
 - `data/seed-report.js` sample month used for the demo report
 
-No packages to install. Preview locally with `npm run dev` (runs in sample mode until keys are added).
+No packages to install. Preview locally with `npm run dev` (runs in sample mode until keys are added). Run the checks with `npm test` before every upload. For how the code fits together, read `ARCHITECTURE.md`.
 
 ## Going live
 1. **Supabase**: new project, run `supabase/schema.sql` in the SQL editor. In Authentication > URL Configuration set the Site URL to your domain and add `https://themarketupdate.ca/app` as a redirect URL. In the Magic Link email template, add `{{ .Token }}` so agents also get a code.

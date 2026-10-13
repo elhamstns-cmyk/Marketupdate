@@ -2,6 +2,12 @@
   "name": "market-update-pro",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
-  "scripts": { "dev": "node scripts/dev.mjs", "stripe:setup": "node scripts/stripe-setup.mjs" }
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "stripe:setup": "node scripts/stripe-setup.mjs",
+    "test": "node --test tests/*.test.mjs"
+  }
 }

@@ -204,7 +204,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 | `latestReport()`, `reportFor(key)` | Read from `reports`. Both pass through `withHistory()`. |
 | `withHistory(D)` | Fills `history` from `data/history.js`, area by area, when it is missing. Adds the seed's `hoods` when the month matches. |
 | `forPlan(D, plan)` | Essentials: keeps only Greater Vancouver and strips `areas`, `hoods` and most history |
-| `cleanTheme`, `cleanShow` (with `cleanLayout`, `cleanConf`, `cleanHoods`) | Validate agent input before saving |
+| `cleanTheme`, `cleanShow` | Validate agent input before saving. `cleanShow` is re-exported from `public/js/layout.js`, which the browser uses too. |
 | `publicAgent(p)` | The fields safe to show on a public report. **Never put personal or private fields in it.** |
 | `stripe(path, params)`, `verifyStripe(raw, header, secret)` | Stripe REST call and webhook signature check |
 | `sendEmail(msg)`, `smtpSend(list)` | Email |
@@ -245,6 +245,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 
 | Module | Role | Key exports |
 |---|---|---|
+| `layout.js` | **Layout rules shared with the server** (no DOM, no imports). Section list, defaults, `NEW_SECTIONS`, and the cleaning of everything an agent can save. `lib/util.js` imports it too. | `SECTIONS`, `SEC_IDS`, `NEW_SECTIONS`, `DEFAULT_LAYOUT`, `MAX_AREAS`, `TYPE_KEYS`, `HOOD_BLOCK_KEYS`, `cleanAreas`, `cleanHoods`, `cleanConf`, `cleanLayout`, `cleanShow`, `layoutOf(show, areas)`, `sameLayout` |
 | `board.js` | **The report renderer.** Used by the public report, the dashboard canvas and previews. | `mountReport(root, D, A, opts)`, `SECTIONS`, `SEC_IDS`, `DEFAULT_LAYOUT`, `layoutOf`, `cleanConf`, `cleanHoods`, `sameLayout`, `MAX_AREAS`, `PAIRABLE`, `USES_TYPES`, `USES_AREAS`, `TYPE_KEYS` |
 | `hoods.js` | Neighbourhoods section (its own state and events) | `makeHoods(ctx)`, `HTYPES`, `BLOCKS`, `hoodCities`, `hoodNames`, `defaultCity` |
 | `app.js` | The Create page (dashboard). Long file. | Not imported by others. Runs on load (top-level `await`). |
@@ -328,7 +329,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
    - `python3 scripts/growth-from-gvr.py <stats-package.pdf> report.json` adds `growth`
    - `python3 scripts/hoods-from-gvr.py <this-month.xlsx> <january.xlsx> report.json` adds `hoods`
    - The history update uses `scripts/history-from-gvr.py`; see the script's header. `data/history.js` is the fallback.
-4. **Publish:** `/admin` → paste the JSON → send a test → publish. `admin-publish → validate()` checks the month, `asof`, the 9 cities × 3 types × 4 metrics, and at least 15 areas.
+4. **Publish:** `/admin` → paste the JSON → send a test → publish. `admin-publish → validate()` checks the month, `asof`, the 9 cities × 3 types × 4 metrics, and at least 15 areas. When `growth`, `hoods` or `history` are included, it checks their shape too: at least 100 neighbourhood prices, and a price for the report month in every area.
 5. **Optionally refresh the seed:** update `data/seed-report.js` so demo mode and the fallback show the newest month.
 
 Old `.xls` files from before 2024 need LibreOffice (`soffice --convert-to xlsx`) or `xlrd` before pandas can read them.
@@ -353,7 +354,7 @@ Old `.xls` files from before 2024 need LibreOffice (`soffice --convert-to xlsx`)
 
 - No new npm dependencies. Plain ES modules, compact style, comments in plain English on the line above.
 - Escape all user and data text with `esc()` before putting it in HTML.
-- Validate everything the server saves (`clean*` helpers). If you change section or config keys, **update both `board.js` and `util.js`.** The same rules exist in both files.
+- Validate everything the server saves. **Section ids and layout settings live only in `public/js/layout.js`.** The browser and the server both use it, so change them there and nowhere else. Keep that file free of DOM code and imports.
 - Every route works in `DEMO` mode.
 - Keep `forPlan()` in step with what Essentials may see.
 
@@ -368,8 +369,8 @@ Old `.xls` files from before 2024 need LibreOffice (`soffice --convert-to xlsx`)
 
 | Task | Steps |
 |---|---|
-| **New report section** | 1) `board.js`: add to `SECTIONS` (id, name, description), write `R.<id>` (and `C.<id>` if it draws after render), add to `NEW_SECTIONS`, and to `PAIRABLE`, `USES_AREAS` or `USES_TYPES` if relevant. 2) `util.js`: add the id to `SECTION_KEYS`, and to `cleanConf` if it has settings. 3) `app.js`: an icon in `SIC` and, if needed, a settings block in `drawPanel()` (follow `hoodsPanel`). 4) Styles in `board.css`, under `.bd`. 5) If it needs new data, extend the report JSON, `admin-publish → validate()` and `forPlan()`. |
-| **New data in the report** | Add it to the report document, the pipeline script, `seed-report.js` (demo), `withHistory()` (fallback for old months, if sensible) and `forPlan()`. |
+| **New report section** | 1) `layout.js`: add it to `SECTIONS` (id, name, description) and `NEW_SECTIONS`. If it has settings, extend `cleanConf` the way `cleanHoods` does. 2) `board.js`: write `R.<id>` (and `C.<id>` if it draws after render), and add it to `PAIRABLE`, `USES_AREAS` or `USES_TYPES` if relevant. 3) `app.js`: an icon in `SIC` and, if needed, a settings block in `drawPanel()` (follow `hoodsPanel`). 4) Styles in `board.css`, under `.bd`. 5) If it needs new data, extend the report JSON, `admin-publish → validate()` and `forPlan()`. |
+| **New data in the report** | Add it to the report document, the pipeline script, `seed-report.js` (demo), `withHistory()` (fallback for old months, if sensible), `forPlan()`, the checks in `admin-publish → validate()` and a test in `tests/data.test.mjs`. |
 | **New API route** | See §5.2. Register it in `api/[fn].js`, handle `DEMO`, check auth and plan. |
 | **New table** | Append it to `supabase/schema.sql` with RLS enabled, and give the owner just that block. |
 | **Email** | `smtpSend([{to, subject, html, text}])` returns the number sent. Inline styles only. Plain-text copy too. |
@@ -380,13 +381,23 @@ Old `.xls` files from before 2024 need LibreOffice (`soffice --convert-to xlsx`)
 
 ## 10. Testing
 
-There are no automated tests. The current practice is:
+Run **`npm test`** before every upload. It uses Node's built-in test runner (`node --test`), so there is nothing to install. Everything runs in sample mode, with no database and no emails.
 
-1. Start the dev server (§2).
-2. Use Playwright with the preinstalled Chromium to open `/r/demo`, `/r/demo?p=x` and `/app?plan=pro` (after setting `mup_demo_profile`), at desktop width and at 390px (phone).
-3. Click through the feature and take screenshots.
-4. Collect `pageerror` events. Font requests to googleapis can fail in a sandbox, so ignore those.
-5. For server changes, run `curl` against `/api/*` in demo mode, and run `node -e "import('./api/[fn].js')"` to catch import errors.
+| File | What it checks |
+|---|---|
+| `tests/layout.test.mjs` | Shared layout rules: unknown sections dropped, area limits, `NEW_SECTIONS` added once, Neighbourhoods settings, `cleanShow`, that the browser and server use the same functions, and that every Neighbourhoods block has a label |
+| `tests/data.test.mjs` | The built-in month passes the publish checks. Every area has 12 months of price history. Neighbourhood data is well formed. Broken data is rejected. |
+| `tests/api.test.mjs` | Every route answers in sample mode: config, report, personal link, tracking, cron password, admin password, 404 |
+| `tests/browser.test.mjs` | Real pages in Chromium: the report draws every default section, adding a city adds a chart line, the personal link hero shows, picking and peeking at a neighbourhood work, and the Create page shows the Neighbourhoods settings. **Skipped when Playwright isn't installed.** Set `PLAYWRIGHT_MODULE` to its `index.mjs` if it's installed globally. |
+| `tests/helpers.mjs` | `call(path, {method, body, headers})` runs a route the way Vercel does, without a server |
+
+`.github/workflows/test.yml` runs `npm test`, including the browser checks, on GitHub on every push or upload. A red ✗ next to a commit means a check failed.
+
+**Rules:**
+- When you fix a bug, add a test that would have caught it.
+- When you add a route or a report field, add a test for it.
+
+For visual changes, still take Playwright screenshots at desktop width and at 390px, and show them to the owner. The automatic checks don't judge how something looks.
 
 ---
 
@@ -408,10 +419,9 @@ There are no automated tests. The current practice is:
 
 **Technical debt:**
 
-- Section and config cleaning exists twice (`board.js` and `util.js`). Move it into one shared module importable by both.
 - `app.js` and `board.js` are large. Split out the panel, share and preview code.
 - `/api/track` has no rate limit.
-- `admin-publish` doesn't validate `hoods` or `history`.
 - Logos and photos are stored as data URLs in `profiles`. Move them to Storage.
 - `.env.example` and the README still mention Resend and "custom colours/fonts". Both are outdated.
 - `report.css`, the `*Old` exports and the legacy `show` on/off keys are leftovers from earlier designs. Check before deleting.
+- The browser checks are only a smoke test. Add a test whenever you fix a bug.

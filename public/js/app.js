@@ -1,4 +1,4 @@
-import { mountReport, SECTIONS, layoutOf, DEFAULT_LAYOUT, MAX_AREAS, sameLayout, PAIRABLE, USES_TYPES, USES_AREAS, TYPE_KEYS } from './board.js';
+import { mountReport, SECTIONS, SEC_IDS, layoutOf, DEFAULT_LAYOUT, MAX_AREAS, sameLayout, PAIRABLE, USES_TYPES, USES_AREAS, TYPE_KEYS } from './board.js';
 import { esc, areasOf, STYLES, FONTS, BASIC_THEME, loadFonts, SHOW_NUMBERS, SHOW_SECTIONS, DEFAULT_SHOW, TYPES, T1, showOf, monthKey, COVERS } from './report.js';
 import { reportLink, emailDraft, caption, socialImage, download } from './exports.js';
 import { calmImage, calmCaption, imgOpts, IMG_PARTS } from './social2.js';
@@ -320,7 +320,7 @@ const TYPE_NAME = { detached: 'Detached', townhome: 'Townhouse', condo: 'Condo' 
 const EYE = '<svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 let PS = { m: 'list', k: null, tab: 'data' }, ZOOM = 0.85, IGS = null;
 const cur = () => layoutOf(agent(), D);
-const snap = (L) => ({ sections: L.sections, areas: L.areas, agentTop: L.agentTop, clientAreas: L.clientAreas, view: L.view, conf: L.conf });
+const snap = (L) => ({ sections: L.sections, known: SEC_IDS, areas: L.areas, agentTop: L.agentTop, clientAreas: L.clientAreas, view: L.view, conf: L.conf });
 const mode = () => (P.show?.mode === 'template' && P.show?.template ? 'template' : 'default');
 // Every layout change goes through here. On "My template", the template follows along.
 function setLayout(patch, redraw = true) {

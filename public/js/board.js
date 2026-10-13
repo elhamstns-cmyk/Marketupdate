@@ -2,58 +2,16 @@
 // mountReport(root, D, A, opts) draws it with the agent's branding (A) and layout (A.show).
 import { get, money, esc, slug, areasOf, themeVars, palette, mix, lum, phoneFmt, roleLabel, askCopy, first, sourceLine, market, monthKey, TN } from './report.js';
 import { salesGroup } from './charts.js';
-import { makeHoods, BLOCKS } from './hoods.js';
+import { makeHoods } from './hoods.js';
 
 /* ---------- sections and layout ---------- */
-export const SECTIONS = [
-  ['numbers', 'Key numbers', 'Price, homes sold, homes for sale, days on market'],
-  ['trend', 'Typical price over 12 months', 'Line graph, one line per area'],
-  ['market', "Buyer's or seller's market?", 'Where each area sits on the scale'],
-  ['types', 'Prices by home type', 'Detached, townhouse and condo, with pictures'],
-  ['hoods', 'Neighbourhoods', "Your client's neighbourhood, every neighbourhood at a glance, who grew most"],
-  ['growth', 'Long-term price growth', 'Growth over 3, 5 and 10 years'],
-  ['summary', 'Summary', 'The key points in plain words'],
-  ['sold', 'Homes sold each month', 'Bar chart of the last 12 months'],
-  ['compare', 'How areas compare', 'Every area ranked by price'],
-  ['contact', 'Contact me', 'Your photo and a message box for clients'],
-];
-const SEC_IDS = SECTIONS.map((s) => s[0]);
-export const MAX_AREAS = 6;
+// The section list and layout rules live in layout.js (shared with the server). Re-exported here for app.js.
+import { SECTIONS, SEC_IDS, MAX_AREAS, TYPE_KEYS, DEFAULT_LAYOUT, cleanConf, cleanHoods, sameLayout, layoutOf as layoutFrom } from './layout.js';
+export { SECTIONS, SEC_IDS, MAX_AREAS, TYPE_KEYS, DEFAULT_LAYOUT, cleanConf, cleanHoods, sameLayout };
 // One calm look for every report: white cards on soft grey, blue accent, Inter.
 export const CALM = { style: 'calm', ac: '#1d4fbf', bg: '#ffffff', font: 'modern' };
-export const DEFAULT_LAYOUT = { sections: SEC_IDS.filter((k) => k !== 'compare'), areas: ['Greater Vancouver'], agentTop: true, clientAreas: true, view: 'side', conf: {} };
 // The agent's saved layout, cleaned against this month's data.
-export function layoutOf(A, D) {
-  const s = (A && A.show) || {}, all = D ? areasOf(D) : null;
-  const sections = Array.isArray(s.sections) ? s.sections.filter((k, i, a) => SEC_IDS.includes(k) && a.indexOf(k) === i) : [...DEFAULT_LAYOUT.sections];
-  let areas = Array.isArray(s.areas) ? s.areas.filter((a, i, x) => typeof a === 'string' && x.indexOf(a) === i && (!all || all.includes(a))).slice(0, MAX_AREAS) : [];
-  if (!areas.length) areas = ['Greater Vancouver'];
-  return { sections, areas, agentTop: s.agentTop !== false, clientAreas: s.clientAreas !== false, view: s.view === 'one' ? 'one' : 'side', conf: cleanConf(s.conf, all) };
-}
-// Per-section choices: title, its own areas, home types, line under the title, explanation, width.
-export const TYPE_KEYS = ['detached', 'townhome', 'condo'];
-export function cleanConf(c, all) {
-  const o = {}; if (!c || typeof c !== 'object') return o;
-  for (const k of SEC_IDS) { const x = c[k]; if (!x || typeof x !== 'object') continue; const y = {};
-    if (typeof x.title === 'string' && x.title.trim()) y.title = x.title.trim().slice(0, 70);
-    if (Array.isArray(x.areas)) { const a = x.areas.filter((v, i, z) => typeof v === 'string' && z.indexOf(v) === i && (!all || all.includes(v))).slice(0, MAX_AREAS); if (a.length) y.areas = a; }
-    if (Array.isArray(x.types)) { const t = x.types.filter((v) => TYPE_KEYS.includes(v)); if (t.length && t.length < 3) y.types = t; }
-    for (const f of ['sub', 'note']) if (x[f] === false) y[f] = false;
-    if (x.size === 'full') y.size = 'full';
-    if (k === 'hoods') Object.assign(y, cleanHoods(x));
-    if (Object.keys(y).length) o[k] = y; }
-  return o;
-}
-// Neighbourhoods: city, the neighbourhood shown first, what to compare with, home type, blocks switched off, the agent's take.
-const NAME_OK = (v) => typeof v === 'string' && v.length > 1 && v.length < 60;
-export function cleanHoods(x) { const y = {};
-  for (const f of ['city', 'home', 'cmp']) if (NAME_OK(x[f])) y[f] = x[f];
-  if (['d', 't', 'c'].includes(x.type)) y.type = x.type;
-  if (Array.isArray(x.off)) { const o = x.off.filter((b, i, a) => BLOCKS.some(([k]) => k === b) && a.indexOf(b) === i); if (o.length) y.off = o; }
-  if (x.take === 'off' || x.take === 'own') y.take = x.take;
-  if (typeof x.text === 'string' && x.text.trim()) y.text = x.text.trim().slice(0, 600);
-  return y; }
-export const sameLayout = (a, b) => JSON.stringify([a.sections, a.agentTop, a.clientAreas, a.view, a.conf || {}]) === JSON.stringify([b.sections, b.agentTop, b.clientAreas, b.view, b.conf || {}]);
+export const layoutOf = (A, D) => layoutFrom(A && A.show, D ? areasOf(D) : null);
 // Which sections can be set to half or full width, and which use areas or home types.
 export const PAIRABLE = ['trend', 'market', 'summary', 'sold'];
 export const USES_TYPES = ['market', 'types', 'growth', 'sold'];
@@ -196,6 +154,7 @@ export function mountReport(root, D, A, opts = {}) {
     const ser = sh.map((a) => { const h = D.history?.price?.composite?.[a] || {}, base = h[keys.find((k) => h[k])];
       return { a, c: one ? 'var(--ac)' : colour(a), v: keys.map((k) => (h[k] ? (one ? h[k] : (h[k] / base - 1) * 100) : null)) }; }).filter((s) => s.v.filter((x) => x != null).length > 1);
     if (!ser.length) { el.innerHTML = '<p class="na">Not enough history for this area yet.</p>'; return; }
+    const miss = sh.filter((a) => !ser.some((x) => x.a === a));
     const W = Math.max(280, el.clientWidth || 600), H = W < 480 ? 200 : 236, l = 6, r = one ? 62 : 48, t = 12, b = 28, vals = ser.flatMap((s) => s.v.filter((x) => x != null));
     let lo = Math.min(...vals), hi = Math.max(...vals); if (!one) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); } const pad = (hi - lo || Math.abs(hi) * 0.05 || 1) * 0.12; lo -= pad; hi += pad;
     const st = niceStep(hi - lo, 4), x = (i) => l + (i * (W - l - r)) / 11, y = (v) => t + ((hi - v) / (hi - lo)) * (H - t - b);
@@ -205,7 +164,7 @@ export function mountReport(root, D, A, opts = {}) {
     const path = (s) => s.v.map((v, i) => (v == null ? '' : `${x(i).toFixed(1)},${y(v).toFixed(1)}`)).filter(Boolean).join(' ');
     if (one) { const s = ser[0], pts = s.v.map((v, i) => [i, v]).filter((q) => q[1] != null); g += `<path d="M${pts.map(([i, v]) => `${x(i)},${y(v)}`).join('L')}L${x(pts[pts.length - 1][0])},${H - b}L${x(pts[0][0])},${H - b}Z" fill="var(--ac)" opacity=".07"/>`; }
     g += ser.map((s) => `<polyline fill="none" stroke="${s.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" points="${path(s)}"/>${s.v[11] != null ? `<circle cx="${x(11)}" cy="${y(s.v[11])}" r="4" fill="${s.c}"/>` : ''}`).join('');
-    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Typical price over the last 12 months">${g}<line class="hx" y1="${t}" y2="${H - b}" opacity="0"/><g class="hd"></g><rect width="${W}" height="${H}" fill="transparent"/></svg><div class="ctip"></div>`;
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Typical price over the last 12 months">${g}<line class="hx" y1="${t}" y2="${H - b}" opacity="0"/><g class="hd"></g><rect width="${W}" height="${H}" fill="transparent"/></svg><div class="ctip"></div>${miss.length ? `<p class="na">No 12-month history is published for ${miss.map(esc).join(', ')}.</p>` : ''}`;
     const sv = el.querySelector('svg'), tip = el.querySelector('.ctip'), hx = sv.querySelector('.hx'), hd = sv.querySelector('.hd');
     const fmt = (v) => (one ? money(v) : signed(v));
     const move = (e) => { const bb = sv.getBoundingClientRect(), px = ((e.clientX - bb.left) / bb.width) * W, i = Math.max(0, Math.min(11, Math.round(((px - l) / (W - l - r)) * 11)));
