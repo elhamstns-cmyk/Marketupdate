@@ -177,10 +177,30 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 | S10 How areas compare | `compare` (off by default) | `R.compare`, `C.rank` |
 | S11 Interest rates | Not built yet (rates-ui.png) | — |
 
+**First page and buying a subscription** (the path a new agent takes, in order):
+
+| Name | What it is | Code |
+|---|---|---|
+| P1 First page | Before logging in. P1.1 top menu, P1.2 sign-up box, P1.3 sample reports, P1.4 make it yours, P1.5 footer | `public/index.html` |
+| P2 Pricing page | "Pricing" in the top menu | `public/plans.html` |
+| P3 Sign up / Log in | Step 1 (Account) | `app.js → showLogin()`, `showVerify()`, `showForgot()` |
+| P4 Your report preview | Step 2: their details next to their report | `app.js → showPreview()` |
+| P5 Choose your plan | Step 3: Essentials or Pro, monthly or yearly | `app.js → showPlans()` |
+| P6 Payment | Step 4: Stripe Checkout (Stripe's own page) | `lib/routes/checkout.js` |
+
 **Other pages:**
 
 | Name | Where |
 |---|---|
+| P7 PDF page | `public/print.html` |
+| P8 Share page (story link) | `public/share.html` |
+| P9 Admin | `public/admin.html` |
+| E1 Emails | "Report ready" (`admin-publish`), welcome (`stripe-webhook`), weekly (`weekly`) |
+| I1 Instagram images | `social2.js → calmImage()` |
+
+Labelled pictures: `docs/map-*.png`, and Ella's pinned "Market Update Part Names" page on claude.ai.
+
+---|---|
 | P1 First page (landing) | `public/index.html` |
 | P2 Plans and checkout | `public/plans.html`, `app.js → showPlans()` |
 | P3 Sign in / sign up | `app.js → showLogin()` |
