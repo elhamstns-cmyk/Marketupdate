@@ -2,11 +2,6 @@
 
 Read this file first. It explains what the product does, how the code is organised, how data flows, the conventions to follow, and where to add new features. It reflects the code as of October 2026.
 
-> **Repository state:** two things in this guide may not be in the repository yet. They are in the latest `site-update.zip` and get there when the owner uploads it:
-> - `NEW_SECTIONS` / `known` in `board.js`
-> - the history and neighbourhood fill-in in `util.withHistory()`
->
-> If `public/js/board.js` has no `NEW_SECTIONS`, that update hasn't been uploaded.
 
 ---
 
@@ -229,7 +224,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 | `admin-publish` | `ADMIN_TOKEN` | `validate(report)`, then upsert into `reports`, then optionally email every subscriber "your report is ready" (`testTo` sends one test) |
 | `admin-agents` | `ADMIN_TOKEN` | List and verify licence numbers |
 | `leads` | `ADMIN_TOKEN` | CSV export |
-| `ig-callback` | Meta | Deauthorise and data-deletion callbacks for the Instagram app review (`?type=deauth` / `?type=delete`, with a signed request). **The file exists in `lib/routes/` but is not registered in `api/[fn].js` yet.** Add `'ig-callback': r_ig_callback` to `ROUTES` before you enter its URLs in Meta. |
+| `ig-callback` | Meta (signed) | Deauthorise and data-deletion callbacks for the Instagram app review: `POST /api/ig-callback?type=deauth` or `?type=delete`, with a `signed_request` checked against `IG_APP_SECRET`. Removes the agent's Instagram connection. |
 
 **Adding a route:**
 
@@ -413,7 +408,7 @@ For visual changes, still take Playwright screenshots at desktop width and at 39
 **Planned:**
 
 - PDF redesign to the calm look
-- Instagram app review (rename the app; deauthorise and data-deletion URLs)
+- Instagram app review (rename the app; enter the `/api/ig-callback` URLs in Meta)
 - Bulk personal links (CSV upload or a Follow Up Boss connection)
 - Neighbourhood sales counts
 

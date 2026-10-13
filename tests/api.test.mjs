@@ -41,3 +41,14 @@ test('admin addresses need the admin password', async () => {
 test('unknown addresses are 404', async () => {
   assert.equal((await call('/api/nope')).status, 404);
 });
+
+test('Instagram removal callback only accepts requests signed by Meta', async () => {
+  const { readSigned } = await import('../lib/routes/ig-callback.js');
+  const crypto = await import('node:crypto'), secret = 'app-secret';
+  const payload = Buffer.from(JSON.stringify({ user_id: '123', algorithm: 'HMAC-SHA256' })).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+  assert.equal(readSigned(`${sig}.${payload}`, secret).user_id, '123');
+  assert.equal(readSigned(`${sig}.${payload}`, 'wrong-secret'), null);
+  assert.equal((await call('/api/ig-callback')).status, 405);
+  assert.equal((await call('/api/ig-callback', { method: 'POST', body: 'signed_request=bad.data' })).status, 400);
+});

@@ -1,6 +1,6 @@
 # The Market Update: handoff for a new chat
 
-**How to use this:** start a new chat, attach this file (or point Claude to it in `~/repos/Marketupdate`), and paste one of the starter messages at the bottom. Each chat should cover **one section** so feedback stays focused.
+**How to use this:** start a new chat and paste one of the starter messages at the bottom. Claude reads this file from GitHub. Each chat should cover **one part** (see §8 for part names) so feedback stays focused.
 
 For how the code works, read `ARCHITECTURE.md` in the same folder.
 
@@ -36,7 +36,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 | What | Where |
 |---|---|
-| Code repository | `~/repos/Marketupdate` on Ella's Mac (GitHub: elhamstns-cmyk/Marketupdate) |
+| Code repository | **GitHub: github.com/elhamstns-cmyk/Marketupdate** (the copy on Ella's Mac was removed). Claude can read it from GitHub but can't push. Changes come back as a zip that Ella uploads with **Add file → Upload files → Commit changes**. On a Mac, press Cmd+Shift+. so hidden files like `.github` are included. |
 | Code guide for AI | `ARCHITECTURE.md` in the repository |
 | GVR data files | `~/Downloads/GVR data/` (benchmark Excel files 2016–2026, September 2026 stats package) and the monthly stats packages in `~/Downloads/` |
 | GVR members' portal | portal.gvrealtors.ca: Stats Centre, Stats Package, HPI Benchmark Summary Excel. Ella is usually logged in to Chrome. |
@@ -51,7 +51,6 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 1. Upload the latest `site-update.zip`. It includes the 12-month chart fix, the Neighbourhoods fill-in, and adding the Neighbourhoods section to existing saved templates once.
 2. In Supabase SQL Editor, run `new-database-tables.sql` (the personal links and views tables).
 3. In Vercel environment variables, add `CRON_SECRET` (any long random text).
-4. Push the local commit that adds `ARCHITECTURE.md`: in GitHub Desktop, press **Push origin**.
 
 **UI made, waiting for Ella's go-ahead:**
 
@@ -79,10 +78,10 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 **Later:**
 
 - PDF redesign to the calm look
-- Instagram (Meta) app review: register `ig-callback` and rename the app
+- Instagram (Meta) app review: rename the app and enter the `/api/ig-callback` URLs in Meta. The route is switched on.
 - Test the first real Instagram post
 - Bulk personal links (CSV upload or Follow Up Boss connection)
-- Code cleanup: shared layout rules, tests, splitting big files. Claude recommended this; Ella hasn't decided.
+- Code cleanup: the shared layout rules and the tests are done (`npm test`). Still to do: split `app.js` and `board.js` into smaller files.
 - UI library: Lucide icons now, Shoelace or Web Awesome for menus and pop-ups later. Recommended; not decided.
 
 ---
@@ -132,12 +131,72 @@ Recommended order (proposed, Summary last). The status is for each section.
 
 ## 7. Starter messages for new chats
 
-Copy one and add your feedback:
+Copy one, fill in the part name from §8, and add your feedback:
 
-- **One section:** "Read HANDOFF.md and ARCHITECTURE.md in ~/repos/Marketupdate. We're working only on the **[section name]** section. Here is my feedback: …"
-- **First page:** "Read HANDOFF.md and ARCHITECTURE.md in ~/repos/Marketupdate. We're working only on the **first page (landing page)**. The UI is landing-ui.png. My feedback: …"
-- **Dashboard (Create page):** "Read HANDOFF.md and ARCHITECTURE.md in ~/repos/Marketupdate. We're working only on the **dashboard: Sections panel and template bar**. My feedback: …"
-- **Instagram and sharing:** "Read HANDOFF.md and ARCHITECTURE.md in ~/repos/Marketupdate. We're working only on **Share: Instagram post and story, PDF, personal links**. My feedback: …"
-- **Monthly data:** "Read HANDOFF.md and ARCHITECTURE.md in ~/repos/Marketupdate. Help me publish **[Month] 2026**. The GVR files are in ~/Downloads."
+- **One part:** "Read HANDOFF.md and ARCHITECTURE.md from github.com/elhamstns-cmyk/Marketupdate. We're working only on **[part name, e.g. S5 Neighbourhoods]**. My feedback: …"
+- **First page:** "Read HANDOFF.md and ARCHITECTURE.md from github.com/elhamstns-cmyk/Marketupdate. We're working only on the **first page (landing page)**. The UI is landing-ui.png. My feedback: …"
+- **Monthly data:** "Read HANDOFF.md and ARCHITECTURE.md from github.com/elhamstns-cmyk/Marketupdate. Help me publish **[Month] 2026**. The GVR files are in ~/Downloads."
 
-**Tip:** at the end of each chat, ask Claude to update HANDOFF.md with what changed, so the next chat starts current.
+**At the end of each chat**, say: "Update HANDOFF.md with what we decided and give me the upload zip." The next chat then starts from where you left off.
+
+---
+
+## 8. Part names (use these in feedback)
+
+The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
+
+**Dashboard (Create page, `/app`):**
+
+| Name | What it is | Code |
+|---|---|---|
+| D1 Top bar | "Your reports / September 2026", Preview | `app.js → drawTop()`, `.dbar` |
+| D2 Share menu | Copy link, email, QR, personal links, Instagram post and story, PDF | `app.js → shareDrop()`, `openPreview()`, `personalLinks()` |
+| D3 Me menu | Your details, account and billing, your reports, log out | `app.js → meMenu()` |
+| D4 Report canvas | The report you edit (drag, bin, select) | `board.js → mountReport()` in edit mode |
+| D5 Zoom | − 85% + and fit | `app.js → wireZoom()` |
+| D6 Sections panel | The list with on/off switches, Edit (Data and Settings), Add a section, Your details | `app.js → drawPanel()`, `wirePanel()`, `hoodsPanel()` |
+| D7 Template bar | "Save as my template", "Back to the default layout" | `app.js → drawPanel()` footer `.pfoot` |
+| D8 Preview window | Post / Story / PDF preview, what's on the image, caption, post to Instagram | `app.js → openPreview()`, `social2.js` |
+| D9 Personal links window | Client links and what they looked at | `app.js → personalLinks()` |
+
+**Report (what clients see, `/r/<agent>`):**
+
+| Name | What it is | Code |
+|---|---|---|
+| R1 Report header | Title, month, agent name and photo | `board.js → draw()` |
+| R2 Area bar | Area chips, + Add area, "Side by side / One at a time" (redesign proposed: docs/area-toggle-ui.png) | `board.js → areaBar()` |
+| S1 Key numbers | `numbers` | `board.js → R.numbers` |
+| S2 12-month price | `trend` | `R.trend`, `C.trend` |
+| S3 Buyer's or seller's market | `market` | `R.market` |
+| S4 Prices by home type | `types` | `R.types` |
+| S5 Neighbourhoods | `hoods` (picker, hero, tiles, who grew most, compare, take, peek card) | `hoods.js` |
+| S6 Long-term growth | `growth` | `R.growth`, `C.growth` |
+| S7 Summary | `summary` | `R.summary`, `summaryPoints()` |
+| S8 Homes sold each month | `sold` | `R.sold`, `C.sold` |
+| S9 Contact me | `contact` | `R.contact` |
+| S10 How areas compare | `compare` (off by default) | `R.compare`, `C.rank` |
+| S11 Interest rates | Not built yet (rates-ui.png) | — |
+
+**Other pages:**
+
+| Name | Where |
+|---|---|
+| P1 First page (landing) | `public/index.html` |
+| P2 Plans and checkout | `public/plans.html`, `app.js → showPlans()` |
+| P3 Sign in / sign up | `app.js → showLogin()` |
+| P4 PDF page | `public/print.html` |
+| P5 Share page (story link) | `public/share.html` |
+| P6 Admin | `public/admin.html` |
+| E1 Emails | "Report ready" (`admin-publish`), welcome (`stripe-webhook`), weekly (`weekly`) |
+| I1 Instagram images | `social2.js → calmImage()` |
+
+---
+
+## 9. Feedback log
+
+Add one line per decision (newest first), so later chats know what was decided and why.
+
+| Date | Part | Decision |
+|---|---|---|
+| 2026-10-13 | R2 Area bar | "Side by side / One at a time" doesn't make sense. Proposed: one row "Show: Compare all · Coquitlam · Burnaby North · + Add area" (docs/area-toggle-ui.png). Waiting for go-ahead. |
+| 2026-10-13 | Code | Shared layout rules (`public/js/layout.js`) and automatic checks (`npm test`, which also runs on GitHub) are done. |
