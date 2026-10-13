@@ -1,0 +1,417 @@
+# The Market Update: codebase guide for AI agents
+
+Read this file first. It explains what the product does, how the code is organised, how data flows, the conventions to follow, and where to add new features. It reflects the code as of October 2026.
+
+> **Repository state:** two things in this guide may not be in the repository yet. They are in the latest `site-update.zip` and get there when the owner uploads it:
+> - `NEW_SECTIONS` / `known` in `board.js`
+> - the history and neighbourhood fill-in in `util.withHistory()`
+>
+> If `public/js/board.js` has no `NEW_SECTIONS`, that update hasn't been uploaded.
+
+---
+
+## 1. What the product is
+
+**The Market Update** (themarketupdate.ca) is a paid subscription for Greater Vancouver REALTORS® and mortgage brokers. Every month, the agent gets a market report with their name, photo and contact details on it, built from Greater Vancouver REALTORS® (GVR) statistics. Agents share it as:
+
+- **One link** (`/r/<agent-slug>`) that always shows the newest month
+- A **client email** draft
+- **Instagram images**: a 1080×1080 post and a 1080×1920 story. Agents can download them or post straight to Instagram.
+- A **PDF** (the print page)
+- **Personal links** (`/r/<slug>?p=<id>`): one per client, with the client's name and neighbourhood
+
+**Plans** (prices live in `lib/util.js` → `PLANS`):
+
+| Plan | Price | What it includes |
+|---|---|---|
+| Essentials (`basic`) | $19/mo, $190/yr | Greater Vancouver report only; link and email |
+| Pro (`pro`) | $29/mo, $290/yr | Every city and neighbourhood, arranging sections, saved template, images, PDF, Instagram, personal links, weekly "who's curious" email |
+
+**People involved:**
+
+- **Agent:** the subscriber. Uses `/app`, called "the Create page" or "dashboard".
+- **Client:** the agent's customer. Opens the public report.
+- **Admin:** the owner. Publishes each month's data at `/admin`.
+
+---
+
+## 2. Tech stack and constraints
+
+- **Front end:** plain HTML, CSS and native ES modules in `public/`. No framework, no bundler, no npm packages. Pages import `/js/*.js` directly.
+- **Back end:** Vercel serverless (Node 18+ ESM). **Exactly one function**, `api/[fn].js`, routes `/api/<name>` to `lib/routes/<name>.js`. The Vercel Hobby plan allows only 12 functions, so **never add files under `api/`**. Add a route file and register it in the router instead.
+- **Database, auth and storage:** Supabase.
+  - The server talks to Postgres through the REST API (PostgREST) using the **service key** (`lib/util.js → db()`).
+  - The browser talks to Supabase **Auth** directly (`/auth/v1/*` with the anon key) to sign in. It sends the access token to `/api/*` as `Authorization: Bearer …`.
+  - Row level security is on for all tables and there are no public policies. Only the server reads and writes tables.
+  - Storage bucket `social` is public. Instagram fetches images from it.
+- **Payments:** Stripe REST through `fetch` (`util.stripe()`): Checkout, the customer portal, and a webhook with a hand-written signature check.
+- **Email:** a raw SMTP client in `lib/smtp.js` (TLS, port 465, Google Workspace app password).
+  - `.env.example` still mentions `RESEND_API_KEY`, which is **outdated**. The real settings are `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` and optional `SMTP_HOST`.
+- **Instagram:** "Instagram API with Instagram Login" (graph.instagram.com v21.0), handled in `lib/routes/instagram.js`.
+- **Data pipeline:** Python scripts in `scripts/` (pandas, pdftotext) turn GVR PDFs and Excel files into report JSON. The scripts run locally, not on Vercel.
+- **Cron:** `vercel.json` → `/api/weekly` every Monday at 16:00 UTC (9am Vancouver time). It is protected by `CRON_SECRET`.
+- **Demo mode:** when `SUPABASE_URL` is not set, `DEMO = true`.
+  - The API serves the built-in seed report.
+  - The Create page keeps the profile in `localStorage` under `mup_demo_profile`.
+  - Everything runs locally without keys.
+
+### Run locally
+
+```bash
+node scripts/dev.mjs          # or: npm run dev   → http://localhost:3000 (PORT env to change)
+```
+
+`scripts/dev.mjs` serves `public/`, rewrites `/r/:slug` → `report.html`, `/r/:slug/print` → `print.html` and `/s/:slug` → `share.html`, and calls `api/[fn].js`.
+
+**The dev server imports the API modules once.** After you change anything under `lib/` or `data/`, restart it.
+
+Demo URLs:
+
+- `/r/demo`: sample report
+- `/r/demo?p=x`: sample personal link ("the Chen family", Burke Mountain)
+- `/app?plan=pro` with `localStorage.mup_demo_profile = {"name":"…","slug":"demo","plan":"pro"}`: the dashboard as a Pro agent
+
+---
+
+## 3. Repository map
+
+```
+api/[fn].js                 The only server function. ROUTES map: name → handler.
+lib/util.js                 Shared server helpers (see §5). Imports seed + history.
+lib/smtp.js                 Minimal SMTP sender: smtpSend(list) → number sent.
+lib/routes/*.js             One handler per API address (see §5 table).
+data/seed-report.js         `export default {...}`: a full month of report data (demo + fallback).
+data/history.js(.json)      Monthly price/sales/listings history since 2025-01 (12-month charts).
+scripts/dev.mjs             Local server.
+scripts/history-from-gvr.py Build history from GVR stats packages.
+scripts/growth-from-gvr.py  Adds "growth" (3/5/10-year % by area and type) from the Stats Package PDF.
+scripts/hoods-from-gvr.py   Adds "hoods" (neighbourhood prices) from the HPI Benchmark Summary Excel.
+scripts/gvr-neighbourhoods.json  GVR area code → neighbourhood names (which city each belongs to).
+scripts/stripe-setup.mjs    Creates Stripe products/prices once.
+supabase/schema.sql         All tables (append-only migrations; run in the Supabase SQL editor).
+public/index.html           Landing page + sign-up (still old dark green design; a white/blue redesign is planned).
+public/app.html             Create page shell → /js/app.js
+public/report.html          Public report → mountReport() from /js/board.js
+public/print.html           PDF/print layout of the report
+public/share.html           Share page (copy link / story instructions)
+public/admin.html           Admin: publish a month, verify licences, export leads
+public/plans.html, privacy.html, terms.html
+public/css/site.css         Site + dashboard styles (global class names! see §8)
+public/css/board.css        Report styles, all scoped under `.bd`
+public/css/report.css       Older report styles still loaded by report.html
+public/js/                  ES modules (see §6)
+vercel.json                 cleanUrls, rewrites for /r and /s, crons
+```
+
+---
+
+## 4. Data model
+
+### 4.1 Monthly report document (`reports.data`, same shape as `data/seed-report.js`)
+
+The client calls this document `D`.
+
+```js
+{
+  month: "September 2026",          // REQUIRED, "<Month> <YYYY>"; the key is derived: "2026-09"
+  asof: "October 2, 2026",
+  cities: {                         // detailed cities (9 incl. "Greater Vancouver")
+    "Coquitlam": {
+      detached: { active:{now,ly,yoy,prev}, sales:{…}, dom:{…}, price:{…}, ratio: 9.8 },
+      townhome: {…}, condo: {…}
+    }, …
+  },
+  areas: {                          // all ~20 GVR areas, lighter numbers
+    "Burnaby North": { detached:{sales,active,price,yoy}, condo:{…}, townhome:{…} }, …
+  },
+  growth: {                         // optional: [3y, 5y, 10y] % change
+    composite: { "Coquitlam": [-12.7, -4.4, 21.9], … }, detached:{…}, townhome:{…}, condo:{…}
+  },
+  history: {                        // added server-side from data/history.js if missing
+    price:    { composite|detached|townhome|condo: { "<Area>": { "2025-01": 1234567, … } } },
+    sales:    { detached|townhome|condo: { "<sales group>": { "2025-01": 123, … } } },
+    listings: { … same as sales … }
+  },
+  hoods: {                          // optional: neighbourhood benchmark prices
+    "Coquitlam": {
+      "*":              { d:[…], t:[…], c:[…] },   // the whole city
+      "Burke Mountain": { d:[price, m1, m3, m6, y1, y3, y5, y10, sinceJan], t:[…] }
+    }, …
+  }
+}
+```
+
+**Naming quirks to respect:**
+
+- Home types are `detached`, `townhome` and `condo` in `cities`, `areas`, `history` and `growth`. They are `d`, `t` and `c` in `hoods`.
+- Sales history is grouped differently from the area list. For example, Burnaby is combined. `charts.js → salesGroup(area)` maps area to group, and `"Grand Totals"` means Greater Vancouver.
+- `report.js → get(D, area, type)` is the one accessor that normalises a city or area into `{price, yoy, prev, sales, salesLy, active, activeLy, dom, domLy, ratio}`. `type: 'all'` gives totals plus the composite price.
+- `ratio` is sales ÷ active listings × 100. Below 12 is a buyer's market, 12 to 20 is balanced, above 20 is a seller's market. These thresholds come from GVR.
+- In `hoods`, every change is a percentage. `null` means not published. Neighbourhood names drop GVR's area suffix (for example "Eagle Ridge CQ" becomes "Eagle Ridge") when two or more words remain.
+
+### 4.2 Supabase tables (`supabase/schema.sql`)
+
+| Table | Key | Purpose |
+|---|---|---|
+| `profiles` | `id` (= auth user) | Agent: name, brokerage, phone, `contact_email`, `logo`/`photo` (data URLs ≤400 KB), `slug` (unique, used in `/r/<slug>`), `plan` (`basic`/`pro`), `status` (Stripe: `active`, `trialing`, …), `theme` jsonb (legacy), **`show` jsonb (layout, see §4.3)**, licence fields, `role` (`realtor`/`broker`), `email_verified`, `weekly_email` |
+| `reports` | `key` "2026-09" | One row per month: `month`, `data` (the document above) |
+| `exports` | `id` (short) | History of what an agent made (link, email, pdf, post, story, caption) with the settings at the time. `/r/<slug>?v=<id>` opens that version |
+| `leads` | `email` | Everyone who started sign-up, plus marketing consent |
+| `instagram` | `user_id` | Instagram connection: token (server-only), auto-post settings |
+| `personal_links` | `id` (short) | Client name, city, hood, type, opens, last_opened_at |
+| `hood_views` | bigserial | What clients looked at in Neighbourhoods: `link_id` (null = anonymous), `hood`, `kind` = `pick`, `peek` or `compare` |
+
+**Migrations:** append `create table if not exists` or `alter table … add column if not exists` to the end of `schema.sql`, and give the owner just the new block to run.
+
+### 4.3 The agent's layout: `profiles.show`
+
+Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf()` and `cleanConf()`.
+
+```js
+{
+  sections: ['numbers','market','trend','types','hoods','sold','growth','contact','summary'], // order shown
+  known:    [...all section ids...],   // which sections existed when saved (see "new sections" below)
+  areas:    ['Coquitlam','Burnaby North'],   // max 6 (MAX_AREAS)
+  agentTop: true,        // agent name/photo at the top
+  clientAreas: true,     // clients may add/remove areas
+  view: 'side' | 'one',  // several areas side by side, or one at a time
+  conf: {                // per-section choices
+    trend: { title, areas:[…], types:[…], sub:false, note:false, size:'full' },
+    hoods: { city, home, cmp, type:'d'|'t'|'c', off:['rank',…], take:'own'|'off', text }
+  },
+  template: { …same layout keys… },  // saved "my template"
+  mode: 'template' | 'default',
+  img: { post:{price,forsale,market,sold,photo}, story:{…} }   // what is on Instagram images
+  // + legacy on/off keys (prices, changes, sold, …) from an older design
+}
+```
+
+**New sections reach existing agents automatically.** `board.js → NEW_SECTIONS` lists them. If a saved layout has no `known` array, each new section is added once, after "Prices by home type". The Create page always saves `known: SEC_IDS`, so if the agent removes the section later, it stays removed. **When you add a section, add its id to `NEW_SECTIONS`.**
+
+---
+
+## 5. Server
+
+### 5.1 `lib/util.js`, the shared helpers
+
+| Export | What it does |
+|---|---|
+| `DEMO`, `SEED`, `PLANS`, `PRICE_IDS()`, `SITE_NAME`, `DEMO_AGENT` | Constants and flags |
+| `json(res, code, obj)`, `query(req)`, `body(req)`, `raw(req)`, `origin(req)` | Request and response helpers |
+| `db(path, {method, data, prefer})` | Supabase REST call with the service key. `path` is a PostgREST path, for example `profiles?id=eq.${id}`. Throws on error. |
+| `getUser(req)` | Checks the bearer token with Supabase Auth. Returns the user or `null`. |
+| `isActive(p)` | `status` is `active` or `trialing` |
+| `latestReport()`, `reportFor(key)` | Read from `reports`. Both pass through `withHistory()`. |
+| `withHistory(D)` | Fills `history` from `data/history.js`, area by area, when it is missing. Adds the seed's `hoods` when the month matches. |
+| `forPlan(D, plan)` | Essentials: keeps only Greater Vancouver and strips `areas`, `hoods` and most history |
+| `cleanTheme`, `cleanShow` (with `cleanLayout`, `cleanConf`, `cleanHoods`) | Validate agent input before saving |
+| `publicAgent(p)` | The fields safe to show on a public report. **Never put personal or private fields in it.** |
+| `stripe(path, params)`, `verifyStripe(raw, header, secret)` | Stripe REST call and webhook signature check |
+| `sendEmail(msg)`, `smtpSend(list)` | Email |
+| `slugify`, `monthKey`, `MONTHS` | Small text and date helpers |
+
+### 5.2 Routes (`lib/routes/<name>.js` → `/api/<name>`)
+
+| Route | Access | Notes |
+|---|---|---|
+| `report` | Public | `?slug=`. Optional `?v=<export id>` (saved version) and `?p=<personal link id>` (adds `personal`, counts the open). Returns `{agent, report, plan, view, personal}`. In demo, `?p=` returns a sample. |
+| `me` | Agent | GET: profile, `active`, and a report trimmed for the plan. POST: update profile fields, `theme`, `show`. Creates `slug` from the name. |
+| `exports` | Agent | Create or list history items. Making the same thing again reuses the same id. |
+| `instagram` | Agent (Pro) | GET is the OAuth callback. POST actions: connect URL, settings, post now (`{post, story, caption}` JPEG data URLs → Storage → Graph API). |
+| `links` | Agent (Pro) | GET: personal links, each with `looked` (neighbourhoods viewed in the last 30 days, other than their own), plus `weekly` and `top`. POST: create, `{action:'delete'}`, or `{action:'weekly', on}`. |
+| `track` | Public | Beacon `{slug, p, kind, city, hood}`. Writes to `hood_views` only for active Pro agents. Always returns 200. |
+| `weekly` | Cron (`CRON_SECRET`) | Emails each Pro agent about the last 7 days of views. Skips agents with nothing new or with the email turned off. |
+| `checkout`, `portal` | Agent | Stripe Checkout session and billing portal |
+| `stripe-webhook` | Stripe | Syncs `status`, `plan` and `period_end`. Sends a welcome email. |
+| `subscribe` | Public | Lead capture with consent text |
+| `confirm` | Public | Email-confirmation link handler |
+| `config` | Public | `{demo, siteName, plans, supabaseUrl, supabaseAnonKey}` for the browser |
+| `admin-publish` | `ADMIN_TOKEN` | `validate(report)`, then upsert into `reports`, then optionally email every subscriber "your report is ready" (`testTo` sends one test) |
+| `admin-agents` | `ADMIN_TOKEN` | List and verify licence numbers |
+| `leads` | `ADMIN_TOKEN` | CSV export |
+| `ig-callback` | Meta | Deauthorise and data-deletion callbacks for the Instagram app review (`?type=deauth` / `?type=delete`, with a signed request). **The file exists in `lib/routes/` but is not registered in `api/[fn].js` yet.** Add `'ig-callback': r_ig_callback` to `ROUTES` before you enter its URLs in Meta. |
+
+**Adding a route:**
+
+1. Create `lib/routes/foo.js` exporting `default async function handler(req, res)`.
+2. Import it in `api/[fn].js` and add `'foo': r_foo` to `ROUTES`.
+3. Handle `DEMO` (return something harmless).
+4. Wrap the handler in `try/catch` that returns a plain-language error.
+5. Check `getUser`, `isActive` and `plan` as the route needs.
+
+---
+
+## 6. Front end (`public/js`)
+
+| Module | Role | Key exports |
+|---|---|---|
+| `board.js` | **The report renderer.** Used by the public report, the dashboard canvas and previews. | `mountReport(root, D, A, opts)`, `SECTIONS`, `SEC_IDS`, `DEFAULT_LAYOUT`, `layoutOf`, `cleanConf`, `cleanHoods`, `sameLayout`, `MAX_AREAS`, `PAIRABLE`, `USES_TYPES`, `USES_AREAS`, `TYPE_KEYS` |
+| `hoods.js` | Neighbourhoods section (its own state and events) | `makeHoods(ctx)`, `HTYPES`, `BLOCKS`, `hoodCities`, `hoodNames`, `defaultCity` |
+| `app.js` | The Create page (dashboard). Long file. | Not imported by others. Runs on load (top-level `await`). |
+| `report.js` | Shared helpers and older renderers | `get`, `money`, `esc`, `slug`, `areasOf`, `first`, `phoneFmt`, `roleLabel`, `askCopy`, `sourceLine`, `monthKey`, `palette`, `themeVars`, `SAMPLES`, … |
+| `charts.js` | Series and simple chart helpers | `salesGroup`, `priceSeries`, `salesSeries`, `lineChart`, `barChart` |
+| `social2.js` | Instagram images on canvas (calm blue design) | `calmImage(D, A, area, kind, opts)`, `calmCaption`, `IMG_DEFAULTS`, `IMG_PARTS`, `imgOpts` |
+| `exports.js` | Links, email draft, image wrappers | `reportLink`, `emailDraft`, `socialImage` (→ `calmImage`), `caption`, `download` (`*Old` versions are legacy) |
+| `share.js` / `qr.js` | Share menu, QR modal, icon set `sv(name)`; QR SVG generator | |
+
+### 6.1 `mountReport(root, D, A, opts)`
+
+- **`A`** is the agent: `publicAgent` plus `show`.
+- **`opts`:**
+  - `area` or `areas`: the starting area(s)
+  - `embedded`: inside a preview
+  - `edit(patch)`: agent edit mode. Its presence means the Create page.
+  - `selected`, `adding`, `onSelect(k)`, `onAdd()`: edit-mode panel sync
+  - `personal`: a personal link's `{id, name, city, hood, type}`
+  - `track(kind, data)`: the beacon. It is null in edit or embedded mode.
+
+**How it works:**
+
+- Each section has a renderer `R[id]()` that returns HTML through `card(id, title, sub, body, extra)`.
+- Charts and interactive parts are placeholders `<div data-chart="x">`, filled by `C[x](el)` after the HTML is on the page. A `ResizeObserver` runs `charts()` again when the size changes.
+- Sections with a `PAIR` weight (`trend`, `market`, `summary`, `sold`) sit side by side unless their size is set to full.
+- **Events:** one delegated `root.onclick` and one `root.onchange`. Add new handlers there, or keep them inside your own module, as `hoods.js` does with `data-h*` attributes. **Don't reuse the `data-*` names already used in `root.onclick`.**
+- **Edit mode:** each section is wrapped in `.sx[data-k]` with a "Drag to move" handle and a bin. `saveLayout(patch)` calls `opts.edit(patch)`, and `app.js → setLayout()` saves it to `P.show`.
+- **Plain-language summaries** come from `summaryPoints()`. The 12-month line uses `D.history.price.composite`. Areas with no history are listed under the chart.
+
+### 6.2 Neighbourhoods (`hoods.js`)
+
+- **State:** `{city, home, type, per, cmp, peek, seen, browse, rankAll}`.
+  - It is kept per agent in `localStorage` under `mup_hood:<slug>`. It is not written in edit mode.
+  - A personal link sets the city, home and type.
+- **Blocks:**
+  - Pinned "Your area" bar
+  - Picker card (when no home is set)
+  - Hero, with the change in dollars and a spark line built from GVR's own % changes
+  - Tiles: period tabs and type tabs
+  - Rank: top 10, with "Show all"
+  - Compare: the client's neighbourhood vs another neighbourhood or the whole city (`'*'`)
+  - "You also looked at"
+  - The agent's take: automatic text, `conf.text`, or off
+- **Peek sheet:** appended to `document.body` as `.nb-sheet` (not inside `.bd`). Its styles in `board.css` therefore use fixed colours.
+- **Tracking:** `ctx.track('pick' | 'peek' | 'compare', {city, hood})`, sent with `navigator.sendBeacon` from `report.html`.
+- **Agent settings:** `conf.hoods`, edited in `app.js → hoodsPanel()`.
+
+### 6.3 The Create page (`app.js`)
+
+- **Global state:**
+  - `P`: the profile
+  - `D`: the latest report
+  - `PS`: the panel state, `{m: 'list' | 'edit' | 'add' | 'details', k, tab}`
+  - `HIST`: the exports history
+  - `ZOOM`
+- **Layout:** top bar (`drawTop`), report canvas `#rp` (`preview()` → `mountReport` with `edit`), right panel `#dpanel` (`drawPanel()` + `wirePanel()`, event delegation, set up once).
+- **Saving:** `touch(key)` marks a field as changed. `saveNow()` sends a debounced POST to `/api/me`. Layout changes always go through `setLayout(patch)` or `setConf(sectionId, patch)`.
+- **Share menu:** `shareDrop()`. It opens copy link, email, QR, Personal links (`personalLinks()`), and `openPreview(kind)` for Post, Story and PDF with toggles for "what's on the image", an editable caption, Download, Post to Instagram (`confirmPost`) and Send to my phone (QR).
+- **Demo mode:** `cfg.demo`. Exports and personal links are kept in `localStorage` (`mup_demo_exports`, `mup_demo_plinks`).
+
+### 6.4 Styles
+
+- **Report:** `board.css`, every rule under `.bd`.
+  - The look is fixed and calm: accent `#1d4fbf`, bars `#4f86e8`, page `#f3f4f7`, ink `#1b2430`, Inter.
+  - CSS variables are set on the report root: `--ac`, `--ink`, `--mut`, `--ln`, `--card`, `--up`, `--dn`, `--hl`, `--bar`.
+  - Neighbourhoods classes are prefixed `nb-`.
+- **Dashboard and site:** `site.css`.
+  - **It defines global, unprefixed classes such as `.up`, `.me`, `.mine`, `.note`, `.lead`.** They leak into the report when it is shown inside the dashboard.
+  - So never use those names in report markup. For example, use `upv` for "up value", not `up`.
+  - Check new class names with `grep` in `site.css` before you use them.
+
+---
+
+## 7. Monthly data pipeline
+
+1. **Download from the GVR members' portal** (portal.gvrealtors.ca > Market stats/reports):
+   - The **Stats Package PDF** for the month
+   - The **HPI Benchmark Summary Excel** for this month and for January
+2. **Build `report.json`.** It has the same shape as `data/seed-report.js`: `cities`, `areas`, `month`, `asof`.
+3. **Add the extras:**
+   - `python3 scripts/growth-from-gvr.py <stats-package.pdf> report.json` adds `growth`
+   - `python3 scripts/hoods-from-gvr.py <this-month.xlsx> <january.xlsx> report.json` adds `hoods`
+   - The history update uses `scripts/history-from-gvr.py`; see the script's header. `data/history.js` is the fallback.
+4. **Publish:** `/admin` → paste the JSON → send a test → publish. `admin-publish → validate()` checks the month, `asof`, the 9 cities × 3 types × 4 metrics, and at least 15 areas.
+5. **Optionally refresh the seed:** update `data/seed-report.js` so demo mode and the fallback show the newest month.
+
+Old `.xls` files from before 2024 need LibreOffice (`soffice --convert-to xlsx`) or `xlrd` before pandas can read them.
+
+---
+
+## 8. Conventions (follow these)
+
+**Product and UX rules from the owner:**
+
+- **Show the UI before writing code.** For any visible change, make a mockup (an HTML page screenshotted with Playwright) and wait for approval.
+- **Always use red and green for changes:** red for down (`--dn` `#d6452f`) and green for up (`--up` `#1a8f4e`). This applies everywhere, days on market included.
+- **One calm, fixed design.** White cards on soft grey, blue accent. Don't offer font, colour or style pickers. Don't mix grey and white text. Don't let text overlap.
+- **Plain words for clients,** including older readers: short sentences, labels people recognise, icons next to column titles.
+- **The default section order is a recommendation, with Summary last.** Agents can reorder and save a template.
+- **Automate for agents.** Every setting starts on a sensible choice, and things update themselves every month.
+- **Nothing fake:** no made-up testimonials, user counts or "most popular" claims.
+- **Don't show the owner's personal email to agents.** Keep `publicAgent()` minimal.
+- **Supabase stays on the free plan.** Avoid paid services.
+
+**Code:**
+
+- No new npm dependencies. Plain ES modules, compact style, comments in plain English on the line above.
+- Escape all user and data text with `esc()` before putting it in HTML.
+- Validate everything the server saves (`clean*` helpers). If you change section or config keys, **update both `board.js` and `util.js`.** The same rules exist in both files.
+- Every route works in `DEMO` mode.
+- Keep `forPlan()` in step with what Essentials may see.
+
+**Process:**
+
+- **Don't push to GitHub unless the owner asks.** Pushing deploys the live site. Commit locally, and make a zip with `git archive --format=zip -o site-update.zip HEAD`; the owner uploads it.
+- Only the owner adds secrets (environment variables). Never ask for them in chat.
+
+---
+
+## 9. How to add common features
+
+| Task | Steps |
+|---|---|
+| **New report section** | 1) `board.js`: add to `SECTIONS` (id, name, description), write `R.<id>` (and `C.<id>` if it draws after render), add to `NEW_SECTIONS`, and to `PAIRABLE`, `USES_AREAS` or `USES_TYPES` if relevant. 2) `util.js`: add the id to `SECTION_KEYS`, and to `cleanConf` if it has settings. 3) `app.js`: an icon in `SIC` and, if needed, a settings block in `drawPanel()` (follow `hoodsPanel`). 4) Styles in `board.css`, under `.bd`. 5) If it needs new data, extend the report JSON, `admin-publish → validate()` and `forPlan()`. |
+| **New data in the report** | Add it to the report document, the pipeline script, `seed-report.js` (demo), `withHistory()` (fallback for old months, if sensible) and `forPlan()`. |
+| **New API route** | See §5.2. Register it in `api/[fn].js`, handle `DEMO`, check auth and plan. |
+| **New table** | Append it to `supabase/schema.sql` with RLS enabled, and give the owner just that block. |
+| **Email** | `smtpSend([{to, subject, html, text}])` returns the number sent. Inline styles only. Plain-text copy too. |
+| **Scheduled job** | Add a route protected by `CRON_SECRET` and a `crons` entry in `vercel.json`. Hobby crons run at most once a day. |
+| **Instagram image change** | `social2.js → calmImage`. What appears on the image is controlled by `show.img` (`IMG_PARTS`). |
+
+---
+
+## 10. Testing
+
+There are no automated tests. The current practice is:
+
+1. Start the dev server (§2).
+2. Use Playwright with the preinstalled Chromium to open `/r/demo`, `/r/demo?p=x` and `/app?plan=pro` (after setting `mup_demo_profile`), at desktop width and at 390px (phone).
+3. Click through the feature and take screenshots.
+4. Collect `pageerror` events. Font requests to googleapis can fail in a sandbox, so ignore those.
+5. For server changes, run `curl` against `/api/*` in demo mode, and run `node -e "import('./api/[fn].js')"` to catch import errors.
+
+---
+
+## 11. Known gaps and suggested next work
+
+**Pending owner decisions (UI made, not built):**
+
+- A white and blue landing page that matches the product
+- Section icons with descriptions and a "Use recommended order" option
+- A slimmer template bar with a ⋯ menu
+- An interest rates section (Bank of Canada rate, prime rate, next announcement, step graph)
+
+**Planned:**
+
+- PDF redesign to the calm look
+- Instagram app review (rename the app; deauthorise and data-deletion URLs)
+- Bulk personal links (CSV upload or a Follow Up Boss connection)
+- Neighbourhood sales counts
+
+**Technical debt:**
+
+- Section and config cleaning exists twice (`board.js` and `util.js`). Move it into one shared module importable by both.
+- `app.js` and `board.js` are large. Split out the panel, share and preview code.
+- `/api/track` has no rate limit.
+- `admin-publish` doesn't validate `hoods` or `history`.
+- Logos and photos are stored as data URLs in `profiles`. Move them to Storage.
+- `.env.example` and the README still mention Resend and "custom colours/fonts". Both are outdated.
+- `report.css`, the `*Old` exports and the legacy `show` on/off keys are leftovers from earlier designs. Check before deleting.
