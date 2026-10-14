@@ -58,6 +58,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 - **Sections panel:** each section with an icon and a short line, and a recommended order with Summary last (sections-ui.png).
 - **Template bar:** one slim line with "Save as template" and a ⋯ menu.
 - **Interest rates section:** Bank of Canada rate 2.25%, prime 4.45%, next announcement October 28, step graph, plus an admin "confirm each month" box (rates-ui.png).
+- **S5 Neighbourhoods with several cities:** city cards instead of the small City box. See §6.1 and `docs/s5-*.png`.
 
 **Ideas shown earlier, not decided:**
 
@@ -126,6 +127,48 @@ Recommended order (proposed, Summary last). The status is for each section.
 - **Weekly email** on Monday at 9am, listing which clients looked at other areas. It can be turned off.
 
 **Data:** about 230 neighbourhoods in 19 cities, from GVR's HPI Benchmark Summary Excel (`scripts/hoods-from-gvr.py`). It needs this month's file and January's.
+
+### 6.1 Several cities (UI made October 13, 2026, waiting for go-ahead)
+
+**Ella's feedback:** the City box sits far in the corner and is easy to miss. It doesn't follow the cities picked in R2, so clients think their cities were missed (the demo opens S5 on Vancouver West even when the report is on Greater Vancouver). With 4 cities, showing every neighbourhood at once would be far too many (about 53 tiles).
+
+**Mockups:**
+
+- `docs/s5-cities-ui.png`: desktop, the rules, and a first phone view
+- `docs/s5-no-hoods-phone-ui.png`: phone, a city with no neighbourhoods
+- `docs/s5-switch-cities-ui.png`: phone, switching between cities
+
+**The design: city cards, one city open at a time.**
+
+- **City cards replace the City box.** They sit right under the title, one per R2 area, in the same order and colour dots as R2. Each card shows the city name, the number of neighbourhoods, and the city's 1-year change (red or green). On desktop it also shows the "Smallest drop" (or biggest gain) neighbourhood. A ★ marks the city where the client's own area is.
+- **Only the selected city opens below** (blue card): its tiles, "Who grew the most", "Compare two" and the agent's take, as today.
+- **1 city:** no cards. The title says "Neighbourhoods in Coquitlam".
+- **On a phone,** the cards scroll sideways like the R2 row, with "swipe for more cities →".
+
+**Which city opens:**
+
+- If the client tapped a city in R2, S5 follows it, with the line "Showing Burnaby North, the area you picked at the top."
+- On "Compare all", S5 opens on the client's own city (★). Otherwise it opens on the agent's city, if that's one of the chosen cities, or else the first city with neighbourhoods.
+- Tapping a card inside S5 changes only S5. The rest of the report stays the same.
+- Adding or removing an area in R2 adds or removes its card.
+
+**Switching cities:**
+
+- When the client is looking at a city other than their own, their area shrinks to a slim pinned ★ bar showing the name, the city, the price and the change.
+- A "Port Moody overall" line shows the selected city's own price and change.
+- The home type (detached, townhouse or condo) and the period are kept when switching.
+- **The peek card works across cities.** Tapping Heritage Woods (Port Moody) while the client's area is Burke Mountain (Coquitlam) compares the two, with a plain sentence such as "about $232,700 more". The buttons stay "Compare with my area" and "Make this my area".
+- **Code change needed:** today `S.cmp` and the peek only compare within `S.city`. They need to store a city with each neighbourhood, so "Compare two" can also compare across cities.
+
+**Cities with no neighbourhoods (Greater Vancouver, Whistler):**
+
+- They keep a grey, dashed card: "ⓘ No neighbourhoods". Ella wants them shown, not hidden.
+- Tapping one opens a blue message under the cards, with a ✕. It stays until it's closed, rather than vanishing on its own. The client stays on the city they were viewing.
+- Greater Vancouver message: "**Greater Vancouver has no neighbourhoods.** It's the whole region, so it is made of cities. Its numbers are in the rest of the report. Pick a city here to see its neighbourhoods."
+- Whistler message (Ella's choice; don't mention GVR or "publish"): "**Whistler isn't split into neighbourhoods.** It's a smaller market, so prices are shown for Whistler as a whole in the rest of the report. Want to know about a specific street? Ask me." "Ask me" opens S9 Contact me. Write the Greater Vancouver message in the same pattern when building.
+- **Greater Vancouver is the only area:** the section says "Greater Vancouver is the whole region. Choose a city to see its neighbourhoods." It shows a grid of cities, each with its number of neighbourhoods, then "Show all 19 cities". It opens on the agent's city.
+
+This builds on the R2 redesign ("Compare all · city · city", `docs/area-toggle-ui.png`). It also works with today's R2.
 
 ---
 
@@ -200,16 +243,6 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 
 Labelled pictures: `docs/map-*.png`, and Ella's pinned "Market Update Part Names" page on claude.ai.
 
----|---|
-| P1 First page (landing) | `public/index.html` |
-| P2 Plans and checkout | `public/plans.html`, `app.js → showPlans()` |
-| P3 Sign in / sign up | `app.js → showLogin()` |
-| P4 PDF page | `public/print.html` |
-| P5 Share page (story link) | `public/share.html` |
-| P6 Admin | `public/admin.html` |
-| E1 Emails | "Report ready" (`admin-publish`), welcome (`stripe-webhook`), weekly (`weekly`) |
-| I1 Instagram images | `social2.js → calmImage()` |
-
 ---
 
 ## 9. Feedback log
@@ -218,5 +251,6 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-13 | S5 Neighbourhoods | Several cities: city cards replace the City box; one city open at a time; S5 follows R2; the client's area is pinned when switching; the peek card works across cities. Greater Vancouver and Whistler get a grey card and a message when tapped. Whistler wording agreed. UI in `docs/s5-*.png` and §6.1. Waiting for go-ahead to build. |
 | 2026-10-13 | R2 Area bar | "Side by side / One at a time" doesn't make sense. Proposed: one row "Show: Compare all · Coquitlam · Burnaby North · + Add area" (docs/area-toggle-ui.png). Waiting for go-ahead. |
 | 2026-10-13 | Code | Shared layout rules (`public/js/layout.js`) and automatic checks (`npm test`, which also runs on GitHub) are done. |
