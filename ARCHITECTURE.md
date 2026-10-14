@@ -283,7 +283,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
   - Pinned "Your area" bar in their city, or the slim `.nb-away` bar in another city
   - Picker card (when no home is set)
   - Hero, with the change in dollars and a spark line built from GVR's own % changes
-  - Every neighbourhood: one ranked list (`.nb-li`, block key `tiles`) with type and time buttons (`PERIODS`: sj, y1, y3, y5, y10; opens on y5) and a "<City> overall" row
+  - Every neighbourhood: one ranked list (`.nb-li`, block key `tiles`) with type and time buttons (`PERIODS`: sj, y1, y3, y5, y10; opens on y5). Neighbourhoods only, no city row
   - Compare: the client's neighbourhood vs any neighbourhood or whole city in any card city
   - "You also looked at"
   - The agent's take: automatic text, `conf.text`, or off
@@ -342,6 +342,7 @@ Old `.xls` files from before 2024 need LibreOffice (`soffice --convert-to xlsx`)
 - **Show the UI before writing code.** For any visible change, make a mockup (an HTML page screenshotted with Playwright) and wait for approval.
 - **Always use red and green for changes:** red for down (`--dn` `#d6452f`) and green for up (`--up` `#1a8f4e`). This applies everywhere, days on market included.
 - **One calm, fixed design.** White cards on soft grey, blue accent. Don't offer font, colour or style pickers. Don't mix grey and white text. Don't let text overlap.
+- **Counts in sentences read naturally:** never "9 of 9". Use `countPhrase(k, n)` from `hoods.js` ("all 9 neighbourhoods have", "both…", "no neighbourhood has").
 - **Plain words for clients,** including older readers: short sentences, labels people recognise, icons next to column titles.
 - **The default section order is a recommendation, with Summary last.** Agents can reorder and save a template.
 - **Automate for agents.** Every setting starts on a sensible choice, and things update themselves every month.

@@ -37,6 +37,15 @@ const short = (v) => (v >= 1e6 ? '$' + (v / 1e6).toFixed(2) + 'M' : '$' + Math.r
 const round100 = (v) => Math.round(v / 100) * 100;
 const then = (p, v) => p / (1 + v / 100);
 const dollars = (p, v) => (v == null ? null : round100(p - then(p, v)));
+// How many of a group, in plain words: "3 of 9 neighbourhoods have", "all 9 neighbourhoods have", "both neighbourhoods have",
+// "no neighbourhood has", "the only neighbourhood has". Never "9 of 9". Use it for every count in a sentence.
+export function countPhrase(k, n, noun = 'neighbourhood') {
+  const pl = `${noun}s`;
+  if (n === 1) return k ? `the only ${noun} has` : `the only ${noun} doesn't have`;
+  if (k === 0) return `no ${noun} has`;
+  if (k === n) return n === 2 ? `both ${pl} have` : `all ${n} ${pl} have`;
+  return `${k} of ${n} ${k === 1 ? `${pl} has` : `${pl} have`}`;
+}
 // The message when someone taps a city that has no neighbourhoods. [title, text, offer to ask the agent]
 const NO_HOODS = (c) => (c === 'Greater Vancouver'
   ? ["Greater Vancouver isn't split into neighbourhoods", "It's the whole region, made up of cities. Its numbers are in the rest of the report. Tap a city here to see its neighbourhoods.", false]
@@ -108,7 +117,7 @@ export function makeHoods(ctx) {
     if (!H[c]) return `<button type="button" class="nb-cd nb-no" data-hno="${esc(c)}" aria-pressed="${S.note === c}"><b>${dot}${esc(c)}</b><span>ⓘ No neighbourhoods</span><span class="nb-cw">${c === 'Greater Vancouver' ? 'Whole region' : 'Whole area'}</span></button>`;
     const v = H[c][CITY]?.[S.type]?.[I[S.per]], mine = S.home && S.homeCity === c;
     return `<button type="button" class="nb-cd" data-hcard="${esc(c)}" aria-pressed="${c === S.city}"><b>${dot}<span>${esc(c)}${mine ? ' <em class="nb-star" title="Your area is here">★</em>' : ''}</span></b>
-      <span>${hoodNames(D, c).length} neighbourhoods</span><strong>${pc(v)}</strong>${bestIn(c)}</button>`;
+      <span>${(() => { const k = hoodNames(D, c).filter((n) => row(n, c)).length; return `${k} neighbourhood${k === 1 ? '' : 's'}`; })()}</span><strong>${pc(v)}</strong>${bestIn(c)}</button>`;
   }
   function note() {
     if (!S.note) return '';
@@ -119,7 +128,7 @@ export function makeHoods(ctx) {
     const cs = cardCities();
     if (cs.length < 2) return '';
     const hint = S.fromTop ? `Showing ${esc(S.city)}, the area you picked at the top.` : `Showing ${esc(S.city)}. Tap another city to switch.`;
-    return `<div class="nb-cards" role="group" aria-label="Cities">${cs.map(cityCard).join('')}</div><p class="nb-hint">${hint} <span>${esc(tlab())} homes, change ${WHEN[S.per]}.</span></p>${note()}`;
+    return `<div class="nb-cards" role="group" aria-label="Cities">${cs.map(cityCard).join('')}</div><p class="nb-hint">${hint} <span>${esc(tname()[0].toUpperCase() + tname().slice(1))}, change ${WHEN[S.per]}.</span></p>${note()}`;
   }
   // No area at the top has neighbourhoods (for example Greater Vancouver alone): the client chooses a city.
   function chooser() {
@@ -175,17 +184,14 @@ export function makeHoods(ctx) {
   function ranked() {
     const k = S.per, names = hoodNames(D, S.city).filter((n) => row(n)?.[I[k]] != null).sort((a, b) => row(b)[I[k]] - row(a)[I[k]]);
     if (!names.length) return `<p class="na">No ${esc(tname())} prices are published for neighbourhoods in ${esc(S.city)}.</p>`;
-    const cx = hs()[CITY]?.[S.type], cv = cx?.[I[k]];
     // Bars grow left (down, red) or right (up, green) from one zero line, so every row is measured the same way.
-    const vals = [...names.map((n) => row(n)[I[k]]), ...(cv != null ? [cv] : [])], lo = Math.min(0, ...vals), hi = Math.max(0, ...vals), span = hi - lo || 1, z = (-lo / span) * 100;
+    // Only neighbourhoods are listed: the city as a whole is on its card and in the rest of the report.
+    const vals = names.map((n) => row(n)[I[k]]), lo = Math.min(0, ...vals), hi = Math.max(0, ...vals), span = hi - lo || 1, z = (-lo / span) * 100;
     const bar = (v) => `<span class="nb-br">${v == null ? '' : `<i class="${v < 0 ? 'dn' : 'upv'}" style="left:${(v < 0 ? z + (v / span) * 100 : z).toFixed(1)}%;width:${((Math.abs(v) / span) * 100).toFixed(1)}%"></i>`}${lo < 0 && hi > 0 ? `<b class="nb-zero" style="left:${z.toFixed(1)}%"></b>` : ''}</span>`;
     const item = (n) => { const x = row(n), me = here() && n === S.home;
       return `<button type="button" class="nb-li${me ? ' nb-me' : ''}" data-hpeek="${esc(n)}"><span class="nb-ln">${me ? '★ ' : ''}${esc(n)}<small>${short(x[I.p])}</small></span>${pc(x[I[k]])}${bar(x[I[k]])}</button>`; };
-    const cityRow = cx && cv != null ? `<div class="nb-li nb-cityrow"><span class="nb-ln">${esc(S.city)} overall<small>${short(cx[I.p])}</small></span>${pc(cv)}${bar(cv)}</div>` : '';
     const list = S.rankAll || names.length <= 12 ? names : names.filter((n, i) => i < 10 || (here() && n === S.home));
-    // The city's own number sits in its place in the order, so you see at once who did better or worse.
-    const at = cv == null ? -1 : list.findIndex((n) => row(n)[I[k]] < cv);
-    const html = list.map((n, i) => (i === at ? cityRow : '') + item(n)).join('') + (at < 0 ? cityRow : '');
+    const html = list.map(item).join('');
     const anyUp = names.some((n) => row(n)[I[k]] > 0);
     return `<p class="sub nb-rs">${esc(tlab())} · change ${WHEN[k]}, ${anyUp ? 'best first' : 'smallest drop first'}. Tap one to take a look.</p>
       <div class="nb-list">${html}</div>${names.length > list.length || S.rankAll ? `<button type="button" class="nb-more" data-hmore>${S.rankAll ? 'Show fewer' : `Show all ${names.length} neighbourhoods`}</button>` : ''}`;
@@ -224,7 +230,8 @@ export function makeHoods(ctx) {
       s.push(y1 != null && y1 < 0 ? 'With prices below last year, buyers have more room to negotiate. If you are thinking of moving, I can tell you what your home would sell for today.' : 'If you are thinking of moving, I can tell you what your home would sell for today.');
       return s.join(' '); }
     const r1 = names.filter((n) => row(n)[I.y1] != null), dn = r1.filter((n) => row(n)[I.y1] < 0).length, best = [...names].filter((n) => row(n)[I.y10] != null).sort((a, b) => row(b)[I.y10] - row(a)[I.y10])[0];
-    return `In ${S.city}, ${dn} of ${r1.length} neighbourhoods have lower ${tsing()} prices than a year ago.${best ? ` Over 10 years, ${best} grew the most (${row(best)[I.y10].toFixed(1)}%).` : ''} Ask me what this means for your street.`;
+    const lead = r1.length ? `In ${S.city}, ${countPhrase(dn, r1.length)} lower ${tsing()} prices than a year ago.` : '';
+    return `${lead}${best ? ` Over 10 years, ${best} grew the most (${row(best)[I.y10].toFixed(1)}%).` : ''} Ask me what this means for your street.`.trim();
   }
   function take() {
     if (conf.take === 'off' || !A.name) return '';

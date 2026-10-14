@@ -66,7 +66,8 @@ test('with several areas, Neighbourhoods shows a card for each and opens on the 
   // Tapping another card switches the list; the city's own row is in it.
   await p.click('[data-hcard="West Vancouver"]');
   assert.match(await p.textContent('.nb-hd'), /Every West Vancouver neighbourhood/);
-  assert.match(await p.textContent('.nb-cityrow'), /West Vancouver overall/);
+  assert.equal(await p.$('.nb-list .nb-cityrow'), null, 'the list has neighbourhoods only, not the city overall');
+  assert.doesNotMatch(await p.textContent('.nb-list'), /overall/);
 }));
 
 test('Neighbourhoods follow the area tapped at the top, and your area stays in view in another city', { skip }, () => page('/r/demo?areas=coquitlam,port-moody', async (p) => {

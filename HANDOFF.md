@@ -29,6 +29,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 10. **Supabase stays on the free plan.** Ella doesn't want to pay for extra services.
 11. **Don't push to GitHub unless Ella asks.** Pushing makes it live. Normally deliver a `site-update.zip` that she uploads.
 12. **Ask before downloading anything** in her browser. Name the file, where it's from and its size.
+13. **Counts read like a person wrote them.** Never "9 of 9": say "all 9", "both", "no neighbourhood" or "the only one". In code, use `countPhrase()` from `hoods.js`.
 
 ---
 
@@ -55,6 +56,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 **UI made, waiting for Ella's go-ahead:**
 
+- **S5 list labels:** column titles ("Typical price today", "How much prices changed in 10 years", "Change"), a key (green up, red down, longer bar = bigger change), and "Price today" under each name on a phone (`docs/s5-list-labels-ui.png`). Ella asked what the number and the lines meant.
 - **First page:** a white and blue landing page that matches the product (landing-ui.png).
 - **Sections panel:** each section with an icon and a short line, and a recommended order with Summary last (sections-ui.png).
 - **Template bar:** one slim line with "Save as template" and a ⋯ menu.
@@ -111,11 +113,11 @@ Recommended order (proposed, Summary last). The status is for each section.
 
 **What clients see:**
 
-- **City cards** at the top: one per area picked in R2, in the same order and colour dots. Each card shows the number of neighbourhoods and the city's change for the chosen period. On a computer it also shows "Grew most" or "Smallest drop". A ★ after the name marks the city with the client's own area. One city is open at a time. On a phone the cards scroll sideways.
+- **City cards** at the top: one per area picked in R2, in the same order and colour dots. Each card shows the number of neighbourhoods with prices for the chosen home type and the city's change for the chosen period. On a computer it also shows "Grew most" or "Smallest drop". A ★ after the name marks the city with the client's own area. One city is open at a time. On a phone the cards scroll sideways.
 - They pick their neighbourhood once, and their phone remembers it (the neighbourhood and its city, not which city they last looked at).
 - **Hero card** (in their own city): price, plus the change in dollars and % vs 1 year and 10 years ago, with a 10-year line.
 - **In another city,** their area becomes a slim ★ bar (name, city, price, change). Tapping it goes back to their city.
-- **Every neighbourhood, one ranked list:** best to worst, with the price, a red or green bar from a zero line, and the change. "<City> overall" sits in its place in the order. Top 10, then "Show all". Their own area is highlighted. This replaced the coloured tiles and "Who grew the most".
+- **Every neighbourhood, one ranked list:** best to worst, with the price, a red or green bar from a zero line, and the change. Top 10, then "Show all". Their own area is highlighted. This replaced the coloured tiles and "Who grew the most". The city as a whole is **not** in the list (Ella: it's shown everywhere else).
 - **Time buttons:** Since January · 1 year · 3 years · 5 years · 10 years (short labels on a phone). It opens on **5 years**. "Last month" was removed because small neighbourhoods jump around too much.
 - **Compare two:** their own area vs the whole city (the default) or any neighbourhood in any city that has a card.
 - **Peek card:** tapping a neighbourhood slides up a card comparing it with theirs, also across cities ("about $232,700 more than Burke Mountain (Coquitlam)"), with "Compare with my area" and "Make this my area".
@@ -230,6 +232,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-14 | S5 Neighbourhoods | Removed the "<City> overall" row from the ranked list. The take now says "all 9 neighbourhoods" instead of "9 of 9" (`countPhrase()`, with a test). City cards count only neighbourhoods with prices for the chosen home type. |
 | 2026-10-13 | S5 Neighbourhoods | **Built:** city cards (one city open at a time, follow R2, only open on a city that has a card), one ranked list instead of the tiles and "Who grew the most", time buttons Since January · 1 · 3 · 5 · 10 years (opens on 5 years; "Last month" dropped), comparisons across cities. In site-update.zip. |
 | 2026-10-13 | S5 Neighbourhoods | Several cities: city cards replace the City box; one city open at a time; S5 follows R2; the client's area is pinned when switching; the peek card works across cities. Greater Vancouver and Whistler get a grey card and a message when tapped. Whistler wording agreed. UI in `docs/s5-*.png`. |
 | 2026-10-13 | R2 Area bar | "Side by side / One at a time" doesn't make sense. Proposed: one row "Show: Compare all · Coquitlam · Burnaby North · + Add area" (docs/area-toggle-ui.png). Waiting for go-ahead. |

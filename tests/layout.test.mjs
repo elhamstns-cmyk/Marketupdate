@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as L from '../public/js/layout.js';
 import * as board from '../public/js/board.js';
-import { BLOCKS, defaultCity, PERIODS } from '../public/js/hoods.js';
+import { BLOCKS, defaultCity, PERIODS, countPhrase } from '../public/js/hoods.js';
 import SEED from '../data/seed-report.js';
 import { cleanShow } from '../lib/util.js';
 
@@ -58,6 +58,17 @@ test('the time buttons are Since January, 1, 3, 5 and 10 years, and every neighb
   let n = 0;
   for (const c of Object.values(SEED.hoods)) for (const h of Object.values(c)) for (const r of Object.values(h)) { n++; for (const i of [4, 5, 6, 7, 8]) assert.equal(typeof r[i], 'number'); }
   assert.ok(n > 400);
+});
+
+test('counts in sentences read naturally: never "9 of 9"', () => {
+  assert.equal(countPhrase(9, 9), 'all 9 neighbourhoods have');
+  assert.equal(countPhrase(2, 2), 'both neighbourhoods have');
+  assert.equal(countPhrase(1, 1), 'the only neighbourhood has');
+  assert.equal(countPhrase(0, 1), "the only neighbourhood doesn't have");
+  assert.equal(countPhrase(0, 7), 'no neighbourhood has');
+  assert.equal(countPhrase(1, 7), '1 of 7 neighbourhoods has');
+  assert.equal(countPhrase(3, 9), '3 of 9 neighbourhoods have');
+  for (let n = 1; n < 40; n++) for (let k = 0; k <= n; k++) assert.doesNotMatch(countPhrase(k, n), new RegExp(`\\b${n} of ${n}\\b`));
 });
 
 test('every Neighbourhoods block the server accepts has a label in the dashboard', () => {
