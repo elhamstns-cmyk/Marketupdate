@@ -49,9 +49,44 @@ test('a personal link opens on the client\'s neighbourhood', { skip }, () => pag
 test('picking a neighbourhood and peeking at another works', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
   await p.selectOption('[data-hpick]', 'Burke Mountain');
   assert.ok(await p.$('.nb-hero'));
-  await p.click('.nb-t[data-hpeek="Westwood Plateau"]');
+  await p.click('.nb-li[data-hpeek]:not(.nb-me)');
   assert.match(await p.textContent('.nb-sheet'), /Compared with your area/);
 }));
+
+test('with several areas, Neighbourhoods shows a card for each and opens on the first city that has neighbourhoods', { skip }, () => page('/r/demo?areas=greater-vancouver,coquitlam,west-vancouver,north-vancouver', async (p) => {
+  const cards = await p.$$eval('.cd-hoods .nb-cd', (x) => x.map((e) => e.textContent));
+  assert.equal(cards.length, 4);
+  assert.match(cards[0], /No neighbourhoods/);
+  assert.match(await p.textContent('.cd-hoods .nb-cd[aria-pressed="true"]'), /Coquitlam/);
+  assert.equal(await p.$('[data-hcity]'), null, 'the old City box is gone');
+  // A city with no neighbourhoods explains itself and keeps the open city.
+  await p.click('[data-hno="Greater Vancouver"]');
+  assert.match(await p.textContent('.nb-msg'), /isn't split into neighbourhoods/);
+  assert.match(await p.textContent('.cd-hoods [data-hcard][aria-pressed="true"]'), /Coquitlam/);
+  // Tapping another card switches the list; the city's own row is in it.
+  await p.click('[data-hcard="West Vancouver"]');
+  assert.match(await p.textContent('.nb-hd'), /Every West Vancouver neighbourhood/);
+  assert.match(await p.textContent('.nb-cityrow'), /West Vancouver overall/);
+}));
+
+test('Neighbourhoods follow the area tapped at the top, and your area stays in view in another city', { skip }, () => page('/r/demo?areas=coquitlam,port-moody', async (p) => {
+  await p.selectOption('[data-hpick]', 'Burke Mountain');
+  await p.click('[data-view="one"]'); await p.click('[data-focus="Port Moody"]');
+  assert.match(await p.textContent('.cd-hoods .nb-cd[aria-pressed="true"]'), /Port Moody/);
+  assert.match(await p.textContent('.nb-hint'), /the area you picked at the top/);
+  assert.match(await p.textContent('.nb-away'), /Burke Mountain/);
+  // Peeking across cities still compares with your own area.
+  await p.click('.nb-li[data-hpeek="Heritage Woods"]');
+  assert.match(await p.textContent('.nb-sheet'), /Burke Mountain \(Coquitlam\)/);
+}));
+
+test('Greater Vancouver alone: clients choose a city', { skip }, () => page('/r/demo?areas=greater-vancouver', async (p) => {
+  assert.match(await p.textContent('.nb-intro'), /Choose a city/);
+  assert.equal(await p.textContent('.cd-hoods h3'), 'Neighbourhoods', 'the title does not name a city the client did not pick');
+  assert.ok((await p.$$('.nb-grid button')).length >= 6);
+  await p.click('[data-hall]');
+  assert.equal((await p.$$('.nb-grid button')).length, 19);
+}, { width: 390 }));
 
 test('the Create page loads with the Sections panel and Neighbourhoods settings', { skip }, () => page('/app?plan=pro', async (p) => {
   const list = await p.$$eval('#dpanel [data-sk]', (x) => x.map((e) => e.dataset.sk));

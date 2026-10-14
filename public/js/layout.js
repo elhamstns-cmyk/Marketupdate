@@ -21,7 +21,8 @@ export const NEW_SECTIONS = ['hoods'];
 export const MAX_AREAS = 6;
 export const TYPE_KEYS = ['detached', 'townhome', 'condo'];
 // The parts of the Neighbourhoods section an agent can switch off (labels live in hoods.js → BLOCKS).
-export const HOOD_BLOCK_KEYS = ['hero', 'tiles', 'rank', 'compare', 'take'];
+// 'tiles' is the ranked list of every neighbourhood (it replaced the coloured tiles and "Who grew the most").
+export const HOOD_BLOCK_KEYS = ['hero', 'tiles', 'compare', 'take'];
 export const DEFAULT_LAYOUT = { sections: SEC_IDS.filter((k) => k !== 'compare'), areas: ['Greater Vancouver'], agentTop: true, clientAreas: true, view: 'side', conf: {} };
 // The older on/off switches (before sections). Still saved so old reports keep working.
 const SHOW_KEYS = ['prices', 'changes', 'sold', 'forsale', 'days', 'market', 'detached', 'townhome', 'condo', 'summary', 'trend', 'compare', 'picker'];

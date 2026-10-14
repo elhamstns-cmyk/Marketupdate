@@ -388,9 +388,10 @@ function selectSec(k, scroll) { PS.k = k; $('#rp')?._select?.(k); $('#dpanel').q
 const tgl = (attr, l, on) => `<label class="tgr"><span>${l}</span><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>`;
 // Neighbourhoods: everything starts on a sensible choice, so agents don't have to touch it.
 function hoodsPanel(c, L) {
-  const city = defaultCity(D, c, L.areas), names = hoodNames(D, city), sel = (attr, opts, cur) => `<select class="inp2" ${attr}>${opts.map(([v, l]) => `<option value="${esc(v)}"${v === (cur || '') ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+  const city = c.city && D.hoods?.[c.city] ? c.city : defaultCity(D, c, L.areas), names = hoodNames(D, city), sel = (attr, opts, cur) => `<select class="inp2" ${attr}>${opts.map(([v, l]) => `<option value="${esc(v)}"${v === (cur || '') ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
   const take = c.take || 'auto';
-  return `<span class="lbl2">City</span>${sel('data-hc="city"', hoodCities(D).map((x) => [x, x]), city)}
+  return `<span class="lbl2">City shown first</span>${sel('data-hc="city"', hoodCities(D).map((x) => [x, x]), city)}
+    <p class="hint">Used when it's one of your report's areas. If your report is only Greater Vancouver, clients start here and can choose another city.</p>
     <span class="lbl2">Neighbourhood shown first</span>${sel('data-hc="home"', [['', 'Let each client pick'], ...names.map((n) => [n, n])], names.includes(c.home) ? c.home : '')}
     <p class="hint">Or choose one, for example the area you farm. Clients can always pick their own.</p>
     <span class="lbl2">Compare with</span>${sel('data-hc="cmp"', [['', `All of ${city}`], ...names.map((n) => [n, n])], names.includes(c.cmp) ? c.cmp : '')}

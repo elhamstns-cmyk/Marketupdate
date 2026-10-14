@@ -62,7 +62,7 @@ export function mountReport(root, D, A, opts = {}) {
   root.classList.add('bd'); root.classList.toggle('dark', dark);
   root.style.cssText = themeVars(TH) + `;--ink:#1b2430;--mut:#6b7380;--ln:#e6e8ee;--pg:${dark ? p.bg : '#f3f4f7'};--card:${dark ? mix(p.ink, p.bg, 0.07) : p.bg};--dn:${dark ? '#ff7d6b' : '#d6452f'};--up:${dark ? '#4fc98b' : '#1a8f4e'};--hl:${mix(p.fill, p.bg, 0.1)};--soft:${mix(p.fill, p.bg, 0.28)};--bar:#4f86e8`;
   // Neighbourhoods keep their own state (the client's area, what they looked at) while the rest of the report redraws.
-  const HO = D.hoods && Object.keys(D.hoods).length ? makeHoods({ D, A, conf: CF('hoods'), areas: start, edit: ED || !!opts.embedded, personal: opts.personal, vars: root.style.cssText,
+  const HO = D.hoods && Object.keys(D.hoods).length ? makeHoods({ D, A, conf: CF('hoods'), areas: start, colour, edit: ED || !!opts.embedded, personal: opts.personal, vars: root.style.cssText,
     track: ED || opts.embedded ? null : opts.track, onCity: ED ? (c) => saveLayout({ conf: { ...L.conf, hoods: { ...CF('hoods'), city: c, home: undefined, cmp: undefined } } }) : null }) : null;
 
   /* ----- section renderers: each returns [html, after-draw hook] ----- */
@@ -114,7 +114,7 @@ export function mountReport(root, D, A, opts = {}) {
     if (!tabs.some(([k]) => k === S.gType)) S.gType = tabs[0][0];
     return card('growth', 'Long-term price growth', 'How much the typical price changed over the years', `<div class="gt">${tabs.length > 1 ? tabs.map(([k, l]) => `<button type="button" class="tab" data-gt="${k}" aria-pressed="${S.gType === k}">${house(k, 22)}${l}</button>`).join('') : ''}</div><div class="gb" data-chart="growth"></div>`,
     areasFor('growth').length === 1 ? '' : `<div class="seg" role="group" aria-label="Years">${[3, 5, 10].map((y, i) => `<button type="button" data-gy="${i}" aria-pressed="${S.gYears === i}">${y} years</button>`).join('')}</div>`); };
-  R.hoods = () => card('hoods', 'Neighbourhoods', 'Typical home prices by neighbourhood, and how they changed', '<div data-chart="hoods"></div>', HO ? HO.extra() : '');
+  R.hoods = () => card('hoods', HO ? esc(HO.title()) : 'Neighbourhoods', 'Typical home prices by neighbourhood, and how they changed', '<div data-chart="hoods"></div>');
   R.summary = () => { const sh = areasFor('summary'); return card('summary', 'Summary', sh.length > 1 ? `Across your ${sh.length} areas` : esc(sh[0]), `<ol class="sum">${summaryPoints(sh).map((t, i) => `<li><em>${i + 1}</em><span>${t}</span></li>`).join('')}</ol>`); };
   R.sold = () => { const sh = areasFor('sold'); if (!sh.includes(S.soldArea)) S.soldArea = sh[0];
     return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, `${CF('sold').areas && sh.length > 1 ? `<div class="mini">${sh.map((a) => `<button type="button" data-sa="${esc(a)}" aria-pressed="${a === S.soldArea}">${dot(colour(a))}${esc(a)}</button>`).join('')}</div>` : ''}<div data-chart="sold"></div>`); };
@@ -276,6 +276,8 @@ export function mountReport(root, D, A, opts = {}) {
   }
   if (ED) root.onpointerdown = (e) => { const h = e.target.closest('[data-drag]'); if (h && e.button === 0) startDrag(e, h.dataset.drag); };
   function draw() {
+    // Neighbourhoods follow the areas at the top, and the area tapped there when showing one at a time.
+    HO?.sync(S.areas, S.view === 'one' && S.areas.length > 1 ? S.focus : null);
     const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1).filter((k) => k !== 'hoods' || HO);
     const head = sh.length === 1 ? `${esc(sh[0])} Market Report` : `Market Report: ${sh.length} areas`;
     root.innerHTML = `<div class="bw"><header class="top"><div><h1>${head}</h1><p class="sub">${esc(D.month)} · Source: Greater Vancouver REALTORS®</p></div>
@@ -321,7 +323,7 @@ export function mountReport(root, D, A, opts = {}) {
     if (b('[data-id="intent"] button')) { const x = b('button'), on = x.getAttribute('aria-pressed') === 'true'; q('intent').querySelectorAll('button').forEach((y) => y.setAttribute('aria-pressed', 'false')); x.setAttribute('aria-pressed', String(!on)); S.intent = on ? null : x.textContent; return msg(); }
     if (b('[data-id="copy"]')) { navigator.clipboard?.writeText(text()).then(() => { q('copy').textContent = 'Copied'; setTimeout(() => q('copy') && (q('copy').textContent = 'Copy message'), 1800); }).catch(() => {}); }
   };
-  root.onchange = (e) => { if (e.target.matches('[data-hcity]')) return HO?.setCity(e.target.value); if (e.target.dataset.id === 'add' && e.target.value) setAreas([...S.areas, e.target.value], e.target.value); };
+  root.onchange = (e) => { if (e.target.dataset.id === 'add' && e.target.value) setAreas([...S.areas, e.target.value], e.target.value); };
   root.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-focus],[data-sa]')) { e.preventDefault(); e.target.click(); } };
   draw();
   if (root._ro) root._ro.disconnect();

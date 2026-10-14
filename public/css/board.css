@@ -202,8 +202,7 @@
 @container (max-width:560px){.bd .rr.ed,.bd .rr.rh.ed{grid-template-columns:1fr 92px 74px 26px}.bd .rr:not(.ed),.bd .rr.rh:not(.ed){grid-template-columns:1fr 92px 74px}.bd .rr.rh .hi{display:none}}
 /* ---------- Neighbourhoods ---------- */
 .bd .cd-hoods{display:grid;gap:14px}
-.bd .nb-city{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mut);font-weight:600}
-.bd .nb-city select,.bd [data-hcmp],.bd [data-hpick]{font:inherit;font-size:14px;color:var(--ink);border:1px solid var(--ln);border-radius:9px;padding:8px 10px;background:var(--card);max-width:100%}
+.bd [data-hcmp],.bd [data-hpick]{font:inherit;font-size:14px;color:var(--ink);border:1px solid var(--ln);border-radius:9px;padding:8px 10px;background:var(--card);max-width:100%}
 .bd .nb-pin{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:9px 12px;font-size:13.5px;box-shadow:0 2px 6px rgba(20,30,60,.06)}
 .bd .nb-dot{width:9px;height:9px;border-radius:50%;background:var(--ac);flex:none}
 .bd .nb-lk{margin-left:auto;background:none;border:0;color:var(--ac);font:650 13.5px var(--bf);cursor:pointer;padding:2px 4px}
@@ -228,27 +227,8 @@
 .bd .nb-seg{display:inline-flex;flex-wrap:wrap;background:#f1f3f7;border-radius:10px;padding:3px;gap:2px}
 .bd .nb-seg button{border:0;background:none;border-radius:8px;padding:7px 12px;font:650 13px var(--bf);color:#55606e;cursor:pointer}
 .bd .nb-seg button[aria-pressed="true"]{background:var(--card);color:var(--ac);box-shadow:0 1px 3px rgba(20,30,60,.14)}
-.bd .nb-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
-.bd .nb-t{position:relative;text-align:left;border:0;border-radius:12px;padding:11px 12px 34px;min-height:88px;cursor:pointer;font:inherit;color:var(--ink);transition:transform .12s,box-shadow .12s}
-.bd .nb-t:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(20,30,60,.12)}
-.bd .nb-t b{display:block;font-size:13.5px;line-height:1.25}.bd .nb-t span{display:block;font-size:12.5px;color:#3d4653;margin-top:3px}
-.bd .nb-t em{position:absolute;left:12px;bottom:9px;font-style:normal;font-size:15px;font-weight:800}
-.bd .nb-t.nb-me{outline:3px solid var(--ac);outline-offset:2px}
-.bd .nb-t.nb-me::after{content:"Your area";position:absolute;top:-10px;right:9px;background:var(--ac);color:#fff;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:6px}
-.bd .nb-t.pk{outline:2.5px dashed var(--ink);outline-offset:2px}
 .bd .nb-v.upv{color:var(--up)}.bd .nb-v.dn{color:var(--dn)}.bd .nb-v{white-space:nowrap;font-weight:750}
-.bd .nb-key{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12px;color:var(--mut)}
-.bd .nb-key i{height:9px;width:150px;border-radius:5px;background:linear-gradient(90deg,#f3b5a8,#fbe3dd,#e6f4ec,#7fd3a3)}
-.bd .nb-tip{margin-left:auto}
 .bd .nb-blk{border-top:1px solid var(--ln);padding-top:14px}.bd .nb-blk h4{margin:0;font-size:15px}
-.bd .nb-rank{display:grid;gap:5px;margin-top:12px}
-.bd .nb-rk{display:grid;grid-template-columns:minmax(110px,170px) 1fr 76px;align-items:center;gap:12px;font:inherit;font-size:13.5px;text-align:left;background:none;border:0;padding:2px 0;cursor:pointer;color:var(--ink)}
-.bd .nb-rk:hover .nb-tr{background:#eceff4}.bd .nb-rk.nb-me{font-weight:750}.bd .nb-rk>.nb-v{text-align:right}
-.bd .nb-rn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bd .nb-tr{position:relative;height:20px;background:#f4f6f9;border-radius:6px}
-.bd .nb-tr i{position:absolute;left:0;top:0;bottom:0;border-radius:6px}.bd .nb-tr i.upv{background:#8fd5ad}.bd .nb-tr i.dn{background:#f2a596}
-.bd .nb-rk.nb-me .nb-tr i.upv{background:#1a8f4e}.bd .nb-rk.nb-me .nb-tr i.dn{background:#d6452f}
-.bd .nb-avg{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
 .bd .nb-cmp{display:grid;grid-template-columns:1fr 44px 1fr;gap:10px;margin-top:12px;align-items:start}
 .bd .nb-vs{align-self:center;text-align:center;font-weight:800;color:#9aa1ab}
 .bd .nb-cc{border:1px solid var(--ln);border-radius:14px;padding:13px 15px}.bd .nb-cc.nb-me{border-color:var(--ac);background:var(--hl)}
@@ -280,7 +260,60 @@
 .nb-sheet .nb-b.p{background:#1d4fbf;color:#fff;border-color:#1d4fbf}
 @media (min-width:760px){.nb-sheet .nb-card{bottom:auto;top:50%;border-radius:20px;transform:translate(-50%,-40%);opacity:0;transition:transform .2s,opacity .2s}.nb-sheet.in .nb-card{transform:translate(-50%,-50%);opacity:1}}
 @media (max-width:640px){.bd .nb-hero{grid-template-columns:1fr;padding:18px}.bd .nb-pv{font-size:32px}.bd .nb-hc{grid-template-columns:1fr}
-  .bd .nb-tiles{grid-template-columns:repeat(2,1fr)}.bd .nb-cmp{grid-template-columns:1fr}.bd .nb-vs{display:none}.bd .nb-rk{grid-template-columns:110px 1fr 66px;gap:8px}.bd .nb-tip{margin-left:0}}
+  .bd .nb-cmp{grid-template-columns:1fr}.bd .nb-vs{display:none}}
 .bd [data-chart="hoods"]{display:grid;gap:14px;min-width:0}
 .bd .nb-more{margin:10px auto 0;display:block;border:1px solid var(--ln);background:var(--card);border-radius:9px;padding:8px 14px;font:650 13px var(--bf);color:var(--ac);cursor:pointer}
 @media (max-width:640px){.bd .nb-seg{display:flex;width:100%}.bd .nb-seg button{flex:1;padding:7px 6px}}
+
+/* City cards: one per area picked at the top. They scroll sideways when they don't fit. */
+.bd .nb-cards{display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x proximity;padding:3px 2px 6px;margin:0 -2px;scrollbar-width:thin}
+.bd .nb-cd{position:relative;flex:1 0 170px;max-width:290px;scroll-snap-align:start;text-align:left;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--ln);border-radius:13px;padding:12px 13px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.bd .nb-cd:hover{border-color:#b9c7e6}
+.bd .nb-cd[aria-pressed="true"]{border:2px solid var(--ac);background:#f4f7fe;padding:11px 12px}
+.bd .nb-cd b{display:flex;align-items:baseline;gap:7px;line-height:1.25;font-size:15px}
+.bd .nb-cd>span{font-size:12.5px;color:var(--mut)}
+.bd .nb-cd strong{font-size:16px;margin-top:6px}
+.bd .nb-cdot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block;transform:translateY(-1px)}
+.bd .nb-best{font-size:12px;color:var(--mut);margin-top:2px}.bd .nb-best .nb-v{font-weight:700}
+.bd .nb-star{font-style:normal;color:var(--ac);font-size:13px}
+.bd .nb-no{background:#f6f7f9;border-style:dashed;border-color:#c9ced8}
+.bd .nb-no b{color:#3d4653}.bd .nb-no .nb-cw{font-weight:650;color:#55606e;margin-top:6px;font-size:13px}
+.bd .nb-no[aria-pressed="true"]{border:2px solid #8a93a1;background:#f6f7f9;padding:11px 12px}
+.bd .nb-hint{margin:-4px 0 0;font-size:12.5px;color:var(--mut)}.bd .nb-hint span{white-space:nowrap}
+/* The message for a city with no neighbourhoods. It stays until it is closed. */
+.bd .nb-msg{display:flex;gap:10px;align-items:flex-start;background:#eef3fd;border:1px solid #c9d8f6;border-radius:12px;padding:12px 13px;font-size:14px;line-height:1.5}
+.bd .nb-msg b{display:block}
+.bd .nb-mi{width:22px;height:22px;border-radius:50%;background:var(--ac);color:#fff;font:800 13px Georgia,serif;display:grid;place-items:center;flex:none;margin-top:1px}
+.bd .nb-mx{margin-left:auto;background:none;border:0;color:var(--mut);font-size:16px;cursor:pointer;padding:0 2px;line-height:1}
+.bd .nb-lk.in{margin:0;padding:0;text-decoration:underline}
+/* Only Greater Vancouver at the top: the client chooses a city. */
+.bd .nb-intro{margin:0;font-size:14px}
+.bd .nb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.bd .nb-grid button{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;font:650 14px var(--bf);color:var(--ink);background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:10px 12px;cursor:pointer}
+.bd .nb-grid button small{font-weight:500;color:var(--mut)}
+.bd .nb-grid button[aria-pressed="true"]{border:2px solid var(--ac);color:var(--ac);background:#f4f7fe;padding:9px 11px}
+.bd .nb-all{margin:0;padding:0;align-self:start}
+/* Your own area while looking at another city. */
+.bd .nb-away{display:flex;align-items:center;gap:11px;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--card);border:1px solid #c9d8f6;border-radius:12px;padding:9px 12px;cursor:pointer}
+.bd .nb-sq{width:30px;height:30px;border-radius:9px;background:#e6edfb;color:var(--ac);display:grid;place-items:center;flex:none}
+.bd .nb-aw{flex:1;font-size:12.5px;color:var(--mut)}.bd .nb-aw b{display:block;color:var(--ink);font-size:14px}
+.bd .nb-ar{text-align:right;font-size:13.5px;display:flex;flex-direction:column;align-items:flex-end}
+/* Every neighbourhood: one ranked list. */
+.bd .nb-hd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.bd .nb-hd .nb-ctl{gap:8px}
+.bd .nb-rs{margin:-6px 0 0}
+.bd .nb-list{display:grid;gap:2px}
+.bd .nb-li{display:grid;grid-template-columns:minmax(190px,280px) 1fr 84px;grid-template-areas:'n b v';gap:5px 14px;align-items:center;width:100%;text-align:left;font:inherit;color:var(--ink);background:none;border:0;border-radius:10px;padding:8px 10px;cursor:pointer}
+button.nb-li:hover{background:#f6f7fa}
+.bd .nb-ln{font-weight:650;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bd .nb-ln small{font-weight:500;color:var(--mut);margin-left:7px;font-size:12.5px}
+.bd .nb-li>.nb-v{text-align:right;grid-area:v}.bd .nb-ln{grid-area:n}
+.bd .nb-br{grid-area:b;position:relative;height:12px;background:#f1f3f6;border-radius:5px}
+.bd .nb-br i{position:absolute;top:0;bottom:0;border-radius:5px}.bd .nb-br i.upv{background:#8fd0aa}.bd .nb-br i.dn{background:#f2a493}
+.bd .nb-zero{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.75}
+.bd .nb-li.nb-me{background:#eef3fd;box-shadow:inset 0 0 0 1.5px #c9d8f6}
+.bd .nb-li.nb-me .nb-br i.upv{background:var(--up)}.bd .nb-li.nb-me .nb-br i.dn{background:var(--dn)}
+.bd .nb-cityrow{background:#f6f7f9;cursor:default}.bd .nb-cityrow .nb-ln{font-weight:750}
+.bd .nb-short{display:none}
+@media (max-width:640px){.bd .nb-cd{flex:0 0 146px}.bd .nb-cd>span{white-space:nowrap;font-size:12px}.bd .nb-cd.nb-no{flex-basis:162px}.bd .nb-no>span{white-space:nowrap;font-size:12px}.bd .nb-best{display:none}.bd .nb-long{display:none}.bd .nb-short{display:inline}
+  .bd .nb-hd .nb-ctl{width:100%}.bd .nb-li{padding:8px 6px;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'n v' 'b b'}.bd .nb-br{height:9px}.bd .nb-grid{grid-template-columns:1fr 1fr}
+  .bd .nb-per button{flex:1 1 auto;padding:7px 4px;white-space:nowrap;font-size:12.5px}}

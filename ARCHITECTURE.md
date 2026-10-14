@@ -272,21 +272,25 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 
 ### 6.2 Neighbourhoods (`hoods.js`)
 
-- **State:** `{city, home, type, per, cmp, peek, seen, browse, rankAll}`.
-  - It is kept per agent in `localStorage` under `mup_hood:<slug>`. It is not written in edit mode.
-  - A personal link sets the city, home and type.
-- **Blocks:**
-  - Pinned "Your area" bar
+- **State:** `{city, homeCity, home, type, per, cmp, note, peek, seen, browse, rankAll, allCities, areas, focus, fromTop}`.
+  - `city` is the city open on screen. `homeCity` + `home` are the client's own neighbourhood, which can be in another city.
+  - `cmp` is `{c, h}` (city, neighbourhood or `'*'` for the whole city). `seen` holds `"city|hood"` strings.
+  - The client's area, type and `seen` are kept per agent in `localStorage` under `mup_hood:<slug>` (not the city they last looked at). Nothing is written in edit mode.
+  - A personal link sets the home, its city and the type.
+- **Following the report:** `board.js → draw()` calls `HO.sync(areas, focus)` before every redraw, with the R2 areas and the area tapped in "One at a time". `sync()` holds the rule for which city opens (see HANDOFF §6). Never open on a city without a card.
+- **Blocks, in order:**
+  - City cards (`.nb-cd`, `data-hcard`), or a grey card for an area without neighbourhoods (`data-hno`) that opens a message (`.nb-msg`). With no area that has neighbourhoods, a city grid instead (`.nb-grid`).
+  - Pinned "Your area" bar in their city, or the slim `.nb-away` bar in another city
   - Picker card (when no home is set)
   - Hero, with the change in dollars and a spark line built from GVR's own % changes
-  - Tiles: period tabs and type tabs
-  - Rank: top 10, with "Show all"
-  - Compare: the client's neighbourhood vs another neighbourhood or the whole city (`'*'`)
+  - Every neighbourhood: one ranked list (`.nb-li`, block key `tiles`) with type and time buttons (`PERIODS`: sj, y1, y3, y5, y10; opens on y5) and a "<City> overall" row
+  - Compare: the client's neighbourhood vs any neighbourhood or whole city in any card city
   - "You also looked at"
   - The agent's take: automatic text, `conf.text`, or off
-- **Peek sheet:** appended to `document.body` as `.nb-sheet` (not inside `.bd`). Its styles in `board.css` therefore use fixed colours.
+- **Title:** `HO.title()` gives "Neighbourhoods in <City>" when there's a single card, else "Neighbourhoods".
+- **Peek sheet:** appended to `document.body` as `.nb-sheet` (not inside `.bd`). Its styles in `board.css` therefore use fixed colours. `peek(n, city)` works for any city.
 - **Tracking:** `ctx.track('pick' | 'peek' | 'compare', {city, hood})`, sent with `navigator.sendBeacon` from `report.html`.
-- **Agent settings:** `conf.hoods`, edited in `app.js → hoodsPanel()`.
+- **Agent settings:** `conf.hoods`, edited in `app.js → hoodsPanel()`. Block keys are `hero`, `tiles`, `compare`, `take` (`rank` was removed; old saved values are dropped by `cleanHoods`). `defaultCity(D, conf, areas)` is the agent-side rule.
 
 ### 6.3 The Create page (`app.js`)
 

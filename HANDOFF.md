@@ -48,6 +48,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 **Ella's setup steps** (they unlock what is already built):
 
+0. Upload the newest `site-update.zip` (S5 Neighbourhoods with several cities, October 13).
 1. Upload the latest `site-update.zip`. It includes the 12-month chart fix, the Neighbourhoods fill-in, and adding the Neighbourhoods section to existing saved templates once.
 2. In Supabase SQL Editor, run `new-database-tables.sql` (the personal links and views tables).
 3. In Vercel environment variables, add `CRON_SECRET` (any long random text).
@@ -58,7 +59,6 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 - **Sections panel:** each section with an icon and a short line, and a recommended order with Summary last (sections-ui.png).
 - **Template bar:** one slim line with "Save as template" and a ⋯ menu.
 - **Interest rates section:** Bank of Canada rate 2.25%, prime 4.45%, next announcement October 28, step graph, plus an admin "confirm each month" box (rates-ui.png).
-- **S5 Neighbourhoods with several cities:** city cards instead of the small City box. See §6.1 and `docs/s5-*.png`.
 
 **Ideas shown earlier, not decided:**
 
@@ -97,7 +97,7 @@ Recommended order (proposed, Summary last). The status is for each section.
 | 2 | **Buyer's or seller's market** | Built | Scale per area and home type. GVR thresholds: below 12% buyer's, 12–20% balanced, above 20% seller's |
 | 3 | **Typical price over 12 months** | Built | Ella likes this graph. Fixed: every added city now shows; missing history is named under the chart |
 | 4 | **Prices by home type** | Built | Detached, townhouse, condo, with pictures. Hide when only one type is chosen (idea) |
-| 5 | **Neighbourhoods** | Built (new) | See §6 |
+| 5 | **Neighbourhoods** | Built | City cards, ranked list, 5 time buttons. See §6 |
 | 6 | **Homes sold each month** | Built | Bars brighten and show the number on hover. The story image has a headline and an insight line |
 | 7 | **Long-term price growth** | Built | 3, 5 and 10 years from GVR's stats package |
 | 8 | **How areas compare** | Built, off by default | Icons in the column titles; tapping adds or removes an area without the page jumping, with an Undo message |
@@ -107,68 +107,47 @@ Recommended order (proposed, Summary last). The status is for each section.
 
 ---
 
-## 6. Neighbourhoods (built October 2026)
+## 6. Neighbourhoods (built October 2026, several cities added October 13)
 
 **What clients see:**
 
-- They pick their neighbourhood once, and their phone remembers it.
-- "Your area" stays pinned at the top.
-- **Hero card:** price, plus the change in dollars and % vs 1 year and 10 years ago, with a 10-year line.
-- **Coloured tiles** for every neighbourhood, with buttons for last month, since January, 1 year and 10 years, and tabs for detached, townhouse and condo.
-- **Who grew the most:** ranked bars with a city-average line.
-- **Compare two:** the client's own area vs the whole city (the default) or any other neighbourhood.
-- **Peek card:** tapping another area slides up a card comparing it with theirs, with "Compare with my area" and "Make this my area".
+- **City cards** at the top: one per area picked in R2, in the same order and colour dots. Each card shows the number of neighbourhoods and the city's change for the chosen period. On a computer it also shows "Grew most" or "Smallest drop". A ★ after the name marks the city with the client's own area. One city is open at a time. On a phone the cards scroll sideways.
+- They pick their neighbourhood once, and their phone remembers it (the neighbourhood and its city, not which city they last looked at).
+- **Hero card** (in their own city): price, plus the change in dollars and % vs 1 year and 10 years ago, with a 10-year line.
+- **In another city,** their area becomes a slim ★ bar (name, city, price, change). Tapping it goes back to their city.
+- **Every neighbourhood, one ranked list:** best to worst, with the price, a red or green bar from a zero line, and the change. "<City> overall" sits in its place in the order. Top 10, then "Show all". Their own area is highlighted. This replaced the coloured tiles and "Who grew the most".
+- **Time buttons:** Since January · 1 year · 3 years · 5 years · 10 years (short labels on a phone). It opens on **5 years**. "Last month" was removed because small neighbourhoods jump around too much.
+- **Compare two:** their own area vs the whole city (the default) or any neighbourhood in any city that has a card.
+- **Peek card:** tapping a neighbourhood slides up a card comparing it with theirs, also across cities ("about $232,700 more than Burke Mountain (Coquitlam)"), with "Compare with my area" and "Make this my area".
 - **"You also looked at"** and the **agent's take**, written automatically from the numbers, in the agent's own words, or turned off.
+
+**Which city opens** (it only ever opens on a city that has a card):
+
+1. A personal link's city.
+2. The client's own city, when it's one of the R2 areas.
+3. A city tapped in R2 ("One at a time"). S5 follows it, with "Showing Burnaby North, the area you picked at the top."
+4. The agent's "City shown first", when it's one of the R2 areas.
+5. The first R2 area with neighbourhoods.
+
+- Tapping a card inside S5 changes only S5. Adding or removing an area in R2 adds or removes its card.
+- If the client's own city isn't one of the R2 areas, it still gets a card (at the end) so they can get back to it.
+- **1 city:** no cards, and the title says "Neighbourhoods in Coquitlam".
+- **No R2 area has neighbourhoods** (Greater Vancouver alone): "Greater Vancouver is the whole region. Choose a city to see its neighbourhoods." A grid of 6 cities, then "Show all 19 cities". It opens on the agent's city, else Vancouver West.
+
+**Cities with no neighbourhoods (Greater Vancouver, Whistler):** a grey dashed card, "ⓘ No neighbourhoods". Tapping it opens a message under the cards that stays until ✕ is tapped, and the open city doesn't change.
+
+- Greater Vancouver: "**Greater Vancouver isn't split into neighbourhoods.** It's the whole region, made up of cities. Its numbers are in the rest of the report. Tap a city here to see its neighbourhoods."
+- Whistler (Ella's wording): "**Whistler isn't split into neighbourhoods.** It's a smaller market, so prices are shown for Whistler as a whole in the rest of the report. Want to know about a specific street? Ask me." "Ask me" scrolls to S9 Contact me (shown only when that section is on).
+
+**Why (Ella's feedback, October 13):** the old City box sat far in the corner and was easy to miss. It didn't follow R2, so clients thought their cities were missed (a report on Greater Vancouver, Coquitlam, West Vancouver and North Vancouver opened on Port Moody, from the browser's memory or an old agent setting). All the neighbourhoods of 4 cities at once would be about 53 tiles, too many to read. Mockups: `docs/s5-*.png`.
 
 **What agents get:**
 
-- Settings for city, the neighbourhood shown first, compare with, home type, which blocks show, and their take. All start on sensible choices.
+- Settings for "City shown first" (used when it's one of the report's areas, or when the report is only Greater Vancouver), the neighbourhood shown first, compare with, home type, which blocks show (their neighbourhood, every neighbourhood, compare two, their take), and their take. All start on sensible choices. Tapping a city card in the dashboard saves it as "City shown first".
 - **Personal links:** from Share, or from the section settings. Client name plus neighbourhood gives the client their own link, which updates itself every month. The list shows what each client looked at, for example "Looked at Westwood Plateau 3 times".
 - **Weekly email** on Monday at 9am, listing which clients looked at other areas. It can be turned off.
 
-**Data:** about 230 neighbourhoods in 19 cities, from GVR's HPI Benchmark Summary Excel (`scripts/hoods-from-gvr.py`). It needs this month's file and January's.
-
-### 6.1 Several cities (UI made October 13, 2026, waiting for go-ahead)
-
-**Ella's feedback:** the City box sits far in the corner and is easy to miss. It doesn't follow the cities picked in R2, so clients think their cities were missed (the demo opens S5 on Vancouver West even when the report is on Greater Vancouver). With 4 cities, showing every neighbourhood at once would be far too many (about 53 tiles).
-
-**Mockups:**
-
-- `docs/s5-cities-ui.png`: desktop, the rules, and a first phone view
-- `docs/s5-no-hoods-phone-ui.png`: phone, a city with no neighbourhoods
-- `docs/s5-switch-cities-ui.png`: phone, switching between cities
-
-**The design: city cards, one city open at a time.**
-
-- **City cards replace the City box.** They sit right under the title, one per R2 area, in the same order and colour dots as R2. Each card shows the city name, the number of neighbourhoods, and the city's 1-year change (red or green). On desktop it also shows the "Smallest drop" (or biggest gain) neighbourhood. A ★ marks the city where the client's own area is.
-- **Only the selected city opens below** (blue card): its tiles, "Who grew the most", "Compare two" and the agent's take, as today.
-- **1 city:** no cards. The title says "Neighbourhoods in Coquitlam".
-- **On a phone,** the cards scroll sideways like the R2 row, with "swipe for more cities →".
-
-**Which city opens:**
-
-- If the client tapped a city in R2, S5 follows it, with the line "Showing Burnaby North, the area you picked at the top."
-- On "Compare all", S5 opens on the client's own city (★). Otherwise it opens on the agent's city, if that's one of the chosen cities, or else the first city with neighbourhoods.
-- Tapping a card inside S5 changes only S5. The rest of the report stays the same.
-- Adding or removing an area in R2 adds or removes its card.
-
-**Switching cities:**
-
-- When the client is looking at a city other than their own, their area shrinks to a slim pinned ★ bar showing the name, the city, the price and the change.
-- A "Port Moody overall" line shows the selected city's own price and change.
-- The home type (detached, townhouse or condo) and the period are kept when switching.
-- **The peek card works across cities.** Tapping Heritage Woods (Port Moody) while the client's area is Burke Mountain (Coquitlam) compares the two, with a plain sentence such as "about $232,700 more". The buttons stay "Compare with my area" and "Make this my area".
-- **Code change needed:** today `S.cmp` and the peek only compare within `S.city`. They need to store a city with each neighbourhood, so "Compare two" can also compare across cities.
-
-**Cities with no neighbourhoods (Greater Vancouver, Whistler):**
-
-- They keep a grey, dashed card: "ⓘ No neighbourhoods". Ella wants them shown, not hidden.
-- Tapping one opens a blue message under the cards, with a ✕. It stays until it's closed, rather than vanishing on its own. The client stays on the city they were viewing.
-- Greater Vancouver message: "**Greater Vancouver has no neighbourhoods.** It's the whole region, so it is made of cities. Its numbers are in the rest of the report. Pick a city here to see its neighbourhoods."
-- Whistler message (Ella's choice; don't mention GVR or "publish"): "**Whistler isn't split into neighbourhoods.** It's a smaller market, so prices are shown for Whistler as a whole in the rest of the report. Want to know about a specific street? Ask me." "Ask me" opens S9 Contact me. Write the Greater Vancouver message in the same pattern when building.
-- **Greater Vancouver is the only area:** the section says "Greater Vancouver is the whole region. Choose a city to see its neighbourhoods." It shows a grid of cities, each with its number of neighbourhoods, then "Show all 19 cities". It opens on the agent's city.
-
-This builds on the R2 redesign ("Compare all · city · city", `docs/area-toggle-ui.png`). It also works with today's R2.
+**Data:** about 230 neighbourhoods in 19 cities, from GVR's HPI Benchmark Summary Excel (`scripts/hoods-from-gvr.py`). It needs this month's file and January's. Every neighbourhood has since January, 1, 3, 5 and 10-year changes.
 
 ---
 
@@ -251,6 +230,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
-| 2026-10-13 | S5 Neighbourhoods | Several cities: city cards replace the City box; one city open at a time; S5 follows R2; the client's area is pinned when switching; the peek card works across cities. Greater Vancouver and Whistler get a grey card and a message when tapped. Whistler wording agreed. UI in `docs/s5-*.png` and §6.1. Waiting for go-ahead to build. |
+| 2026-10-13 | S5 Neighbourhoods | **Built:** city cards (one city open at a time, follow R2, only open on a city that has a card), one ranked list instead of the tiles and "Who grew the most", time buttons Since January · 1 · 3 · 5 · 10 years (opens on 5 years; "Last month" dropped), comparisons across cities. In site-update.zip. |
+| 2026-10-13 | S5 Neighbourhoods | Several cities: city cards replace the City box; one city open at a time; S5 follows R2; the client's area is pinned when switching; the peek card works across cities. Greater Vancouver and Whistler get a grey card and a message when tapped. Whistler wording agreed. UI in `docs/s5-*.png`. |
 | 2026-10-13 | R2 Area bar | "Side by side / One at a time" doesn't make sense. Proposed: one row "Show: Compare all · Coquitlam · Burnaby North · + Add area" (docs/area-toggle-ui.png). Waiting for go-ahead. |
 | 2026-10-13 | Code | Shared layout rules (`public/js/layout.js`) and automatic checks (`npm test`, which also runs on GitHub) are done. |
