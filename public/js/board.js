@@ -76,7 +76,7 @@ export function mountReport(root, D, A, opts = {}) {
       const a = sh[0], o = all(a), dd = o.dom != null && o.domLy != null ? o.dom - o.domLy : null;
       const k = (lab, val, chg) => `<div class="kpi"><span class="kl">${lab}</span><b class="kv">${val}</b><span class="kc">${chg}</span></div>`;
       return `<div class="kpis" data-sec="numbers">${[
-        k('Typical home price', o.price ? money(o.price) : '—', o.price ? `${arrow(o.yoy)} vs ${lastYear}` : '<span class="na">not published</span>'),
+        k('Benchmark price', o.price ? money(o.price) : '—', o.price ? `${arrow(o.yoy)} vs ${lastYear}` : '<span class="na">not published</span>'),
         k(`Homes sold in ${mon}`, o.sales != null ? N(o.sales) : '—', o.salesLy ? `${arrow(pctOf(o.sales, o.salesLy))} vs ${lastYear}` : '<span class="na">no comparison published</span>'),
         k('Homes for sale now', o.active != null ? N(o.active) : '—', o.activeLy ? `${arrow(pctOf(o.active, o.activeLy))} vs ${lastYear}` : '<span class="na">no comparison published</span>'),
         k('Days on market (average)', o.dom != null ? `${o.dom} days` : '—', dd == null ? (o.dom == null ? '<span class="na">not published</span>' : '') : dd === 0 ? `Same as ${lastYear}` : `${Math.abs(dd)} day${Math.abs(dd) === 1 ? '' : 's'} ${dd > 0 ? 'longer' : 'shorter'} than ${lastYear}`),
@@ -84,13 +84,13 @@ export function mountReport(root, D, A, opts = {}) {
     }
     const t = (h, sub, c2, c3, row) => card('numbers', h, sub, `<table class="tb"><thead><tr><th>Area</th><th>${c2}</th><th>${c3}</th></tr></thead><tbody>${sh.map((a) => `<tr><td><span class="ma">${dot(colour(a))}${esc(a)}</span></td>${row(all(a))}</tr>`).join('')}</tbody></table>`, '', true);
     return `<div class="trio" data-sec="numbers">${[
-      t('Typical home price', `${mon}, and the change from ${lastYear}`, 'Typical price', 'Change in 1 year', (o) => `<td class="n">${o.price ? money(o.price) : '—'}</td><td>${arrow(o.yoy)}</td>`),
+      t('Benchmark price', `${mon}, and the change from ${lastYear}`, 'Benchmark price', 'Change in 1 year', (o) => `<td class="n">${o.price ? money(o.price) : '—'}</td><td>${arrow(o.yoy)}</td>`),
       t('Homes sold', `In ${mon}, and the change from ${lastYear}`, 'Homes sold', 'Change in 1 year', (o) => `<td class="n">${o.sales != null ? N(o.sales) : '—'}</td><td>${arrow(pctOf(o.sales, o.salesLy))}</td>`),
       t('Homes for sale', 'Listed now, and how long homes take to sell', 'For sale', 'Days on market', (o) => `<td class="n">${o.active != null ? N(o.active) : '—'}</td><td>${o.dom != null ? `${o.dom} days` : '<span class="na">not published</span>'}</td>`),
     ].join('')}</div>`;
   };
   R.trend = () => { const sh = areasFor('trend'), one = sh.length === 1;
-    return card('trend', 'Typical price over 12 months', one ? `${esc(sh[0])}, MLS® HPI benchmark price` : `Change since ${mName(addM(endKey, -11))} ${addM(endKey, -11).slice(0, 4)}, so areas with very different prices are easy to compare`,
+    return card('trend', 'Benchmark price over 12 months', one ? `${esc(sh[0])}, MLS® HPI benchmark price` : `Change since ${mName(addM(endKey, -11))} ${addM(endKey, -11).slice(0, 4)}, so areas with very different prices are easy to compare`,
       `${one ? '' : `<div class="leg">${sh.map((a) => `<span><i style="background:${colour(a)}"></i>${esc(a)}</span>`).join('')}</div>`}<div class="lc" data-chart="trend"></div>`); };
   R.market = () => { const sh = areasFor('market'), pos = (r) => (Math.min(r, 36) / 36) * 100;
     if (sh.length === 1) { const a = sh[0], o = all(a), r = o.ratio, m = mkt(r);
@@ -112,15 +112,15 @@ export function mountReport(root, D, A, opts = {}) {
     return card('types', 'Prices by home type', one ? `${esc(sh[0])} · ${esc(D.month)}` : `${esc(D.month)}${tabs ? ' · tap a home type' : ` · ${TR[0][1].toLowerCase()}`}`, `${tabs}<div data-chart="types"></div>`); };
   R.growth = () => { const ts = typesFor('growth').map(([t]) => t), tabs = [['composite', 'All homes'], ['detached', 'Detached'], ['townhome', 'Townhouses'], ['condo', 'Condos']].filter(([k]) => (k === 'composite' ? ts.length === 3 : ts.includes(k)));
     if (!tabs.some(([k]) => k === S.gType)) S.gType = tabs[0][0];
-    return card('growth', 'Long-term price growth', 'How much the typical price changed over the years', `<div class="gt">${tabs.length > 1 ? tabs.map(([k, l]) => `<button type="button" class="tab" data-gt="${k}" aria-pressed="${S.gType === k}">${house(k, 22)}${l}</button>`).join('') : ''}</div><div class="gb" data-chart="growth"></div>`,
+    return card('growth', 'Long-term price growth', 'How much the benchmark price changed over the years', `<div class="gt">${tabs.length > 1 ? tabs.map(([k, l]) => `<button type="button" class="tab" data-gt="${k}" aria-pressed="${S.gType === k}">${house(k, 22)}${l}</button>`).join('') : ''}</div><div class="gb" data-chart="growth"></div>`,
     areasFor('growth').length === 1 ? '' : `<div class="seg" role="group" aria-label="Years">${[3, 5, 10].map((y, i) => `<button type="button" data-gy="${i}" aria-pressed="${S.gYears === i}">${y} years</button>`).join('')}</div>`); };
-  R.hoods = () => card('hoods', HO ? esc(HO.title()) : 'Neighbourhoods', 'Typical home prices by neighbourhood, and how they changed', '<div data-chart="hoods"></div>');
+  R.hoods = () => card('hoods', HO ? esc(HO.title()) : 'Neighbourhoods', 'Benchmark prices by neighbourhood, and how they changed', '<div data-chart="hoods"></div>');
   R.summary = () => { const sh = areasFor('summary'); return card('summary', 'Summary', sh.length > 1 ? `Across your ${sh.length} areas` : esc(sh[0]), `<ol class="sum">${summaryPoints(sh).map((t, i) => `<li><em>${i + 1}</em><span>${t}</span></li>`).join('')}</ol>`); };
   R.sold = () => { const sh = areasFor('sold'); if (!sh.includes(S.soldArea)) S.soldArea = sh[0];
     // Several areas: every area at once (bars or lines), drawn by C.soldm.
     if (sh.length > 1) return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, '<div data-chart="soldm"></div>');
     return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, `${CF('sold').areas && sh.length > 1 ? `<div class="mini">${sh.map((a) => `<button type="button" data-sa="${esc(a)}" aria-pressed="${a === S.soldArea}">${dot(colour(a))}${esc(a)}</button>`).join('')}</div>` : ''}<div data-chart="sold"></div>`); };
-  R.compare = () => card('compare', 'How areas compare', `Typical home price in every area, with the change from ${lastYear}.${canEdit ? ' Tap an area to add it to the report.' : ''}`, `<div class="rank" data-chart="rank"></div>`);
+  R.compare = () => card('compare', 'How areas compare', `Benchmark price in every area, with the change from ${lastYear}.${canEdit ? ' Tap an area to add it to the report.' : ''}`, `<div class="rank" data-chart="rank"></div>`);
   R.contact = () => `<section class="cd cd-contact" data-sec="contact"><div class="crow">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div class="cx"><h3>Questions about your area?</h3><p class="sub">${esc([A.name, roleLabel(A), A.brokerage, A.phone].filter(Boolean).join(' · '))}</p></div><button type="button" class="btn" data-id="ctog">Contact ${F}</button></div>
     <div class="cbox" data-id="cbox" hidden><div class="cgrid"><label class="fl">${ask.lab}<input type="text" data-id="where" placeholder="${ask.ph}"></label>
     <div><span class="fl">I am</span><div class="chips" data-id="intent" role="group" aria-label="I am">${ask.chips.map((c) => `<button type="button" aria-pressed="false">${esc(c)}</button>`).join('')}</div></div></div>
@@ -130,7 +130,7 @@ export function mountReport(root, D, A, opts = {}) {
   function summaryPoints(sh) {
     const o = Object.fromEntries(sh.map((a) => [a, all(a)])), out = [];
     if (sh.length === 1) { const a = sh[0], x = o[a];
-      if (x.price) out.push(`The typical home in ${esc(a)} is <b>${money(x.price)}</b>${x.yoy ? `, <b>${x.yoy < 0 ? 'down' : 'up'} ${Math.abs(x.yoy).toFixed(1)}%</b> from a year ago` : ''}.`);
+      if (x.price) out.push(`The benchmark price in ${esc(a)} is <b>${money(x.price)}</b>${x.yoy ? `, <b>${x.yoy < 0 ? 'down' : 'up'} ${Math.abs(x.yoy).toFixed(1)}%</b> from a year ago` : ''}.`);
       if (x.sales != null) { const c = pctOf(x.sales, x.salesLy); out.push(`<b>${N(x.sales)} homes sold</b> in ${mon}${c ? `, ${Math.abs(c).toFixed(0)}% ${c < 0 ? 'fewer' : 'more'} than a year ago` : ''}.`); }
       const m = mkt(x.ratio); if (m) out.push(m === "Buyer's" ? "It's a <b>buyer's market</b>: buyers have more choice and room to negotiate." : m === 'Balanced' ? "It's a <b>balanced market</b>: neither buyers nor sellers have a clear edge." : "It's a <b>seller's market</b>: homes sell quickly and sellers have the edge.");
       return out; }
@@ -167,7 +167,7 @@ export function mountReport(root, D, A, opts = {}) {
       <span class="ty-b">${x.price ? `<i style="width:${Math.max(8, (x.price / max) * 100).toFixed(1)}%"><b>${money(x.price)}</b></i>` : '<span class="na">Not enough sales to publish a price</span>'}</span>${chg(x)}</div>`;
     const since = `Change since <span class="ty-l">${esc(lastYear)}</span><span class="ty-s">${esc(lastYear.slice(0, 3) + lastYear.slice(-5))}</span>`;
     el.innerHTML = `${st.lead || st.rest ? `<p class="ty-story"><b>${esc(st.lead)}</b>${esc(st.rest)}</p>` : ''}
-      <div class="ty-h"><span><span class="ty-l">${one ? 'Home type' : 'Area, highest price first'}</span><span class="ty-s">${one ? 'Home type' : 'Area'} · typical price today</span></span><span class="ty-l">Typical price today</span><span class="ty-ch">${since}</span></div>
+      <div class="ty-h"><span><span class="ty-l">${one ? 'Home type' : 'Area, highest price first'}</span><span class="ty-s">${one ? 'Home type' : 'Area'} · benchmark price today</span></span><span class="ty-l">Benchmark price today</span><span class="ty-ch">${since}</span></div>
       <div class="ty-list">${rows.map(row).join('')}</div>
       <p class="ty-key"><span>Longer bar = higher price</span><span><b class="ch upv"><i>▲</i>green</b> = higher than a year ago</span><span><b class="ch dn"><i>▼</i>red</b> = lower than a year ago</span></p>`; };
 
@@ -186,7 +186,7 @@ export function mountReport(root, D, A, opts = {}) {
     const path = (s) => s.v.map((v, i) => (v == null ? '' : `${x(i).toFixed(1)},${y(v).toFixed(1)}`)).filter(Boolean).join(' ');
     if (one) { const s = ser[0], pts = s.v.map((v, i) => [i, v]).filter((q) => q[1] != null); g += `<path d="M${pts.map(([i, v]) => `${x(i)},${y(v)}`).join('L')}L${x(pts[pts.length - 1][0])},${H - b}L${x(pts[0][0])},${H - b}Z" fill="var(--ac)" opacity=".07"/>`; }
     g += ser.map((s) => `<polyline fill="none" stroke="${s.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" points="${path(s)}"/>${s.v[11] != null ? `<circle cx="${x(11)}" cy="${y(s.v[11])}" r="4" fill="${s.c}"/>` : ''}`).join('');
-    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Typical price over the last 12 months">${g}<line class="hx" y1="${t}" y2="${H - b}" opacity="0"/><g class="hd"></g><rect width="${W}" height="${H}" fill="transparent"/></svg><div class="ctip"></div>${miss.length ? `<p class="na">No 12-month history is published for ${miss.map(esc).join(', ')}.</p>` : ''}`;
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Benchmark price over the last 12 months">${g}<line class="hx" y1="${t}" y2="${H - b}" opacity="0"/><g class="hd"></g><rect width="${W}" height="${H}" fill="transparent"/></svg><div class="ctip"></div>${miss.length ? `<p class="na">No 12-month history is published for ${miss.map(esc).join(', ')}.</p>` : ''}`;
     const sv = el.querySelector('svg'), tip = el.querySelector('.ctip'), hx = sv.querySelector('.hx'), hd = sv.querySelector('.hd');
     const fmt = (v) => (one ? money(v) : signed(v));
     const move = (e) => { const bb = sv.getBoundingClientRect(), px = ((e.clientX - bb.left) / bb.width) * W, i = Math.max(0, Math.min(11, Math.round(((px - l) / (W - l - r)) * 11)));
@@ -278,7 +278,7 @@ export function mountReport(root, D, A, opts = {}) {
     const sorted = [...have].sort((a, b) => G[b][p] - G[a][p]), best = sorted[0], worst = sorted[sorted.length - 1], st = niceStep(H0 - L0, 4), ticks = [];
     for (let v = Math.ceil(L0 / st) * st; v <= H0; v += st) ticks.push(Math.round(v * 10) / 10);
     const what = tn ? ` ${tn}` : '';
-    const lines = [have.length > 1 ? `Over ${yrs} years, <b>${esc(best)}</b>${what} grew the most of these areas: <b>${signed(G[best][p])}</b>.` : `Over ${yrs} years, the typical price of${tn ? ` ${tn} in` : ' a home in'} <b>${esc(best)}</b> changed by <b>${signed(G[best][p])}</b>.`];
+    const lines = [have.length > 1 ? `Over ${yrs} years, <b>${esc(best)}</b>${what} grew the most of these areas: <b>${signed(G[best][p])}</b>.` : `Over ${yrs} years, the benchmark price of${tn ? ` ${tn} in` : ' a home in'} <b>${esc(best)}</b> changed by <b>${signed(G[best][p])}</b>.`];
     if (have.length > 1) lines.push(G[worst][p] < 0 ? `<b>${esc(worst)}</b>${what} ${tn ? 'are' : 'prices are'} ${Math.abs(G[worst][p]).toFixed(1)}% lower than ${yrs} years ago.` : `Every area is higher than ${yrs} years ago.`);
     el.innerHTML = `<div class="gg"><div>${sorted.map((a) => { const v = G[a][p], x0 = X(0), x1 = X(v);
       return `<div class="hb"><span class="ma">${dot(colour(a))}${esc(a)}</span><div class="trk"><span class="z" style="left:${x0}%"></span><span class="f" style="left:${Math.min(x0, x1)}%;width:${Math.abs(x1 - x0)}%;background:${colour(a)}"></span><span class="v ${v < 0 ? 'dn' : 'upv'}" style="${v >= 0 ? `left:calc(${x1}% + 8px)` : `right:calc(${100 - x1}% + 8px)`}">${signed(v)}</span></div></div>`; }).join('')}
@@ -293,7 +293,7 @@ export function mountReport(root, D, A, opts = {}) {
     el.innerHTML = `<div class="gg"><div>${[0, 1, 2].map((i) => { const v = v3[i], x0 = X(0), x1 = X(v);
       return `<div class="hb"><span class="ma">Over ${[3, 5, 10][i]} years</span><div class="trk"><span class="z" style="left:${x0}%"></span><span class="f" style="left:${Math.min(x0, x1)}%;width:${Math.abs(x1 - x0)}%;background:var(--ac);opacity:${0.45 + i * 0.27}"></span><span class="v ${v < 0 ? 'dn' : 'upv'}" style="${v >= 0 ? `left:calc(${x1}% + 8px)` : `right:calc(${100 - x1}% + 8px)`}">${signed(v)}</span></div></div>`; }).join('')}
       <div class="hb axis"><span></span><div class="trk">${ticks.map((t) => `<span style="left:${X(t)}%">${t > 0 ? '+' : ''}${t}%</span>`).join('')}</div></div></div>
-      <div class="ins"><p>Typical price of ${esc(what)} in <b>${esc(a)}</b>.</p><p>${[2, 1, 0].map(line).join('<br>')}</p><p class="note">Change in the MLS® Home Price Index benchmark price. Past growth doesn't guarantee future growth.</p></div></div>`;
+      <div class="ins"><p>Benchmark price of ${esc(what)} in <b>${esc(a)}</b>.</p><p>${[2, 1, 0].map(line).join('<br>')}</p><p class="note">Change in the MLS® Home Price Index benchmark price. Past growth doesn't guarantee future growth.</p></div></div>`;
   }
   const IC = { pin: '<path d="M12 21s-6-5.6-6-10a6 6 0 1 1 12 0c0 4.4-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>', home: HOUSE.detached, tag: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="7.5" r="1.4"/>', ud: '<path d="M8 4v16M4 8l4-4 4 4M16 20V4M12 16l4 4 4-4"/>' };
   const ic = (k) => `<i class="hi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg></i>`;
@@ -301,7 +301,7 @@ export function mountReport(root, D, A, opts = {}) {
     const rows = ALL.map((a) => ({ a, ...all(a) })).filter((r) => r.price).sort((x, y) => y.price - x.price), max = rows[0]?.price || 1;
     const cut = 8, list = S.rankAll ? rows : rows.filter((r, i) => i < cut || S.areas.includes(r.a)), tag = canEdit ? 'button type="button"' : 'div', end = canEdit ? 'button' : 'div';
     // Column titles with small pictures, so everyone can tell what each part means.
-    const head = `<div class="rr rh${canEdit ? ' ed' : ''}" aria-hidden="true"><span>${ic('pin')}Area</span><span>${ic('home')}Typical home price <em>· longer bar = higher price</em></span><span class="r">${ic('tag')}Price</span><span class="r">${ic('ud')}In 1 year</span>${canEdit ? '<span></span>' : ''}</div>`;
+    const head = `<div class="rr rh${canEdit ? ' ed' : ''}" aria-hidden="true"><span>${ic('pin')}Area</span><span>${ic('home')}Benchmark price <em>· longer bar = higher price</em></span><span class="r">${ic('tag')}Price</span><span class="r">${ic('ud')}In 1 year</span>${canEdit ? '<span></span>' : ''}</div>`;
     el.innerHTML = head + list.map((r) => { const on = S.areas.includes(r.a);
       return `<${tag} class="rr${on ? ' on' : ''}${canEdit ? ' ed' : ''}${S.flash === r.a ? ' flash' : ''}" data-add="${esc(r.a)}"${canEdit ? ` aria-pressed="${on}" title="${on ? 'On your report. Tap to remove.' : 'Tap to add to the report'}"` : ''} style="${on ? `--ac2:${colour(r.a)}` : ''}"><span class="ma">${on ? dot(colour(r.a)) : '<i class="dt off"></i>'}${esc(r.a)}</span><span class="rb"><i style="width:${((r.price / max) * 100).toFixed(1)}%${on ? `;background:${colour(r.a)}` : ''}"></i></span><b class="n">${money(r.price)}</b>${arrow(r.yoy)}${canEdit ? `<span class="tk">${on ? '✓' : '+'}</span>` : ''}</${end}>`; }).join('')
       + (rows.length > list.length || S.rankAll ? `<button type="button" class="more" data-more>${S.rankAll ? 'Show fewer' : `Show all ${rows.length} areas`}</button>` : '');

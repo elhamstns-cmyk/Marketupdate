@@ -424,7 +424,7 @@ function drawPanel() {
     let b = '';
     if (PS.tab === 'data' && k === 'hoods') b = hoodsPanel(c, L);
     else if (PS.tab === 'data') {
-      if (!USES_AREAS.includes(k)) b = `<p class="hint">${k === 'compare' ? 'This section always shows every area, ranked by typical price.' : 'This section shows your photo, your details and a message box for clients. Change your details from the menu under your photo.'}</p>`;
+      if (!USES_AREAS.includes(k)) b = `<p class="hint">${k === 'compare' ? 'This section always shows every area, ranked by benchmark price.' : 'This section shows your photo, your details and a message box for clients. Change your details from the menu under your photo.'}</p>`;
       else { const own = !!c.areas, ar = c.areas || L.areas, free = areasOf(D).filter((a) => !ar.includes(a));
         b = `<span class="lbl2">Areas in this section</span><div class="seg2"><button type="button" data-own="0" aria-pressed="${!own}">Same as the report</button><button type="button" data-own="1" aria-pressed="${own}">Choose</button></div>
           ${own ? `<div class="chips2">${ar.map((a) => `<span class="chip2">${esc(a)}${ar.length > 1 ? `<button type="button" data-arm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}</div>

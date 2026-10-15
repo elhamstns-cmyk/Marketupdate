@@ -59,7 +59,7 @@ export async function socialImageOld(D, A, area, kind = 'post') {
   const tiles = [sh.sold && ['HOMES SOLD', sold.toLocaleString(), soldLy ? `${dn(pc(sold, soldLy))} vs. last year` : 'this month', soldLy ? col(pc(sold, soldLy)) : P.ink],
     sh.forsale && ['HOMES FOR SALE', listed.toLocaleString(), listedLy ? `${dn(pc(listed, listedLy))} vs. last year` : 'right now', P.ink],
     sh.market && ['MARKET', mk ? mk.replace(' market', '') : 'n/a', ratio != null ? `${ratio.toFixed(1)}% of listings sold` : '', P.ink]].filter(Boolean);
-  const cols = [sh.prices && ['TYPICAL HOME', 'price'], sh.changes && ['1 YEAR', 'yoy'], sh.sold && ['SOLD', 'sales']].filter(Boolean);
+  const cols = [sh.prices && ['BENCHMARK PRICE', 'price'], sh.changes && ['1 YEAR', 'yoy'], sh.sold && ['SOLD', 'sales']].filter(Boolean);
   const gap = 18, th = S(168), rh = S(story ? 98 : 86), sp = story ? 70 : 44, gauge = story && sh.market && ratio != null;
   const blocks = [tiles.length && th, cols.length && S(19) + S(16) + rh * rows.length + 2, gauge && 150].filter(Boolean);
   const top = bandH + (story ? 56 : 36), bottom = story ? H - 470 - 34 - 40 : H - 196 - 24;

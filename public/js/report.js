@@ -119,7 +119,7 @@ export function summary(D, area = 'Greater Vancouver', sh = DEFAULT_SHOW) {
 export const regionSummary = (D, sh) => summary(D, 'Greater Vancouver', sh);
 export function readout(D, area, type, sh = DEFAULT_SHOW) {
   const o = get(D, area, type), mk = market(o.ratio), mon = D.month.split(' ')[0], bits = [];
-  if (sh.changes && o.price && o.yoy != null) bits.push(`the typical ${{ detached: 'detached home', townhome: 'attached home', condo: 'condo', all: 'home' }[type]} is ${o.yoy < 0 ? `down ${Math.abs(o.yoy)}%` : o.yoy > 0 ? `up ${o.yoy}%` : 'unchanged'} from a year ago`);
+  if (sh.changes && o.price && o.yoy != null) bits.push(`the ${{ detached: 'detached', townhome: 'townhome', condo: 'condo', all: '' }[type] ? `${{ detached: 'detached', townhome: 'townhome', condo: 'condo' }[type]} ` : ''}benchmark price is ${o.yoy < 0 ? `down ${Math.abs(o.yoy)}%` : o.yoy > 0 ? `up ${o.yoy}%` : 'unchanged'} from a year ago`);
   if (sh.sold && sh.forsale) bits.push(`${o.sales.toLocaleString()} of ${o.active.toLocaleString()} listed ${TN[type]} sold in ${mon}`);
   else if (sh.sold) bits.push(`${o.sales.toLocaleString()} ${TN[type]} sold in ${mon}`);
   else if (sh.forsale) bits.push(`${o.active.toLocaleString()} ${TN[type]} are listed for sale`);
@@ -163,7 +163,7 @@ export function mountReport(root, D, A, opts = {}) {
 <div class="mast">${whoBlock(A)}</div>
 <header class="title"><p class="monthpill"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>${esc(D.month)} report</p><h1 data-id="h1">${esc(head)} Market Report</h1><p class="lede" data-id="lede"${lede ? '' : ' hidden'}>${esc(lede)}</p></header>
 ${anyPrice ? `<section><div class="metro" data-id="metro" style="--n:${TS.length}"></div>
-  <p class="small muted">${sh.prices ? 'Benchmark price is the MLS® HPI price of a typical home' : 'Change in the MLS® HPI benchmark price of a typical home'}${sh.changes && sh.prices ? ', compared with the same month last year' : sh.changes ? ' over the past year' : ''}.</p></section>` : ''}
+  <p class="small muted">${sh.prices ? 'Benchmark price is the MLS® Home Price Index price' : 'Change in the MLS® Home Price Index benchmark price'}${sh.changes && sh.prices ? ', compared with the same month last year' : sh.changes ? ' over the past year' : ''}.</p></section>` : ''}
 <section><h2 data-id="h-city">${multi ? 'Pick your city' : 'A closer look'}</h2>
   <div class="controls">${multi ? `<div class="field"><label>Area<select data-id="area">${AREAS.map((a) => `<option>${a}</option>`).join('')}</select></label></div>` : ''}
     ${TX.length > 1 ? `<div class="field"><label>Home type<select data-id="types">${TX.map((t) => `<option value="${t}">${t === 'all' ? 'All home types' : T1[t]}</option>`).join('')}</select></label></div>` : ''}</div>

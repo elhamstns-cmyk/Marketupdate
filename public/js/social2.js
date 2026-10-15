@@ -7,7 +7,7 @@ const C = { bg: '#f3f4f7', card: '#ffffff', ink: '#1b2430', mut: '#6b7380', red:
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], MONL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const FONT = 'Inter, "Helvetica Neue", Arial, sans-serif';
 export const IMG_DEFAULTS = { post: { price: true, forsale: false, market: true, sold: true, photo: true }, story: { price: true, forsale: true, market: true, sold: true, photo: true } };
-export const IMG_PARTS = [['price', 'Typical home price'], ['forsale', 'Homes for sale and days on market'], ['market', "Buyer's or seller's market"], ['sold', 'Homes sold each month'], ['photo', 'Your photo and details']];
+export const IMG_PARTS = [['price', 'Benchmark price'], ['forsale', 'Homes for sale and days on market'], ['market', "Buyer's or seller's market"], ['sold', 'Homes sold each month'], ['photo', 'Your photo and details']];
 export const imgOpts = (A, kind) => ({ ...IMG_DEFAULTS[kind], ...((A && A.show && A.show.img && A.show.img[kind]) || {}) });
 const loadImg = (src) => new Promise((ok) => { if (!src) return ok(null); const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
 const pct = (a, b) => (a != null && b ? ((a - b) / b) * 100 : null);
@@ -42,7 +42,7 @@ export async function calmImage(D, A, area, kind = 'post', opts) {
   const soldH = o.sold ? Math.max(story ? 420 : 250, H - M - footH - G - y - used - 4) : 0;
   if (o.sold) rows.push({ k: 'sold', h: soldH });
   // draw blocks
-  const priceCard = (X, Y, w, h) => { rr(X, Y, w, h); t('Typical home price', X + 32, Y + 54 * s, 28 * s, { color: C.mut }); t(d.price ? money(d.price) : 'Not published', X + 32, Y + 140 * s, (w > 600 ? 84 : 66) * s, { w: 750, max: w - 64 });
+  const priceCard = (X, Y, w, h) => { rr(X, Y, w, h); t('Benchmark price', X + 32, Y + 54 * s, 28 * s, { color: C.mut }); t(d.price ? money(d.price) : 'Not published', X + 32, Y + 140 * s, (w > 600 ? 84 : 66) * s, { w: 750, max: w - 64 });
     chg(d.yoy, X + 32, Y + 192 * s, 28 * s, `vs ${w > 600 ? lastYr : shortLY}`); };
   const marketCard = (X, Y, w, h) => { rr(X, Y, w, h); t("Buyer's or seller's market?", X + 32, Y + 54 * s, 28 * s, { color: C.mut, max: w - 64 });
     const r = d.ratio, bx = X + 32, bw = w - 64, by = Y + 140 * s, pos = r == null ? null : bx + (Math.min(r, 36) / 36) * bw;
@@ -92,7 +92,7 @@ export async function calmImage(D, A, area, kind = 'post', opts) {
 // The words under a post (stories have no caption).
 export function calmCaption(D, A, area, link) {
   const d = get(D, area, 'all'), mon = D.month.split(' ')[0], r = d.ratio;
-  const bits = [d.price ? `the typical home is ${money(d.price)}${d.yoy ? `, ${d.yoy < 0 ? 'down' : 'up'} ${Math.abs(d.yoy).toFixed(1)}% from last year` : ''}` : '', r != null ? `it's a ${r < 12 ? "buyer's" : r <= 20 ? 'balanced' : "seller's"} market` : ''].filter(Boolean);
+  const bits = [d.price ? `the benchmark price is ${money(d.price)}${d.yoy ? `, ${d.yoy < 0 ? 'down' : 'up'} ${Math.abs(d.yoy).toFixed(1)}% from last year` : ''}` : '', r != null ? `it's a ${r < 12 ? "buyer's" : r <= 20 ? 'balanced' : "seller's"} market` : ''].filter(Boolean);
   const ask = A.role === 'broker' ? 'Wondering what this means for your mortgage? Send me a message.' : 'Want the numbers for your street or building? Send me a message.';
   const sign = [A.name, A.brokerage, phoneFmt(A.phone), A.contact_email].filter(Boolean).join(' · ');
   return `The ${area} market in ${mon}: ${bits.join(', and ')}.\n\n${ask}\n\nFull report: ${link}${sign ? `\n\n${sign}` : ''}`;

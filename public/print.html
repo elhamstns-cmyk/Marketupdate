@@ -131,12 +131,12 @@ if (!r.ok) root.textContent = j.error; else {
     ${cta}<p class="src">${esc(sourceLine(D))}</p>${pn(2)}</div>`;
   const cols = TS.flatMap((t) => [sh.prices && [`${T1[t]} price`, (v) => (v.price ? money(v.price) : 'n/a')], sh.changes && [sh.prices ? 'Change in 1 yr' : `${T1[t]} change in 1 yr`, (v) => (v.yoy == null || !v.price ? '' : chg(v.yoy))]].filter(Boolean).map((c) => [...c, t]));
   const p2 = compare ? `<div class="pg rpt" style="${vars}">${hdr}
-    <div><p class="eyebrow">${esc(D.month)}</p><h2>How the areas compare</h2><p class="muted" style="margin-top:4px">${sh.prices ? 'Benchmark price of a typical home in each area' : 'Change in the benchmark price of a typical home in each area'}${sh.prices && sh.changes ? ', with the change from a year ago' : sh.changes ? ' over the past year' : ''}.</p></div>
+    <div><p class="eyebrow">${esc(D.month)}</p><h2>How the areas compare</h2><p class="muted" style="margin-top:4px">${sh.prices ? 'Benchmark price in each area' : 'Change in the benchmark price in each area'}${sh.prices && sh.changes ? ', with the change from a year ago' : sh.changes ? ' over the past year' : ''}.</p></div>
     <table class="tbl"><thead><tr><th>Area</th>${sh.prices ? '<th class="bw"></th>' : ''}${cols.map((c) => `<th>${c[0]}</th>`).join('')}</tr></thead>
       <tbody>${names.map((a) => `<tr${a === area ? ' class="hl"' : ''}><td>${a}</td>${sh.prices ? `<td><div class="b" style="width:${(D.areas[a][TS[0]].price / mx * 100).toFixed(0)}%"></div></td>` : ''}${cols.map((c) => `<td>${c[1](D.areas[a][c[2]])}</td>`).join('')}</tr>`).join('')}</tbody></table>
     ${cta}<p class="src">${esc(sourceLine(D))}</p>${pn(trendOn ? 4 : 3)}</div>` : '';
   const tnote2 = typesNote(sh), pT = trendOn ? `<div class="pg rpt" style="${vars}">${hdr}
-    <div><p class="eyebrow">${esc(D.month)}</p><h2>The last 12 months in ${esc(area)}</h2><p class="muted" style="margin-top:4px">How the typical home price has moved${sh.sold ? ', and how many homes sold each month' : ''}.</p></div>
+    <div><p class="eyebrow">${esc(D.month)}</p><h2>The last 12 months in ${esc(area)}</h2><p class="muted" style="margin-top:4px">How the benchmark price has moved${sh.sold ? ', and how many homes sold each month' : ''}.</p></div>
     ${anyPrice ? TS.map((t) => `<div class="tblock"><div class="tch"><b>${T1[t]} benchmark price</b><span class="tf">${sh.changes ? trendFacts(priceSeries(D.history, area, t, endKey)).map(([b, x]) => `<span><b>${b}</b> ${x}</span>`).join('') : ''}</span></div><div class="tcv" data-line="${t}"></div></div>`).join('') : ''}
     ${sh.sold ? `<div class="tblock"><div class="tch"><b>Homes sold each month</b><span class="small muted" data-sales-sub></span></div><div class="tcv" data-sales></div></div>` : ''}
     <p class="src">Benchmark prices are MLS® HPI figures from Greater Vancouver REALTORS® monthly reports.${tnote2 ? ' ' + tnote2 + '.' : ''}</p>${pn(3)}</div>` : '';

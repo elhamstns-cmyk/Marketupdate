@@ -132,7 +132,7 @@ try {
   const pct = (a, b) => (b ? ((a - b) / b) * 100 : null), ch = (v, tail) => v == null ? '' : `<span class="${v < 0 ? 'lp-dn' : 'lp-upc'}">${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%</span> ${tail}`;
   const short = D.month.replace(/^(\w{3})\w*/, '$1').replace('Sep ', 'Sept ');
   const nums = [
-    ph[key] ? ['Typical home price', money(ph[key]), ch(pct(ph[key], ph[ly]), `vs ${short.replace(/\d{4}/, +y - 1)}`)] : ['Detached benchmark price', money(GV.detached.price.now), ch(GV.detached.price.yoy, 'in 1 year')],
+    ph[key] ? ['Benchmark price', money(ph[key]), ch(pct(ph[key], ph[ly]), `vs ${short.replace(/\d{4}/, +y - 1)}`)] : ['Detached benchmark price', money(GV.detached.price.now), ch(GV.detached.price.yoy, 'in 1 year')],
     [`Homes sold in ${D.month.split(' ')[0]}`, sum('sales').toLocaleString('en-CA'), ch(pct(sum('sales'), sumLy('sales')), 'in 1 year')],
     ['Homes for sale now', sum('active').toLocaleString('en-CA'), ch(pct(sum('active'), sumLy('active')), 'in 1 year')],
   ];

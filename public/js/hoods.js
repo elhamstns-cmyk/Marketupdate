@@ -164,7 +164,7 @@ export function makeHoods(ctx) {
     const W = 420, Hh = 170, l = 6, r = 8, t = 12, b = 30, ys = pts.map((q) => q[1]), lo = Math.min(...ys), hi = Math.max(...ys), sp = hi - lo || hi * 0.1, x0 = pts[0][0];
     const X = (yr) => l + ((x0 - yr) / x0) * (W - l - r), Y = (v) => t + ((hi - v) / sp) * (Hh - t - b);
     const d = pts.map((q, i) => `${i ? 'L' : 'M'}${X(q[0]).toFixed(1)},${Y(q[1]).toFixed(1)}`).join(' '), a = pts[0], z = pts[pts.length - 1];
-    return `<svg viewBox="0 0 ${W} ${Hh}" class="nb-spark" role="img" aria-label="Typical price over ${Math.round(x0)} years"><path d="${d} L${X(0)},${Hh - b} L${X(x0)},${Hh - b}Z" fill="rgba(255,255,255,.14)"/><path d="${d}" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+    return `<svg viewBox="0 0 ${W} ${Hh}" class="nb-spark" role="img" aria-label="Benchmark price over ${Math.round(x0)} years"><path d="${d} L${X(0)},${Hh - b} L${X(x0)},${Hh - b}Z" fill="rgba(255,255,255,.14)"/><path d="${d}" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
       <circle cx="${X(a[0])}" cy="${Y(a[1])}" r="4.5" fill="#fff"/><circle cx="${X(0)}" cy="${Y(z[1])}" r="5.5" fill="#fff"/>
       <text x="${l}" y="${Hh - 6}" class="nb-sa">${Math.round(x0)} years ago · <tspan class="nb-st">${short(a[1])}</tspan></text><text x="${W - r}" y="${Hh - 6}" class="nb-sa" text-anchor="end">Now · <tspan class="nb-st">${short(z[1])}</tspan></text></svg>`;
   }
@@ -174,7 +174,7 @@ export function makeHoods(ctx) {
     const p = x[I.p], d1 = dollars(p, x[I.y1]), d10 = dollars(p, x[I.y10]);
     const box = (lab, d, v) => (d == null ? '' : `<div><span>${lab}</span><b>${money(Math.abs(d))} ${d < 0 ? 'less' : 'more'} ${pill(v)}</b></div>`);
     return `<div class="nb-hero"><div>${P?.name ? `<div class="nb-prep">Prepared for ${esc(P.name)} · ${esc(D.month)}</div>` : ''}<div class="nb-k">Your neighbourhood · ${esc(S.homeCity)} · ${esc(tlab())}</div>
-      <h3>${esc(S.home)}</h3><div class="nb-pv">${money(p)}</div><div class="nb-k">Typical ${esc(tsing())} price today</div>
+      <h3>${esc(S.home)}</h3><div class="nb-pv">${money(p)}</div><div class="nb-k">${esc(tsing()[0].toUpperCase() + tsing().slice(1))} benchmark price today</div>
       <div class="nb-hc">${box('Compared with a year ago', d1, x[I.y1])}${box('Compared with 10 years ago', d10, x[I.y10])}</div></div><div>${spark(x)}</div></div>`;
   }
 
@@ -212,7 +212,7 @@ export function makeHoods(ctx) {
     const diff = xb[I.p] - xa[I.p], bn = nameIn(b.c, b.h) + (b.h !== CITY && b.c !== S.homeCity ? ` (${b.c})` : '');
     return `<div class="nb-blk" data-hcmpbox><h4>Your area vs ${esc(bn)}</h4><p class="sub">Pick any neighbourhood on either side, in any of these cities.</p>
       <div class="nb-cmp">${col(selA, xa, [g10[0], g1[0]], 'nb-me')}<span class="nb-vs">vs</span>${col(selB, xb, [g10[1], g1[1]], '')}</div>
-      <p class="nb-line">A typical ${esc(tsing())} in ${esc(bn)} is about <b>${money(round100(Math.abs(diff)))} ${diff < 0 ? 'less' : 'more'}</b> than in ${esc(S.home)}.</p></div>`;
+      <p class="nb-line">The ${esc(tsing())} benchmark price in ${esc(bn)} is about <b>${money(round100(Math.abs(diff)))} ${diff < 0 ? 'less' : 'more'}</b> than in ${esc(S.home)}.</p></div>`;
   }
   function seen() {
     const s = S.seen.map((x) => x.split('|')).filter(([c, n]) => H[c]?.[n] && !(c === S.homeCity && n === S.home)).slice(0, 6);
@@ -286,7 +286,7 @@ export function makeHoods(ctx) {
     return `${none ? chooser() : cards()}${pin()}${away()}${asking ? ask() : on('hero') && here() ? hero() : ''}
       ${on('tiles') ? `<div class="nb-hd"><h4 class="nb-h">Every ${esc(S.city)} neighbourhood</h4><div class="nb-ctl">${typeTabs()}${perTabs()}</div></div>${ranked()}` : `<div class="nb-ctl">${typeTabs()}</div>`}
       ${on('compare') ? compare() : ''}${seen()}${on('take') ? take() : ''}
-      <p class="note">Typical price is the MLS® Home Price Index benchmark price, ${esc(D.month)}. Small neighbourhoods have fewer sales, so their numbers move more from month to month. The longer periods are steadier.</p>`;
+      <p class="note">Benchmark price is the MLS® Home Price Index benchmark price, ${esc(D.month)}. Small neighbourhoods have fewer sales, so their numbers move more from month to month. The longer periods are steadier.</p>`;
   }
   function render() { if (el) el.innerHTML = body(); }
   function wire(node) {

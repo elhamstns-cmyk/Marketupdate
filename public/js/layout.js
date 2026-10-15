@@ -5,7 +5,7 @@
 // [id, name, one-line description]. The order here is the order in the "Add a section" list.
 export const SECTIONS = [
   ['numbers', 'Key numbers', 'Price, homes sold, homes for sale, days on market'],
-  ['trend', 'Typical price over 12 months', 'Line graph, one line per area'],
+  ['trend', 'Benchmark price over 12 months', 'Line graph, one line per area'],
   ['market', "Buyer's or seller's market?", 'Where each area sits on the scale'],
   ['types', 'Prices by home type', 'Detached, townhouse and condo, with pictures'],
   ['hoods', 'Neighbourhoods', "Your client's neighbourhood, every neighbourhood at a glance, who grew most"],
