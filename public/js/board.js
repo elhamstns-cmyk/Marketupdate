@@ -1,7 +1,7 @@
 // The interactive market report: a page of cards (sections) the agent chooses and orders.
 // mountReport(root, D, A, opts) draws it with the agent's branding (A) and layout (A.show).
 import { get, money, esc, slug, areasOf, themeVars, palette, mix, lum, phoneFmt, roleLabel, askCopy, first, sourceLine, market, monthKey, TN } from './report.js';
-import { salesGroup, salesByArea, soldStory, monthLong, typesStoryOne, typesStoryAreas, dollarChange } from './charts.js';
+import { salesGroup, salesByArea, soldStory, monthLong, typesStoryOne, typesStoryAreas, dollarChange, NUM_PERIODS, periodMonth, numbersChange } from './charts.js';
 import { makeHoods } from './hoods.js';
 
 /* ---------- sections and layout ---------- */
@@ -36,6 +36,11 @@ const HOUSE = {
   condo: '<path d="M5 20V9h5v11"/><path d="M10 20V4h9v16"/><path d="M13 8h3M13 12h3M13 16h3"/><path d="M3 20h18"/>',
   composite: '<path d="M3 12 9 7l6 5"/><path d="M5 11v8h8v-8"/><path d="M14 9l3-2 4 3v9h-6"/>',
 };
+// Small line icons for Key numbers (S1).
+const KN_IC = { price: '<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+  sold: '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/>', dom: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  sale: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-6h6v6"/>', all: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' };
+const knIc = (k) => `<svg class="kn-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KN_IC[k]}</svg>`;
 const house = (k, s = 30) => `<svg class="hs" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${HOUSE[k]}</svg>`;
 const short = (v) => (v >= 1e6 ? '$' + (v / 1e6).toFixed(2) + 'M' : '$' + Math.round(v / 1000) + 'K');
 function niceStep(range, n) { const raw = range / n, p = 10 ** Math.floor(Math.log10(raw)), f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
@@ -49,7 +54,7 @@ export function mountReport(root, D, A, opts = {}) {
   let start = L.areas;
   if (opts.areas?.length) { const x = opts.areas.filter((a) => ALL.includes(a)); if (x.length) start = x.slice(0, MAX_AREAS); }
   else if (opts.area && ALL.includes(opts.area) && opts.area !== 'Greater Vancouver') start = L.areas.includes(opts.area) ? L.areas : [opts.area];
-  const S = { areas: [...start], focus: opts.area && start.includes(opts.area) ? opts.area : start[0], view: L.view, soldArea: null, soldView: 'bars', gType: 'composite', gYears: 2, tType: null, intent: null };
+  const S = { areas: [...start], focus: opts.area && start.includes(opts.area) ? opts.area : start[0], view: L.view, soldArea: null, soldView: 'bars', gType: 'composite', gYears: 2, tType: null, intent: null, nPer: 'y1' };
   const canEdit = (ED || L.clientAreas) && ALL.length > 1;
   const XTRA = [], colour = (a) => { let i = S.areas.indexOf(a); if (i < 0) { if (!XTRA.includes(a)) XTRA.push(a); i = S.areas.length + XTRA.indexOf(a); } return COL[i % COL.length]; };
   const CF = (k) => L.conf[k] || {};
@@ -71,22 +76,34 @@ export function mountReport(root, D, A, opts = {}) {
   const note = (k, t) => (CF(k).note === false ? '' : `<p class="note">${t}</p>`);
   const R = {};
   R.numbers = () => {
-    const sh = areasFor('numbers');
+    const sh = areasFor('numbers'), per = S.nPer, since = periodMonth(endKey, per), old = !['m1', 'y1'].includes(per);
+    // The blue "since Sep 2025" words are a menu: picking another time changes every change in this section.
+    const pick = (pre) => `<span class="kn-sel">${pre}${since}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      <select data-nper aria-label="Show the change since">${NUM_PERIODS.map(([k, l]) => `<option value="${k}"${k === per ? ' selected' : ''}>${pre}${periodMonth(endKey, k)} (${l === 'last month' ? 'last month' : l + ' ago'})</option>`).join('')}</select></span>`;
+    const none = (v) => `<span class="na">${v}</span>`, miss = (isPrice) => none(isPrice ? 'not published' : old ? 'No number yet for' : 'no comparison published');
+    const days = (d) => `<span class="ch ${d < 0 ? 'dn' : d > 0 ? 'upv' : ''}"><i>${d < 0 ? '▼' : d > 0 ? '▲' : '●'}</i>${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}</span>`;
+    const chOf = (a) => numbersChange(all(a), per, D.growth?.composite?.[a]);
     if (sh.length === 1) {
-      const a = sh[0], o = all(a), dd = o.dom != null && o.domLy != null ? o.dom - o.domLy : null;
-      const k = (lab, val, chg) => `<div class="kpi"><span class="kl">${lab}</span><b class="kv">${val}</b><span class="kc">${chg}</span></div>`;
-      return `<div class="kpis" data-sec="numbers">${[
-        k('Benchmark price', o.price ? money(o.price) : '—', o.price ? `${arrow(o.yoy)} vs ${lastYear}` : '<span class="na">not published</span>'),
-        k(`Homes sold in ${mon}`, o.sales != null ? N(o.sales) : '—', o.salesLy ? `${arrow(pctOf(o.sales, o.salesLy))} vs ${lastYear}` : '<span class="na">no comparison published</span>'),
-        k('Homes for sale now', o.active != null ? N(o.active) : '—', o.activeLy ? `${arrow(pctOf(o.active, o.activeLy))} vs ${lastYear}` : '<span class="na">no comparison published</span>'),
-        k('Days on market (average)', o.dom != null ? `${o.dom} days` : '—', dd == null ? (o.dom == null ? '<span class="na">not published</span>' : '') : dd === 0 ? `Same as ${lastYear}` : `${Math.abs(dd)} day${Math.abs(dd) === 1 ? '' : 's'} ${dd > 0 ? 'longer' : 'shorter'} than ${lastYear}`),
-      ].join('')}</div>`;
+      const a = sh[0], o = all(a), c = chOf(a), line = (v, isPrice) => (v == null ? `${miss(isPrice)} ${pick('')}` : `${arrow(v)} ${pick('since ')}`);
+      const k = (ic, lab, val, chg, say, cls = '') => `<div class="kpi ${cls}"><span class="kl">${knIc(ic)}${lab}</span><b class="kv">${val}</b><span class="kc">${chg}</span><span class="kn-s">${say}</span></div>`;
+      const h = CF('numbers').title ? esc(CF('numbers').title) : `Key numbers · ${esc(a)}`;
+      return `<section class="kn" data-sec="numbers"><h3 class="kn-h">${knIc('all')}${h}</h3><div class="kn-k">
+        ${k('price', 'Benchmark price', o.price ? money(o.price) : '—', line(c.price, true), 'The price of a standard home here (MLS® HPI)', 'kn-p')}
+        <div class="kn-pr"><span class="kn-tag">Sold in ${mon}</span>
+          ${k('sold', 'Homes sold', o.sales != null ? N(o.sales) : '—', line(c.sales), `Sales that closed in ${mon}`)}
+          ${k('dom', 'Average days to sell', o.dom != null ? `${o.dom} days` : '—', o.dom == null ? none('not published') : c.dom == null ? `${miss()} ${pick('')}` : `${days(c.dom)} ${pick('since ')}`, 'How long those homes were listed before they sold')}</div>
+        ${k('sale', 'Homes for sale', o.active != null ? N(o.active) : '—', line(c.active), `Listed at the end of ${mon}`, 'kn-f')}
+      </div></section>`;
     }
-    const t = (h, sub, c2, c3, row) => card('numbers', h, sub, `<table class="tb"><thead><tr><th>Area</th><th>${c2}</th><th>${c3}</th></tr></thead><tbody>${sh.map((a) => `<tr><td><span class="ma">${dot(colour(a))}${esc(a)}</span></td>${row(all(a))}</tr>`).join('')}</tbody></table>`, '', true);
+    const cell = (v) => (v == null ? none(old ? 'No number yet' : 'not published') : arrow(v));
+    const t = (ic, h, sub, cols, row, foot = '') => card('numbers', `<span class="kn-t">${knIc(ic)}${h}</span>`, sub,
+      `<table class="tb kn-tb"><thead><tr><th>Area</th>${cols.map((x) => `<th>${x}</th>`).join('')}</tr></thead><tbody>${sh.map((a) => `<tr><td><span class="ma">${dot(colour(a))}${esc(a)}</span></td>${row(all(a), chOf(a))}</tr>`).join('')}</tbody></table>${foot}`, '', true);
     return `<div class="trio" data-sec="numbers">${[
-      t('Benchmark price', `${mon}, and the change from ${lastYear}`, 'Benchmark price', 'Change in 1 year', (o) => `<td class="n">${o.price ? money(o.price) : '—'}</td><td>${arrow(o.yoy)}</td>`),
-      t('Homes sold', `In ${mon}, and the change from ${lastYear}`, 'Homes sold', 'Change in 1 year', (o) => `<td class="n">${o.sales != null ? N(o.sales) : '—'}</td><td>${arrow(pctOf(o.sales, o.salesLy))}</td>`),
-      t('Homes for sale', 'Listed now, and how long homes take to sell', 'For sale', 'Days on market', (o) => `<td class="n">${o.active != null ? N(o.active) : '—'}</td><td>${o.dom != null ? `${o.dom} days` : '<span class="na">not published</span>'}</td>`),
+      t('price', 'Benchmark price', `The price of a standard home in ${mon}`, ['Price', `Change ${pick('since ')}`], (o, c) => `<td class="n">${o.price ? money(o.price) : '—'}</td><td>${c.price == null ? none('not published') : arrow(c.price)}</td>`),
+      t('sold', 'Homes sold', `Sold in ${mon}, and how long they took to sell`, ['Sold', 'Change', 'Days to sell'],
+        (o, c) => `<td class="n">${o.sales != null ? N(o.sales) : '—'}</td><td>${cell(c.sales)}</td><td>${o.dom != null ? `${o.dom}${c.dom ? ` ${days(c.dom).replace(/ days?<\/span>$/, '</span>')}` : ''}` : none('—')}</td>`,
+        `<p class="kn-foot">Changes are since ${since}. Days to sell: the small number is the change in days.</p>`),
+      t('sale', 'Homes for sale', `Listed at the end of ${mon}`, ['For sale', `Change ${pick('since ')}`], (o, c) => `<td class="n">${o.active != null ? N(o.active) : '—'}</td><td>${cell(c.active)}</td>`),
     ].join('')}</div>`;
   };
   R.trend = () => { const sh = areasFor('trend'), one = sh.length === 1;
@@ -414,7 +431,8 @@ export function mountReport(root, D, A, opts = {}) {
     if (b('[data-id="intent"] button')) { const x = b('button'), on = x.getAttribute('aria-pressed') === 'true'; q('intent').querySelectorAll('button').forEach((y) => y.setAttribute('aria-pressed', 'false')); x.setAttribute('aria-pressed', String(!on)); S.intent = on ? null : x.textContent; return msg(); }
     if (b('[data-id="copy"]')) { navigator.clipboard?.writeText(text()).then(() => { q('copy').textContent = 'Copied'; setTimeout(() => q('copy') && (q('copy').textContent = 'Copy message'), 1800); }).catch(() => {}); }
   };
-  root.onchange = (e) => { if (e.target.dataset.id === 'add' && e.target.value) setAreas([...S.areas, e.target.value], e.target.value); };
+  root.onchange = (e) => { if (e.target.matches('[data-nper]')) { S.nPer = e.target.value; return keepPlace('[data-sec="numbers"]', draw); }
+    if (e.target.dataset.id === 'add' && e.target.value) setAreas([...S.areas, e.target.value], e.target.value); };
   root.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-focus]')) { e.preventDefault(); e.target.click(); } };
   draw();
   if (root._ro) root._ro.disconnect();

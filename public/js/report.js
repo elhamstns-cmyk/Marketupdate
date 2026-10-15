@@ -87,11 +87,13 @@ export function get(D, area, type) {
     const rs = TYPES.map((t) => get(D, area, t)), sum = (k) => (rs.every((r) => r[k] != null) ? rs.reduce((n, r) => n + r[k], 0) : null);
     const H = D.history?.price?.composite?.[area], k = monthKey(D.month), price = H?.[k] || null, ly = H?.[addMonths(k, -12)], prev = H?.[addMonths(k, -1)] || null;
     const wavg = (dk, sk) => (rs.every((r) => r[dk] != null && r[sk] != null) && sum(sk) ? Math.round(rs.reduce((n, r) => n + r[dk] * r[sk], 0) / sum(sk)) : null);
-    const o = { price, yoy: price && ly ? Math.round(((price - ly) / ly) * 1000) / 10 : null, prev, sales: sum('sales'), salesLy: sum('salesLy'), active: sum('active'), activeLy: sum('activeLy'), dom: wavg('dom', 'sales'), domLy: wavg('domLy', 'salesLy') };
+    const o = { price, yoy: price && ly ? Math.round(((price - ly) / ly) * 1000) / 10 : null, prev, sales: sum('sales'), salesLy: sum('salesLy'), active: sum('active'), activeLy: sum('activeLy'), dom: wavg('dom', 'sales'), domLy: wavg('domLy', 'salesLy'),
+      salesPrev: sum('salesPrev'), activePrev: sum('activePrev'), domPrev: wavg('domPrev', 'salesPrev') };
     o.ratio = o.active ? (o.sales / o.active) * 100 : null; return o;
   }
   const c = D.cities[area] && D.cities[area][type], a = area === 'Greater Vancouver' ? null : D.areas[area][type];
-  const o = c ? { price: c.price.now, yoy: c.price.yoy, prev: c.price.prev, sales: c.sales.now, salesLy: c.sales.ly, active: c.active.now, activeLy: c.active.ly, dom: c.dom.now, domLy: c.dom.ly, ratio: c.ratio }
+  const o = c ? { price: c.price.now, yoy: c.price.yoy, prev: c.price.prev, sales: c.sales.now, salesLy: c.sales.ly, active: c.active.now, activeLy: c.active.ly, dom: c.dom.now, domLy: c.dom.ly, ratio: c.ratio,
+      salesPrev: c.sales.prev ?? null, activePrev: c.active.prev ?? null, domPrev: c.dom.prev ?? null }
     : { price: a.price, yoy: a.yoy, sales: a.sales, active: a.active };
   if (o.ratio == null) o.ratio = o.active ? (o.sales / o.active) * 100 : null;
   return o;

@@ -36,6 +36,24 @@ test('the public report draws every default section, including Neighbourhoods', 
   assert.ok(await p.$('.nb-ask'), 'the neighbourhood picker shows');
 }));
 
+test('Key numbers: the "since" menu changes every change, and days to sell sits with homes sold', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
+  const kc = () => p.$$eval('[data-sec="numbers"] .kc', (x) => x.map((e) => e.textContent.replace(/\s+/g, ' ').trim()));
+  assert.match((await kc())[0], /since Sep 2025/);
+  assert.ok(await p.$('[data-sec="numbers"] .kn-pr .kpi:nth-of-type(2) .kl >> text=Average days to sell'), 'days to sell is next to homes sold');
+  await p.selectOption('[data-sec="numbers"] select[data-nper] >> nth=1', 'm1');
+  for (const t of await kc()) assert.match(t, /Aug 2026/);
+  await p.selectOption('[data-sec="numbers"] select[data-nper] >> nth=0', 'y10');
+  const t10 = await kc();
+  assert.match(t10[0], /%.*since Sep 2016/);
+  assert.match(t10[1], /No number yet for Sep 2016/);
+}));
+
+test('Key numbers with several areas: the column title follows the menu', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-south', async (p) => {
+  await p.selectOption('[data-sec="numbers"] select[data-nper] >> nth=0', 'y3');
+  const th = await p.$$eval('[data-sec="numbers"] th .kn-sel', (x) => x.map((e) => e.textContent.trim()));
+  assert.equal(th.length, 2); for (const t of th) assert.match(t, /^since Sep 2023/);
+}));
+
 test('adding a city adds a line to the 12-month chart', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-north', async (p) => {
   const legend = await p.$$eval('.cd-trend .leg span', (x) => x.map((e) => e.textContent));
   assert.deepEqual(legend, ['Coquitlam', 'Burnaby North']);
@@ -154,7 +172,7 @@ for (const width of [390, 1280]) test(`D2: the Share menu opens fully on screen 
 test('the first page shows the logo, this month\'s real report and three sample reports', { skip }, () => page('/', async (p) => {
   assert.ok(await p.$('.nav .dot'), 'logo in the top menu');
   assert.match(await p.textContent('#pill'), /report is ready/);
-  assert.ok(await p.$('#prev.bd .kpis'), 'the real report is drawn in the preview');
+  assert.ok(await p.$('#prev.bd [data-sec="numbers"] .kpi'), 'the real report is drawn in the preview');
   assert.equal((await p.$$('#gal .lp-card')).length, 3);
   assert.ok(await p.$('#f #email') && await p.$('#consent'), 'sign-up form is there');
 }, { width: 390 }));

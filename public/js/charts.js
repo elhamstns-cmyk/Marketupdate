@@ -161,3 +161,24 @@ export function barChart(el, rows, { label = '', interactive = true, width, heig
     g.addEventListener('pointerenter', on); g.addEventListener('pointerdown', on); g.addEventListener('pointerleave', () => (tip.style.opacity = 0)); });
 }
 export { monthLong };
+
+/* ----- "Key numbers" (S1): change over a chosen time ----- */
+// The time choices under each number. 'y1' is where the report opens.
+export const NUM_PERIODS = [['m1', 'last month', 1], ['y1', '1 year', 12], ['y3', '3 years', 36], ['y5', '5 years', 60], ['y10', '10 years', 120]];
+// "Sep 2025" for the month a period goes back to, from the report month key "2026-09".
+export function periodMonth(endKey, per) {
+  const back = (NUM_PERIODS.find((x) => x[0] === per) || NUM_PERIODS[1])[2];
+  let y = +endKey.slice(0, 4), m = +endKey.slice(5) - back;
+  while (m < 1) { m += 12; y -= 1; }
+  return `${MON[m - 1]} ${y}`;
+}
+const pct = (now, then) => (now != null && then ? Math.round(((now - then) / then) * 1000) / 10 : null);
+// o: get(D, area, 'all'). g: D.growth.composite[area] ([3y, 5y, 10y] %).
+// Returns the price, sales and listings changes in %, and days to sell as a change in days. null = no number for that time.
+export function numbersChange(o, per, g) {
+  if (per === 'm1') return { price: pct(o.price, o.prev), sales: pct(o.sales, o.salesPrev), active: pct(o.active, o.activePrev), dom: o.dom != null && o.domPrev != null ? o.dom - o.domPrev : null };
+  if (per === 'y1') return { price: o.yoy ?? null, sales: pct(o.sales, o.salesLy), active: pct(o.active, o.activeLy), dom: o.dom != null && o.domLy != null ? o.dom - o.domLy : null };
+  const i = { y3: 0, y5: 1, y10: 2 }[per];
+  // GVR's price index goes back over 10 years; sales and listings history on the site starts in January 2025.
+  return { price: g && g[i] != null ? g[i] : null, sales: null, active: null, dom: null };
+}
