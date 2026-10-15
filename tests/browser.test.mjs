@@ -128,3 +128,9 @@ test('the Create page loads with the Sections panel and Neighbourhoods settings'
   await p.hover('[data-sk="hoods"]'); await p.click('[data-ek="hoods"]'); await p.waitForTimeout(300);
   assert.ok(await p.$('[data-hc="city"]'), 'city setting shows');
 }, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));
+
+for (const width of [390, 1280]) test(`D2: the Share menu opens fully on screen (${width}px)`, { skip }, () => page('/app?plan=pro', async (p) => {
+  await p.click('#sharebtn'); await p.waitForTimeout(200);
+  const r = await p.$eval('.shmenu', (m) => { const x = m.getBoundingClientRect(); return { l: x.left, r: x.right, vw: document.documentElement.clientWidth }; });
+  assert.ok(r.l >= 0 && r.r <= r.vw, `menu runs from ${Math.round(r.l)} to ${Math.round(r.r)} on a ${r.vw}px screen`);
+}, { width, setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));

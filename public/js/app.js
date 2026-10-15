@@ -512,12 +512,20 @@ function wirePanel() {
     s2.splice(all.indexOf(drag) < all.indexOf(li.dataset.sk) ? at + 1 : at, 0, drag); const k = drag; drag = null; setLayout({ sections: s2 }); setTimeout(() => selectSec(k, true), 80); });
 }
 
+/* Keep a top-bar menu fully on screen. On a phone it spans the screen width under the button; elsewhere it lines up with the button's right edge but never runs off either side. */
+function fitMenu(m, btn) {
+  const b = btn.getBoundingClientRect(), vw = document.documentElement.clientWidth, gap = 12;
+  const w = vw <= 640 ? vw - gap * 2 : Math.min(m.offsetWidth, vw - gap * 2);
+  Object.assign(m.style, { position: 'fixed', width: w + 'px', right: 'auto', top: b.bottom + 8 + 'px', left: Math.max(gap, Math.min(b.right - w, vw - w - gap)) + 'px', maxHeight: innerHeight - b.bottom - 8 - gap + 'px', overflowY: 'auto' });
+  // Turning the phone or resizing the window closes the menu instead of leaving it in the wrong place.
+  addEventListener('resize', function rz() { if (m.isConnected && document.documentElement.clientWidth === vw) return; removeEventListener('resize', rz); closeMenu(); });
+}
 /* Menu under the agent's photo. */
 function meMenu(btn) {
   if (btn.parentElement.querySelector('.amenu')) return closeMenu(); closeMenu();
   const m = document.createElement('div'); m.className = 'shmenu amenu'; m.setAttribute('role', 'menu');
   m.innerHTML = [['details', 'Your details'], ['account', 'Account and billing'], ['history', 'Your reports'], ['logout', 'Log out']].map(([k, l]) => `${k === 'logout' ? '<hr>' : ''}<button type="button" role="menuitem" data-mm="${k}">${l}</button>`).join('');
-  btn.parentElement.appendChild(m);
+  btn.parentElement.appendChild(m); fitMenu(m, btn);
   m.onclick = (e) => { const b = e.target.closest('[data-mm]'); if (!b) return; closeMenu(); const k = b.dataset.mm;
     if (k === 'details') { PS = { m: 'details', k: PS.k }; return drawPanel(); } if (k === 'logout') return $('#logout').click(); show(k); };
   setTimeout(() => document.addEventListener('click', function off(ev) { if (!ev.target.closest('.amenu') && !ev.target.closest('#mebtn')) { closeMenu(); document.removeEventListener('click', off, true); } }, true));
@@ -530,7 +538,7 @@ function shareDrop(btn) {
   const it = (k, ic, l, sub, off, pv) => `<button type="button" role="menuitem" data-s="${k}"${off ? ' disabled' : ''}><span class="i">${sv(ic)}</span><span><b>${l}</b>${sub ? `<small>${sub}</small>` : ''}</span>${pv ? `<em>${off ? 'Pro' : 'Preview ›'}</em>` : ''}</button>`;
   m.innerHTML = `<p class="mh">Send your report</p>${it('copy', 'link', 'Copy link', 'Paste it in a text, email or post')}${it('email', 'mail', 'Email for your clients', 'A finished message for Gmail or your CRM')}${it('qr', 'qr', 'QR code', 'For open houses, flyers and signs')}${it('plinks', 'link', 'Personal links', 'One link per client, with their name and area', !pro)}${isPhone() ? it('native', 'share', 'Share from this phone') : ''}
     <hr><p class="mh">Images and PDF</p>${it('post', 'ig', 'Instagram post', 'Square image', !pro, 1)}${it('story', 'ig', 'Instagram story', 'Tall image', !pro, 1)}${it('pdf', 'dl', 'PDF', 'To print or attach', !pro, 1)}`;
-  btn.parentElement.appendChild(m);
+  btn.parentElement.appendChild(m); fitMenu(m, btn);
   m.onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b || b.disabled) return; const k = b.dataset.s; closeMenu();
     if (k === 'copy') return act('link', record('link'));
     if (k === 'email') return act('email', record('email'));
