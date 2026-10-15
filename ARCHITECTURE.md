@@ -169,7 +169,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
   areas:    ['Coquitlam','Burnaby North'],   // max 6 (MAX_AREAS)
   agentTop: true,        // agent name/photo at the top
   clientAreas: true,     // clients may add/remove areas
-  view: 'side' | 'one',  // several areas side by side, or one at a time
+  view: 'side' | 'one',  // what clients see first: all areas together, or the first area (R2 "Show me")
   conf: {                // per-section choices
     trend: { title, areas:[…], types:[…], sub:false, note:false, size:'full' },
     hoods: { city, home, cmp, type:'d'|'t'|'c', off:['rank',…], take:'own'|'off', text }
@@ -277,7 +277,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
   - `cmp` is `{c, h}` (city, neighbourhood or `'*'` for the whole city). `seen` holds `"city|hood"` strings.
   - The client's area, type and `seen` are kept per agent in `localStorage` under `mup_hood:<slug>` (not the city they last looked at). Nothing is written in edit mode.
   - A personal link sets the home, its city and the type.
-- **Following the report:** `board.js → draw()` calls `HO.sync(areas, focus)` before every redraw, with the R2 areas and the area tapped in "One at a time". `sync()` holds the rule for which city opens (see HANDOFF §6). Never open on a city without a card.
+- **Following the report:** `board.js → draw()` calls `HO.sync(areas, focus)` before every redraw, with the R2 areas and the area tapped in R2 ("Show me: <area>"). `sync()` holds the rule for which city opens (see HANDOFF §6). Never open on a city without a card.
 - **Blocks, in order:**
   - City cards (`.nb-cd`, `data-hcard`), or a grey card for an area without neighbourhoods (`data-hno`) that opens a message (`.nb-msg`). With no area that has neighbourhoods, a city grid instead (`.nb-grid`).
   - Pinned "Your area" bar in their city, or the slim `.nb-away` bar in another city

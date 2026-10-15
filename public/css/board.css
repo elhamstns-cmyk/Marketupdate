@@ -22,6 +22,13 @@
 .bd .chip .x{border:0;background:none;color:var(--mut);font-size:11px;cursor:pointer;width:20px;height:20px;border-radius:50%;padding:0}.bd .chip .x:hover{background:var(--hl);color:var(--ink)}
 .bd .add{position:relative;border:1px dashed var(--soft);color:var(--act);border-radius:20px;padding:5px 13px;font-weight:600;font-size:13.2px;cursor:pointer}
 .bd .add select{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;font-size:16px}
+.bd .abar{min-width:0;max-width:100%}.bd .al{color:var(--ink);font-size:13.6px}
+.bd .chip.on{border:2px solid var(--ac);color:var(--ac);padding:4px 7px 4px 11px}.bd .chip.on:not(:has(.x)){padding-right:11px}
+.bd button.chip{font:600 13.2px var(--bf);color:var(--ink);padding:5px 12px}.bd button.chip.on{color:var(--ac);padding:4px 11px}.bd .aall svg{flex:none}
+/* the ✕ to remove an area shows only on the selected area */
+.bd .chip .x{display:none}.bd .chip.on .x{display:inline-block}.bd span.chip:not(.on){padding-right:12px}
+.bd .chip .dt{margin-right:0}
+.bd .asay{flex-basis:100%;display:flex;gap:9px;align-items:center;margin:0;background:var(--pg);border-radius:10px;padding:9px 12px;font-size:14px;color:var(--ink)}.bd .asay svg{flex:none;color:var(--ac)}.bd .asay b{font-weight:650}
 .bd .seg{display:inline-flex;background:var(--pg);border-radius:9px;padding:3px;flex:none}
 .bd .seg button{border:0;background:none;padding:6px 12px;border-radius:7px;font:600 12.8px var(--bf);color:var(--mut);cursor:pointer}
 .bd .seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
@@ -163,7 +170,7 @@
 @container (max-width:860px){.bd .trio{grid-template-columns:1fr}.bd .pair{grid-template-columns:1fr!important}.bd .tiles{grid-template-columns:1fr}}
 @container (max-width:560px){
   .bd .bw{gap:12px}.bd .cd{padding:15px}.bd .kpis{gap:10px}.bd .kpi{padding:13px 14px}.bd .kv{font-size:1.3rem}
-  .bd .al{display:none}.bd .mrow{margin:0;padding:9px 0}.bd .ht td{padding-left:10px}
+  .bd .al{flex-basis:100%}.bd .chs{flex:1 1 100%;min-width:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:2px 14px}.bd .chs::-webkit-scrollbar{display:none}.bd .chs .chip,.bd .chs .add{flex:none;white-space:nowrap}.bd .mrow{margin:0;padding:9px 0}.bd .ht td{padding-left:10px}
   .bd .abar .seg{width:100%}.bd .abar .seg button{flex:1}
   .bd .mrow,.bd .mscale{grid-template-columns:96px 1fr 58px;gap:10px}.bd .hb{grid-template-columns:96px 1fr;gap:10px}
   .bd .ma{font-size:12.6px}.bd .rr{grid-template-columns:1fr 92px 60px}.bd .rb{display:none}

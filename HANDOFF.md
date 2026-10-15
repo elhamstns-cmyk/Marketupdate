@@ -127,7 +127,7 @@ Recommended order (proposed, Summary last). The status is for each section.
 
 1. A personal link's city.
 2. The client's own city, when it's one of the R2 areas.
-3. A city tapped in R2 ("One at a time"). S5 follows it, with "Showing Burnaby North, the area you picked at the top."
+3. An area tapped in R2 ("Show me: Burnaby North"). S5 follows it, with "Showing Burnaby North, the area you picked at the top."
 4. The agent's "City shown first", when it's one of the R2 areas.
 5. The first R2 area with neighbourhoods.
 
@@ -188,7 +188,7 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 | Name | What it is | Code |
 |---|---|---|
 | R1 Report header | Title, month, agent name and photo | `board.js → draw()` |
-| R2 Area bar | Area chips, + Add area, "Side by side / One at a time" (redesign proposed: docs/area-toggle-ui.png) | `board.js → areaBar()` |
+| R2 Area bar | "Show me: Both areas · Coquitlam · Burnaby North · + Add area" and a line saying what the report shows (docs/r2-area-bar-ui.png) | `board.js → areaBar()` |
 | S1 Key numbers | `numbers` | `board.js → R.numbers` |
 | S2 12-month price | `trend` | `R.trend`, `C.trend` |
 | S3 Buyer's or seller's market | `market` | `R.market` |
@@ -232,6 +232,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-14 | R2 Area bar | **Built:** "Side by side / One at a time" replaced. One row: "Show me: Both areas (All 3 areas for 3+) · each area · + Add area". Tapping an area shows the whole report for it; a line under the row says "Every section below compares Coquitlam and Burnaby North" or "…is about Coquitlam only. Tap Both areas to compare." The ✕ shows only on the selected area. On a phone the row scrolls sideways. Dashboard setting renamed "When clients open the report, show: All areas together / The first area" (saved values `side`/`one` unchanged). UI: `docs/r2-area-bar-ui.png`. |
 | 2026-10-14 | S5 Neighbourhoods | Removed the "<City> overall" row from the ranked list. The take now says "all 9 neighbourhoods" instead of "9 of 9" (`countPhrase()`, with a test). City cards count only neighbourhoods with prices for the chosen home type. |
 | 2026-10-13 | S5 Neighbourhoods | **Built:** city cards (one city open at a time, follow R2, only open on a city that has a card), one ranked list instead of the tiles and "Who grew the most", time buttons Since January · 1 · 3 · 5 · 10 years (opens on 5 years; "Last month" dropped), comparisons across cities. In site-update.zip. |
 | 2026-10-13 | S5 Neighbourhoods | Several cities: city cards replace the City box; one city open at a time; S5 follows R2; the client's area is pinned when switching; the peek card works across cities. Greater Vancouver and Whistler get a grey card and a message when tapped. Whistler wording agreed. UI in `docs/s5-*.png`. |

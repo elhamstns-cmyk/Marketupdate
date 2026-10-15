@@ -239,12 +239,19 @@ export function mountReport(root, D, A, opts = {}) {
   const PAIR = { trend: 7, market: 5, summary: 6, sold: 6 };
   const pairs = (k) => PAIR[k] && CF(k).size !== 'full';
   function rows(secs) { const out = []; for (let i = 0; i < secs.length; i++) { const a = secs[i], b = secs[i + 1]; if (pairs(a) && pairs(b)) { out.push([a, b]); i++; } else out.push([a]); } return out; }
+  // R2: "Show me: Both areas · Coquitlam · Burnaby North · + Add area", and a line saying what the report below shows.
+  const ALLIC = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg>';
+  const EYE = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const PIN = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+  const allLabel = () => (S.areas.length === 2 ? 'Both areas' : `All ${S.areas.length} areas`);
   function areaBar() {
     if (!canEdit && S.areas.length < 2) return '';
-    const free = ALL.filter((a) => !S.areas.includes(a)), one = S.view === 'one' && S.areas.length > 1;
-    return `<div class="abar"><span class="al">Areas</span><div class="chs">${S.areas.map((a) => `<span class="chip tabby${one && a === S.focus ? ' on' : ''}" ${one ? `data-focus="${esc(a)}"` : `data-sa="${esc(a)}"`} role="button" tabindex="0">${dot(colour(a))}${esc(a)}${canEdit && S.areas.length > 1 ? `<button type="button" class="x" data-rm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}
-      ${canEdit && S.areas.length < MAX_AREAS && free.length ? `<label class="add">+ Add area<select data-id="add" aria-label="Add an area"><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}</div>
-      ${S.areas.length > 1 ? `<div class="seg" role="group" aria-label="How to show several areas"><button type="button" data-view="side" aria-pressed="${S.view === 'side'}">Side by side</button><button type="button" data-view="one" aria-pressed="${S.view === 'one'}">One at a time</button></div>` : ''}</div>`;
+    const free = ALL.filter((a) => !S.areas.includes(a)), many = S.areas.length > 1, one = S.view === 'one' && many;
+    const tabs = many ? `<button type="button" class="chip tabby aall${one ? '' : ' on'}" data-all aria-pressed="${!one}">${ALLIC}${allLabel()}</button>` : '';
+    const say = !many ? '' : one ? `<p class="asay">${PIN}<span>Every section below is <b>about ${esc(S.focus)} only</b>. Tap <b>${allLabel()}</b> to compare.</span></p>`
+      : `<p class="asay">${EYE}<span>Every section below <b>compares ${S.areas.length === 2 ? `${esc(S.areas[0])} and ${esc(S.areas[1])}` : `all ${S.areas.length} areas`}</b>.</span></p>`;
+    return `<div class="abar"><span class="al">Show me:</span><div class="chs">${tabs}${S.areas.map((a) => `<span class="chip${many ? ' tabby' : ''}${one && a === S.focus ? ' on' : ''}"${many ? ` data-focus="${esc(a)}" role="button" tabindex="0" aria-pressed="${one && a === S.focus}"` : ''}>${dot(colour(a))}${esc(a)}${canEdit && many ? `<button type="button" class="x" data-rm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}
+      ${canEdit && S.areas.length < MAX_AREAS && free.length ? `<label class="add">+ Add area<select data-id="add" aria-label="Add an area"><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}</div>${say}</div>`;
   }
   const NAME = Object.fromEntries(SECTIONS.map(([k, l]) => [k, l]));
   // Agent view: click a section to edit it (outlined, with an "Editing" tag); "+ Add a section" at the end.
@@ -304,8 +311,9 @@ export function mountReport(root, D, A, opts = {}) {
     if (ED && b('[data-bin]')) { const k = b('[data-bin]').dataset.bin; if (L.sections.length < 2) return; saveLayout({ sections: L.sections.filter((x) => x !== k) }); SEL = null; draw(); return opts.onSelect?.(null); }
     if (ED && b('.sx') && !b('button,a,input,select,label,.mrow,[data-chart="trend"]')) { const k = b('.sx').dataset.k; root._select(k); opts.onSelect?.(k); }
     if (b('[data-rm]')) { e.stopPropagation(); const a = b('[data-rm]').dataset.rm; return setAreas(S.areas.filter((x) => x !== a)); }
-    if (b('[data-focus]')) { S.focus = b('[data-focus]').dataset.focus; return draw(); }
-    if (b('[data-view]')) { S.view = b('[data-view]').dataset.view; if (ED) saveLayout({ view: S.view }); return draw(); }
+    // Tapping an area shows the whole report for that area; "Both areas" / "All 3 areas" compares them again.
+    if (b('[data-focus]')) { S.focus = b('[data-focus]').dataset.focus; S.view = 'one'; return draw(); }
+    if (b('[data-all]')) { S.view = 'side'; return draw(); }
     if (b('[data-id="ctog"]')) { const x = q('cbox'); x.hidden = !x.hidden; if (!x.hidden) q('where')?.focus(); return; }
     if (b('[data-mv]')) { const x = b('[data-mv]'), s2 = [...L.sections], i = s2.indexOf(x.dataset.k), j = i + +x.dataset.mv; if (j < 0 || j >= s2.length) return; [s2[i], s2[j]] = [s2[j], s2[i]]; saveLayout({ sections: s2 }); return draw(); }
     if (b('[data-hide]')) { saveLayout({ sections: L.sections.filter((k) => k !== b('[data-hide]').dataset.hide) }); return draw(); }
@@ -324,7 +332,7 @@ export function mountReport(root, D, A, opts = {}) {
     if (b('[data-id="copy"]')) { navigator.clipboard?.writeText(text()).then(() => { q('copy').textContent = 'Copied'; setTimeout(() => q('copy') && (q('copy').textContent = 'Copy message'), 1800); }).catch(() => {}); }
   };
   root.onchange = (e) => { if (e.target.dataset.id === 'add' && e.target.value) setAreas([...S.areas, e.target.value], e.target.value); };
-  root.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-focus],[data-sa]')) { e.preventDefault(); e.target.click(); } };
+  root.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-focus]')) { e.preventDefault(); e.target.click(); } };
   draw();
   if (root._ro) root._ro.disconnect();
   if (window.ResizeObserver) { let w = root.clientWidth, tm; root._ro = new ResizeObserver(() => { const cw = root.clientWidth; if (Math.abs(cw - w) > 24) { w = cw; clearTimeout(tm); tm = setTimeout(charts, 120); } }); root._ro.observe(root); }
