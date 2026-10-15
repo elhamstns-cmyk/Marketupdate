@@ -1,7 +1,7 @@
 // The interactive market report: a page of cards (sections) the agent chooses and orders.
 // mountReport(root, D, A, opts) draws it with the agent's branding (A) and layout (A.show).
 import { get, money, esc, slug, areasOf, themeVars, palette, mix, lum, phoneFmt, roleLabel, askCopy, first, sourceLine, market, monthKey, TN } from './report.js';
-import { salesGroup, salesByArea, soldStory, monthLong } from './charts.js';
+import { salesGroup, salesByArea, soldStory, monthLong, typesStoryOne, typesStoryAreas, dollarChange } from './charts.js';
 import { makeHoods } from './hoods.js';
 
 /* ---------- sections and layout ---------- */
@@ -49,7 +49,7 @@ export function mountReport(root, D, A, opts = {}) {
   let start = L.areas;
   if (opts.areas?.length) { const x = opts.areas.filter((a) => ALL.includes(a)); if (x.length) start = x.slice(0, MAX_AREAS); }
   else if (opts.area && ALL.includes(opts.area) && opts.area !== 'Greater Vancouver') start = L.areas.includes(opts.area) ? L.areas : [opts.area];
-  const S = { areas: [...start], focus: opts.area && start.includes(opts.area) ? opts.area : start[0], view: L.view, soldArea: null, soldView: 'bars', gType: 'composite', gYears: 2, intent: null };
+  const S = { areas: [...start], focus: opts.area && start.includes(opts.area) ? opts.area : start[0], view: L.view, soldArea: null, soldView: 'bars', gType: 'composite', gYears: 2, tType: null, intent: null };
   const canEdit = (ED || L.clientAreas) && ALL.length > 1;
   const XTRA = [], colour = (a) => { let i = S.areas.indexOf(a); if (i < 0) { if (!XTRA.includes(a)) XTRA.push(a); i = S.areas.length + XTRA.indexOf(a); } return COL[i % COL.length]; };
   const CF = (k) => L.conf[k] || {};
@@ -105,11 +105,11 @@ export function mountReport(root, D, A, opts = {}) {
       return `<div class="mrow" tabindex="0"><span class="ma">${dot(colour(a))}${esc(a)}</span><div class="mbar">${x == null ? '' : `<i style="left:${x}%;background:${colour(a)}"></i><span class="tip" style="left:${x}%">${r.toFixed(1)}% sold</span>`}</div><b class="mk">${mkt(r) || '—'}</b></div>`; }).join('')}
       <div class="mscale"><span></span><div><span style="width:33.3%">Buyer's</span><span style="width:22.2%">Balanced</span><span class="r">Seller's</span></div><span></span></div></div>
       ${note('market', 'Under 12% sold: buyers have more choice and time to negotiate. Over 20% sold: homes go fast and sellers have the edge.')}`); };
-  R.types = () => { const sh = areasFor('types'), TR = typesFor('types');
-    if (sh.length === 1) { const a = sh[0];
-      return card('types', 'Prices by home type', `${esc(a)}, typical price and the change since ${lastYear}`, `<div class="tiles" style="--tc:${TR.length}">${TR.map(([t, l]) => { const o = get(D, a, t);
-        return `<div class="tile">${house(t, 38)}<div><span class="kl">${l}</span><b class="kv sm">${o.price ? money(o.price) : '—'}</b>${o.price ? arrow(o.yoy, 'in 1 year') : '<span class="na">not published</span>'}</div></div>`; }).join('')}</div>`); }
-    return card('types', 'Prices by home type', `Typical price, and the change since ${lastYear}`, `<div class="scroll"><table class="tb ht"><thead><tr><th>Home type</th>${sh.map((a) => `<th>${dot(colour(a))}${esc(a)}</th>`).join('')}</tr></thead><tbody>${TR.map(([t, l]) => `<tr><td><span class="hn">${house(t)}${l}</span></td>${sh.map((a) => { const o = get(D, a, t); return `<td><b class="n">${o.price ? money(o.price) : '—'}</b>${o.price ? arrow(o.yoy, 'in 1 year') : '<span class="na">not published</span>'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`); };
+  // S4: one layout for one city (rows are home types) and several (tap a home type, rows are areas, highest price first).
+  R.types = () => { const sh = areasFor('types'), TR = typesFor('types'), one = sh.length === 1;
+    if (!TR.some(([t]) => t === S.tType)) S.tType = TR[0][0];
+    const tabs = one || TR.length < 2 ? '' : `<div class="gt ty-tabs" role="group" aria-label="Home type">${TR.map(([t, l]) => `<button type="button" class="tab" data-tt="${t}" aria-pressed="${S.tType === t}">${house(t, 22)}${l}</button>`).join('')}</div>`;
+    return card('types', 'Prices by home type', one ? `${esc(sh[0])} · ${esc(D.month)}` : `${esc(D.month)}${tabs ? ' · tap a home type' : ` · ${TR[0][1].toLowerCase()}`}`, `${tabs}<div data-chart="types"></div>`); };
   R.growth = () => { const ts = typesFor('growth').map(([t]) => t), tabs = [['composite', 'All homes'], ['detached', 'Detached'], ['townhome', 'Townhouses'], ['condo', 'Condos']].filter(([k]) => (k === 'composite' ? ts.length === 3 : ts.includes(k)));
     if (!tabs.some(([k]) => k === S.gType)) S.gType = tabs[0][0];
     return card('growth', 'Long-term price growth', 'How much the typical price changed over the years', `<div class="gt">${tabs.length > 1 ? tabs.map(([k, l]) => `<button type="button" class="tab" data-gt="${k}" aria-pressed="${S.gType === k}">${house(k, 22)}${l}</button>`).join('') : ''}</div><div class="gb" data-chart="growth"></div>`,
@@ -151,6 +151,26 @@ export function mountReport(root, D, A, opts = {}) {
   /* ----- charts, drawn after the cards are on the page ----- */
   const C = {};
   C.hoods = (el) => HO && HO.mount(el);
+  const pick = (o) => ({ price: o.price || null, yoy: o.yoy ?? null });
+  C.types = (el) => {
+    const sh = areasFor('types'), TR = typesFor('types'), one = sh.length === 1, region = 'Greater Vancouver';
+    // One row per home type (one area), or one row per area for the chosen home type.
+    let rows = one ? TR.map(([t, l]) => ({ ...pick(get(D, sh[0], t)), type: t, label: l, icon: house(t, 22) }))
+      : sh.map((a) => ({ ...pick(get(D, a, S.tType)), name: a, label: esc(a), icon: dot(colour(a)), gv: a === region && sh.length > 1 }));
+    const st = one ? typesStoryOne(rows) : typesStoryAreas(rows, S.tType, region);
+    if (!one) rows = [...rows.filter((x) => !x.gv && x.price).sort((a, b) => b.price - a.price), ...rows.filter((x) => !x.gv && !x.price), ...rows.filter((x) => x.gv)];
+    const max = Math.max(...rows.map((x) => x.price || 0)) || 1;
+    const chg = (x) => { if (!x.price) return '<span class="ty-c"></span>'; if (x.yoy == null) return '<span class="ty-c"><span class="na">no change published</span></span>';
+      const d = dollarChange(x.price, x.yoy), cls = x.yoy < 0 ? 'dn' : x.yoy > 0 ? 'upv' : '';
+      return `<span class="ty-c ${cls}"><b><i>${x.yoy < 0 ? '▼' : x.yoy > 0 ? '▲' : '●'}</i>${Math.abs(x.yoy).toFixed(1)}%</b><span>${d ? `${money(Math.abs(d))} ${d < 0 ? 'less' : 'more'}` : 'about the same'}</span></span>`; };
+    const row = (x) => `<div class="ty-r${x.gv ? ' ty-gv' : ''}"><span class="ty-n">${one ? `<span class="ty-i">${x.icon}</span>` : x.icon}${x.label}</span>
+      <span class="ty-b">${x.price ? `<i style="width:${Math.max(8, (x.price / max) * 100).toFixed(1)}%"><b>${money(x.price)}</b></i>` : '<span class="na">Not enough sales to publish a price</span>'}</span>${chg(x)}</div>`;
+    const since = `Change since <span class="ty-l">${esc(lastYear)}</span><span class="ty-s">${esc(lastYear.slice(0, 3) + lastYear.slice(-5))}</span>`;
+    el.innerHTML = `${st.lead || st.rest ? `<p class="ty-story"><b>${esc(st.lead)}</b>${esc(st.rest)}</p>` : ''}
+      <div class="ty-h"><span><span class="ty-l">${one ? 'Home type' : 'Area, highest price first'}</span><span class="ty-s">${one ? 'Home type' : 'Area'} · typical price today</span></span><span class="ty-l">Typical price today</span><span class="ty-ch">${since}</span></div>
+      <div class="ty-list">${rows.map(row).join('')}</div>
+      <p class="ty-key"><span>Longer bar = higher price</span><span><b class="ch upv"><i>▲</i>green</b> = higher than a year ago</span><span><b class="ch dn"><i>▼</i>red</b> = lower than a year ago</span></p>`; };
+
   C.trend = (el) => {
     const sh = areasFor('trend'), one = sh.length === 1, keys = Array.from({ length: 12 }, (_, i) => addM(endKey, i - 11));
     const ser = sh.map((a) => { const h = D.history?.price?.composite?.[a] || {}, base = h[keys.find((k) => h[k])];
@@ -384,6 +404,7 @@ export function mountReport(root, D, A, opts = {}) {
       if (S.areas.length >= MAX_AREAS) return toast(`You can compare up to ${MAX_AREAS} areas. Remove one first.`);
       S.flash = a; keepPlace('.cd-compare', () => setAreas([...S.areas, a])); return toast(`✓ <b>${esc(a)}</b> added to the report`, undo); }
     if (b('[data-more]')) { S.rankAll = !S.rankAll; return C.rank(root.querySelector('[data-chart="rank"]')); }
+    if (b('[data-tt]')) { S.tType = b('[data-tt]').dataset.tt; root.querySelectorAll('[data-tt]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.tt === S.tType)); return C.types(root.querySelector('[data-chart="types"]')); }
     if (b('[data-gt]')) { S.gType = b('[data-gt]').dataset.gt; root.querySelectorAll('[data-gt]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.gt === S.gType)); return C.growth(root.querySelector('[data-chart="growth"]')); }
     if (b('[data-gy]')) { S.gYears = +b('[data-gy]').dataset.gy; root.querySelectorAll('[data-gy]').forEach((x) => x.setAttribute('aria-pressed', +x.dataset.gy === S.gYears)); return C.growth(root.querySelector('[data-chart="growth"]')); }
     if (b('[data-sv]')) { S.soldView = b('[data-sv]').dataset.sv; const el = root.querySelector('[data-chart="soldm"]'); if (el) C.soldm(el); return; }

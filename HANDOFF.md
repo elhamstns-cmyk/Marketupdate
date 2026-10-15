@@ -49,7 +49,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 **Ella's setup steps** (they unlock what is already built):
 
-1. Nothing to upload: everything up to R2 "Show me" and S8 Homes sold is live on GitHub.
+1. Nothing to upload: everything up to R2 "Show me", S8 Homes sold and S4 Prices by home type is live on GitHub.
 2. In Supabase SQL Editor, run `new-database-tables.sql` (the personal links and views tables).
 3. In Vercel environment variables, add `CRON_SECRET` (any long random text).
 
@@ -97,7 +97,7 @@ Recommended order (proposed, Summary last). The status is for each section.
 | 1 | **Key numbers** | Built | Price, homes sold, homes for sale, days on market |
 | 2 | **Buyer's or seller's market** | Built | Scale per area and home type. GVR thresholds: below 12% buyer's, 12–20% balanced, above 20% seller's |
 | 3 | **Typical price over 12 months** | Built | Ella likes this graph. Fixed: every added city now shows; missing history is named under the chart |
-| 4 | **Prices by home type** | Built | Detached, townhouse, condo, with pictures. Hide when only one type is chosen (idea) |
+| 4 | **Prices by home type** | Built (Option D, Oct 15) | One layout for one city and several: a one-line story, column titles ("Typical price today", "Change since September 2025"), one blue bar per row, the red/green % with the dollar change under it, and a key. **One city:** a row per home type. **Several:** tap Detached / Townhouse / Condo; cities from highest price first, Greater Vancouver under a dashed line as the yardstick (`docs/s4-option-d-ui.png`) |
 | 5 | **Neighbourhoods** | Built | City cards, ranked list, 5 time buttons. See §6 |
 | 6 | **Homes sold each month** | Built | One area: bars that brighten and show the number on hover. **Several areas (Oct 14):** a one-line story, Greater Vancouver on its own row, every city's bars side by side with a Bars / Lines switch, and each city's number and change from a year ago under the chart (`docs/s8-cities-ui.png`). Idea not decided: a "When do homes sell?" busy-season grid |
 | 7 | **Long-term price growth** | Built | 3, 5 and 10 years from GVR's stats package |
@@ -231,6 +231,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-15 | S4 Prices by home type | **Built Option D** (picked from options A–G: `docs/s4-one-city-options-ui.png`, `docs/s4-cities-options-ui.png`). Ella: put something over the red numbers so people know what the change is from. Added the column title "Change since September 2025" ("Sep 2025" on a phone), the dollar change under each %, and a key. One city uses the same layout with home types as rows. Bars are all the report's blue (city colour only on the dot) so green still only means up. Tabs use the same style as Long-term growth. Areas with no price for a type say "Not enough sales to publish a price" and go to the bottom. Stories: `typesStoryOne()`, `typesStoryAreas()` in `charts.js`, with tests. |
 | 2026-10-15 | D2 Share menu | **Fixed:** on a phone the Share menu opened half off the left edge of the screen (it lined up with the Share button's right edge and was wider than the space to its left). Now `fitMenu()` in `app.js` keeps the Share and Me menus on screen: full width under the button on a phone, lined up with the button on a computer, scrolls if it's taller than the screen, and closes when the phone is turned. Test added. |
 | 2026-10-15 | Process | GitHub connected: Claude commits and pushes itself (after go-ahead and passing tests), always starting from the latest GitHub version. No more site-update.zip. |
 | 2026-10-14 | R2 Area bar | **Built:** "Side by side / One at a time" replaced. One row: "Show me: Both areas (All 3 areas for 3+) · each area · + Add area". Tapping an area shows the whole report for it; a line under the row says "Every section below compares Coquitlam and Burnaby North" or "…is about Coquitlam only. Tap Both areas to compare." The ✕ shows only on the selected area. On a phone the row scrolls sideways. Dashboard setting renamed "When clients open the report, show: All areas together / The first area" (saved values `side`/`one` unchanged). UI: `docs/r2-area-bar-ui.png`. |

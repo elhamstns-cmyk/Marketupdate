@@ -245,7 +245,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 | `hoods.js` | Neighbourhoods section (its own state and events) | `makeHoods(ctx)`, `HTYPES`, `BLOCKS`, `hoodCities`, `hoodNames`, `defaultCity` |
 | `app.js` | The Create page (dashboard). Long file. | Not imported by others. Runs on load (top-level `await`). |
 | `report.js` | Shared helpers and older renderers | `get`, `money`, `esc`, `slug`, `areasOf`, `first`, `phoneFmt`, `roleLabel`, `askCopy`, `sourceLine`, `monthKey`, `palette`, `themeVars`, `SAMPLES`, … |
-| `charts.js` | Series and simple chart helpers | `salesGroup`, `priceSeries`, `salesSeries`, `lineChart`, `barChart` |
+| `charts.js` | Series, simple chart helpers and the one-line stories | `salesGroup`, `priceSeries`, `salesSeries`, `lineChart`, `barChart`, `soldStory`, `typesStoryOne`, `typesStoryAreas`, `dollarChange` (S4) |
 | `social2.js` | Instagram images on canvas (calm blue design) | `calmImage(D, A, area, kind, opts)`, `calmCaption`, `IMG_DEFAULTS`, `IMG_PARTS`, `imgOpts` |
 | `exports.js` | Links, email draft, image wrappers | `reportLink`, `emailDraft`, `socialImage` (→ `calmImage`), `caption`, `download` (`*Old` versions are legacy) |
 | `share.js` / `qr.js` | Share menu, QR modal, icon set `sv(name)`; QR SVG generator | |

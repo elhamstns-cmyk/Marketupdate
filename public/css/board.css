@@ -342,3 +342,34 @@ button.nb-li:hover{background:#f6f7fa}
 @media (max-width:640px){.bd .nb-cd{flex:0 0 146px}.bd .nb-cd>span{white-space:nowrap;font-size:12px}.bd .nb-cd.nb-no{flex-basis:162px}.bd .nb-no>span{white-space:nowrap;font-size:12px}.bd .nb-best{display:none}.bd .nb-long{display:none}.bd .nb-short{display:inline}
   .bd .nb-hd .nb-ctl{width:100%}.bd .nb-li{padding:8px 6px;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'n v' 'b b'}.bd .nb-br{height:9px}.bd .nb-grid{grid-template-columns:1fr 1fr}
   .bd .nb-per button{flex:1 1 auto;padding:7px 4px;white-space:nowrap;font-size:12.5px}}
+
+/* S4 Prices by home type: story, column titles, one bar per row, change with dollars, key. Same for one city and several. */
+.bd .ty-tabs{margin:2px 0 12px}
+.bd .ty-story{background:var(--hl);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.5;margin:0 0 14px}
+.bd .ty-h,.bd .ty-r{display:grid;grid-template-columns:minmax(150px,190px) 1fr 132px;gap:14px;align-items:center}
+.bd .ty-h{font-size:12.5px;font-weight:600;color:var(--ink);padding-bottom:8px;border-bottom:1px solid var(--ln)}
+.bd .ty-h .ty-ch{text-align:right;line-height:1.3}.bd .ty-l{display:inline}.bd .ty-s{display:none}
+.bd .ty-ch .ty-l{display:block}
+.bd .ty-list{display:grid}
+.bd .ty-r{padding:10px 0;border-bottom:1px solid var(--ln)}.bd .ty-r:last-child{border-bottom:0}
+.bd .ty-r.ty-gv{border-top:1px dashed var(--ln);border-bottom:0;margin-top:2px}
+.bd .ty-gv{border-top-color:#cfd4de}.bd .ty-r:has(+ .ty-gv){border-bottom:0}
+.bd .ty-n{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14.5px;min-width:0}
+.bd .ty-n .dt{margin-right:0}
+.bd .ty-i{width:34px;height:34px;border-radius:9px;background:var(--hl);color:var(--ac);display:grid;place-items:center;flex:none}.bd .ty-i .hs{color:var(--ac)}
+.bd .ty-b{display:block;min-width:0}
+.bd .ty-b>i{font-style:normal;display:flex;justify-content:flex-end;align-items:center;height:28px;min-width:104px;border-radius:7px;background:var(--ac);padding-right:10px}
+.bd .ty-b>i b{color:#fff;font-size:13.5px;font-weight:700;white-space:nowrap}
+.bd .ty-c{text-align:right;display:grid;gap:1px;line-height:1.3}
+.bd .ty-c b{font-size:14px;font-weight:700;white-space:nowrap}.bd .ty-c b i{font-style:normal;font-size:10px;margin-right:4px;position:relative;top:-1px}
+.bd .ty-c>span{font-size:12.5px;font-weight:500}
+.bd .ty-c.dn{color:var(--dn)}.bd .ty-c.upv{color:var(--up)}
+.bd .ty-key{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--ln);font-size:12.5px;color:var(--mut)}
+.bd .ty-key .ch{font-size:12.5px}
+@container (max-width:560px){
+  .bd .ty-h{grid-template-columns:1fr auto}.bd .ty-h .ty-l{display:none}.bd .ty-s{display:inline}.bd .ty-ch .ty-s{display:block}
+  .bd .ty-r{grid-template-columns:1fr auto;gap:7px 10px}
+  .bd .ty-b{grid-column:1 / -1;grid-row:2}
+  .bd .ty-key{gap:4px 14px}
+  .bd .ty-tabs{flex-wrap:nowrap}.bd .ty-tabs .tab{flex:1;justify-content:center;padding:6px 8px}
+}

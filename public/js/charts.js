@@ -60,6 +60,47 @@ export function soldStory(list, cities, keys, month) {
   }
   return { lead, rest: out.join('') };
 }
+/* ----- "Prices by home type" (S4) ----- */
+// The change in dollars from a year ago, from today's price and the % change, rounded to $100. null when not published.
+export function dollarChange(price, yoy) {
+  if (!price || yoy == null) return null;
+  return Math.round((price - price / (1 + yoy / 100)) / 100) * 100;
+}
+const TYPE_WORDS = { detached: ['a detached home', 'detached homes'], townhome: ['a townhouse', 'townhouses'], condo: ['a condo', 'condos'] };
+const cap = (s) => s[0].toUpperCase() + s.slice(1);
+// Rounded to $1,000 for the story sentence (it says "about").
+const usd = (n) => '$' + (Math.round(Math.abs(n) / 1000) * 1000).toLocaleString('en-CA');
+// "about 2½ times" from 2.48
+const times = (r) => { const h = Math.round(r * 2) / 2; return `about ${Math.floor(h)}${h % 1 ? '½' : ''} times`; };
+// One city: rows are home types [{type, price, yoy}]. Returns {lead, rest}; the lead is shown in bold.
+export function typesStoryOne(rows) {
+  const has = rows.filter((x) => x.price && x.yoy != null), dn = has.filter((x) => x.yoy < 0), up = has.filter((x) => x.yoy > 0);
+  const pl = (xs) => and(xs.map((x) => TYPE_WORDS[x.type][1]));
+  let lead = '';
+  if (has.length && dn.length === has.length) lead = has.length === 1 ? `${cap(pl(has))} cost less than a year ago.` : (has.length === 2 ? 'Both home types cost' : 'Every home type costs') + ' less than a year ago.';
+  else if (has.length && up.length === has.length) lead = has.length === 1 ? `${cap(pl(has))} cost more than a year ago.` : (has.length === 2 ? 'Both home types cost' : 'Every home type costs') + ' more than a year ago.';
+  else if (dn.length || up.length) lead = [dn.length && `${cap(pl(dn))} cost less than a year ago`, up.length && `${dn.length ? pl(up) : cap(pl(up))} cost more`].filter(Boolean).join('; ') + '.';
+  const pr = rows.filter((x) => x.price).sort((a, b) => b.price - a.price);
+  let rest = '';
+  if (pr.length > 1) { const hi = pr[0], lo = pr[pr.length - 1], r = hi.price / lo.price;
+    rest = r >= 1.5 ? `${cap(TYPE_WORDS[hi.type][0])} costs ${times(r)} ${TYPE_WORDS[lo.type][0]}.` : `${cap(TYPE_WORDS[hi.type][0])} costs about ${usd(hi.price - lo.price)} more than ${TYPE_WORDS[lo.type][0]}.`; }
+  return { lead, rest: rest && lead ? ` ${rest}` : rest };
+}
+// Several areas, one home type: rows are areas [{name, price, yoy}]; the region (Greater Vancouver) is the yardstick, not ranked.
+export function typesStoryAreas(rows, type, region = 'Greater Vancouver') {
+  const w = TYPE_WORDS[type][1], cities = rows.filter((x) => x.price && x.name !== region).sort((a, b) => b.price - a.price), reg = rows.find((x) => x.name === region && x.price);
+  let lead = '', rest = '';
+  if (cities.length > 1) { const hi = cities[0], lo = cities[cities.length - 1];
+    lead = `${hi.name} has the priciest ${w}.`; rest = ` ${lo.name} is the most affordable, about ${usd(hi.price - lo.price)} less.`; }
+  else if (cities.length === 1 && reg) { const c = cities[0], d = c.price - reg.price;
+    lead = `${c.name}'s ${w} cost about ${usd(d)} ${d < 0 ? 'less' : 'more'} than across Greater Vancouver.`; }
+  const has = rows.filter((x) => x.price && x.yoy != null), dn = has.filter((x) => x.yoy < 0), up = has.filter((x) => x.yoy > 0);
+  const every = has.length === 2 ? 'both areas' : `every area`;
+  const move = has.length < 2 ? '' : dn.length === has.length ? `Prices are lower than a year ago in ${every}.` : up.length === has.length ? `Prices are higher than a year ago in ${every}.`
+    : [up.length && `Prices rose in ${and(up.map((x) => x.name))}`, dn.length && `${up.length ? 'fell' : 'Prices fell'} in ${and(dn.map((x) => x.name))}`].filter(Boolean).join(' and ') + ' over the past year.';
+  if (move) { if (lead) rest += ` ${move}`; else lead = move; }
+  return { lead, rest };
+}
 // Plain facts people notice: streaks, since January, over 12 months.
 export function trendFacts(series) {
   if (series.length < 3) return [];

@@ -57,6 +57,23 @@ test('Homes sold with one area keeps the single bar chart', { skip }, () => page
   assert.equal(await p.$('.cd-sold .sd-gb'), null);
 }));
 
+test('Prices by home type, one city: a row per home type, a change column title and a key', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
+  assert.equal(await p.$$eval('.cd-types .ty-r', (x) => x.length), 3);
+  assert.equal(await p.$('.cd-types [data-tt]'), null, 'no home-type tabs for one city');
+  assert.match(await p.textContent('.cd-types .ty-h'), /Change since/);
+  assert.match(await p.textContent('.cd-types .ty-story'), /less than a year ago/);
+  assert.ok(await p.$('.cd-types .ty-key'));
+}));
+
+test('Prices by home type, several areas: tap a home type, cities by price, Greater Vancouver last', { skip }, () => page('/r/demo?areas=greater-vancouver,coquitlam,port-moody,burnaby-north', async (p) => {
+  const names = () => p.$$eval('.cd-types .ty-n', (x) => x.map((e) => e.textContent.trim()));
+  assert.deepEqual(await names(), ['Port Moody', 'Burnaby North', 'Coquitlam', 'Greater Vancouver']);
+  await p.click('.cd-types [data-tt="condo"]');
+  assert.deepEqual(await names(), ['Port Moody', 'Burnaby North', 'Coquitlam', 'Greater Vancouver']);
+  assert.match(await p.textContent('.cd-types .ty-story'), /condos/);
+  assert.equal(await p.getAttribute('.cd-types [data-tt="condo"]', 'aria-pressed'), 'true');
+}));
+
 test('a personal link opens on the client\'s neighbourhood', { skip }, () => page('/r/demo?p=x', async (p) => {
   const hero = await p.textContent('.nb-hero');
   assert.match(hero, /Prepared for the Chen family/); assert.match(hero, /Burke Mountain/);
