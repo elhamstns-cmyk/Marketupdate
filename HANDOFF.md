@@ -19,7 +19,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 1. **Show UI before code.** For anything visible, make a mockup image first and wait for "go ahead" before building.
 2. **Always use red and green for any up or down change:** red for down, green for up. That includes days on market and every section.
-3. **One calm, fixed design.** White cards on soft grey, blue accent (#1d4fbf). No choices of fonts, colours or styles. No mixed grey and white text. No overlapping text.
+3. **One calm, fixed design.** White cards on soft grey, blue accent (#1d4fbf), on every page including those before login. No green anywhere. Logo: the house-and-bars mark (`public/img/logo-mark.svg`). No choices of fonts, colours or styles. No mixed grey and white text. No overlapping text.
 4. **Plain words.** Clients include older people. Use icons or small pictures next to titles so things are easy to recognise.
 5. **Automate for agents.** Everything starts on a sensible choice and updates itself every month.
 6. **Nothing fake.** No made-up testimonials, numbers or "most popular" claims.
@@ -45,7 +45,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 ---
 
-## 4. What still needs to happen (as of October 13, 2026)
+## 4. What still needs to happen (as of October 15, 2026)
 
 **Ella's setup steps** (they unlock what is already built):
 
@@ -56,7 +56,6 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 **UI made, waiting for Ella's go-ahead:**
 
 - **S5 list labels:** column titles ("Typical price today", "How much prices changed in 10 years", "Change"), a key (green up, red down, longer bar = bigger change), and "Price today" under each name on a phone (`docs/s5-list-labels-ui.png`). Ella asked what the number and the lines meant.
-- **First page:** a white and blue landing page that matches the product (landing-ui.png).
 - **Sections panel:** each section with an icon and a short line, and a recommended order with Summary last (sections-ui.png).
 - **Template bar:** one slim line with "Save as template" and a ⋯ menu.
 - **Interest rates section:** Bank of Canada rate 2.25%, prime 4.45%, next announcement October 28, step graph, plus an admin "confirm each month" box (rates-ui.png).
@@ -204,7 +203,7 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 
 | Name | What it is | Code |
 |---|---|---|
-| P1 First page | Before logging in. P1.1 top menu, P1.2 sign-up box, P1.3 sample reports, P1.4 make it yours, P1.5 footer | `public/index.html` |
+| P1 First page | Before logging in. P1.1 top menu, P1.2 sign-up box with the real report preview, P1.3 sample reports, P1.4 ready to share (3 steps), P1.5 footer | `public/index.html` |
 | P2 Pricing page | "Pricing" in the top menu | `public/plans.html` |
 | P3 Sign up / Log in | Step 1 (Account) | `app.js → showLogin()`, `showVerify()`, `showForgot()` |
 | P4 Your report preview | Step 2: their details next to their report | `app.js → showPreview()` |
@@ -231,6 +230,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-15 | Whole site, P1–P5, emails | **Built and pushed:** every page before login now uses the report's white and blue (the old green is gone; `site.css` base colours changed, so Pricing, Privacy, Terms and the sign-up steps follow). The dashboard's brighter blue `#2f6fe0` became the report's `#1d4fbf`. New logo picked by Ella: **B, house and bars** (`docs/logo-options-ui.png`), in the top menu of every page, the browser tab, and at the top of all three emails (`emailLogo()` in `lib/util.js`, PNG because email apps don't show SVG). New first page (`docs/landing-ui.png`): white and blue, the real report drawn in the preview (updates itself every month), three sample agents with one real number each, 3 steps, footer. Removed every "your own colours, fonts and styles" promise (Pricing, plan step, README); Pro now lists its real features. Pro badge reads "Includes every city" instead of "Recommended". New checks: first page draws, and no green on /, /plans, /privacy, /terms. |
 | 2026-10-15 | S4 Prices by home type | **Built Option D** (picked from options A–G: `docs/s4-one-city-options-ui.png`, `docs/s4-cities-options-ui.png`). Ella: put something over the red numbers so people know what the change is from. Added the column title "Change since September 2025" ("Sep 2025" on a phone), the dollar change under each %, and a key. One city uses the same layout with home types as rows. Bars are all the report's blue (city colour only on the dot) so green still only means up. Tabs use the same style as Long-term growth. Areas with no price for a type say "Not enough sales to publish a price" and go to the bottom. Stories: `typesStoryOne()`, `typesStoryAreas()` in `charts.js`, with tests. |
 | 2026-10-15 | D2 Share menu | **Fixed:** on a phone the Share menu opened half off the left edge of the screen (it lined up with the Share button's right edge and was wider than the space to its left). Now `fitMenu()` in `app.js` keeps the Share and Me menus on screen: full width under the button on a phone, lined up with the button on a computer, scrolls if it's taller than the screen, and closes when the phone is turned. Test added. |
 | 2026-10-15 | Process | GitHub connected: Claude commits and pushes itself (after go-ahead and passing tests), always starting from the latest GitHub version. No more site-update.zip. |

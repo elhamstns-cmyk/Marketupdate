@@ -18,7 +18,7 @@ No packages to install. Preview locally with `npm run dev` (runs in sample mode 
 ## Each month
 Open `/admin`, paste the month's report data (same shape as `data/seed-report.js`), send yourself a test, then publish. Every active subscriber gets the "ready" email and their link shows the new month.
 
-Plans: Essentials ($19/mo, $190/yr) is the Greater Vancouver report in a fixed white and blue design, with link and email. Pro ($29/mo, $290/yr) adds custom colours, fonts and styles, every city, PDF and social images. Change prices in `lib/util.js` and `public/index.html`.
+Plans: Both plans use the same fixed white and blue design. Essentials ($19/mo, $190/yr) is the Greater Vancouver report, with link and email. Pro ($29/mo, $290/yr) adds every city and neighbourhood, arranging sections, a saved template, PDF, Instagram images, personal links and the weekly email. Change prices in `lib/util.js` and `public/plans.html`.
 
 ## Long-term price growth
 The report's "Long-term price growth" section uses the 3, 5 and 10-year changes from the MLS® HPI tables in GVR's monthly Stats Package. Add them to the month's report data before publishing:

@@ -84,7 +84,7 @@ scripts/hoods-from-gvr.py   Adds "hoods" (neighbourhood prices) from the HPI Ben
 scripts/gvr-neighbourhoods.json  GVR area code → neighbourhood names (which city each belongs to).
 scripts/stripe-setup.mjs    Creates Stripe products/prices once.
 supabase/schema.sql         All tables (append-only migrations; run in the Supabase SQL editor).
-public/index.html           Landing page + sign-up (still old dark green design; a white/blue redesign is planned).
+public/index.html           First page + sign-up, white and blue. Draws the real report (mountReport, embedded) as its preview.
 public/app.html             Create page shell → /js/app.js
 public/report.html          Public report → mountReport() from /js/board.js
 public/print.html           PDF/print layout of the report
@@ -312,7 +312,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
   - The look is fixed and calm: accent `#1d4fbf`, bars `#4f86e8`, page `#f3f4f7`, ink `#1b2430`, Inter.
   - CSS variables are set on the report root: `--ac`, `--ink`, `--mut`, `--ln`, `--card`, `--up`, `--dn`, `--hl`, `--bar`.
   - Neighbourhoods classes are prefixed `nb-`.
-- **Dashboard and site:** `site.css`.
+- **Dashboard and site:** `site.css`. Base colours on `:root` are the report's: `--p #1d4fbf`, `--g #4f86e8`, `--tint #eef3fd`, `--ink #1b2430`, `--line #e3e6ec`. Never reintroduce green. The logo is `.dot` (a background image of `/img/logo-mark.svg`); use `<span class="dot"></span>` next to the name. First-page classes start with `lp-`.
   - **It defines global, unprefixed classes such as `.up`, `.me`, `.mine`, `.note`, `.lead`.** They leak into the report when it is shown inside the dashboard.
   - So never use those names in report markup. For example, use `upv` for "up value", not `up`.
   - Check new class names with `grep` in `site.css` before you use them.
@@ -407,7 +407,6 @@ For visual changes, still take Playwright screenshots at desktop width and at 39
 
 **Pending owner decisions (UI made, not built):**
 
-- A white and blue landing page that matches the product
 - Section icons with descriptions and a "Use recommended order" option
 - A slimmer template bar with a ⋯ menu
 - An interest rates section (Bank of Canada rate, prime rate, next announcement, step graph)

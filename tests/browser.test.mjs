@@ -151,3 +151,19 @@ for (const width of [390, 1280]) test(`D2: the Share menu opens fully on screen 
   const r = await p.$eval('.shmenu', (m) => { const x = m.getBoundingClientRect(); return { l: x.left, r: x.right, vw: document.documentElement.clientWidth }; });
   assert.ok(r.l >= 0 && r.r <= r.vw, `menu runs from ${Math.round(r.l)} to ${Math.round(r.r)} on a ${r.vw}px screen`);
 }, { width, setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));
+test('the first page shows the logo, this month\'s real report and three sample reports', { skip }, () => page('/', async (p) => {
+  assert.ok(await p.$('.nav .dot'), 'logo in the top menu');
+  assert.match(await p.textContent('#pill'), /report is ready/);
+  assert.ok(await p.$('#prev.bd .kpis'), 'the real report is drawn in the preview');
+  assert.equal((await p.$$('#gal .lp-card')).length, 3);
+  assert.ok(await p.$('#f #email') && await p.$('#consent'), 'sign-up form is there');
+}, { width: 390 }));
+
+// Ella: every page before logging in uses the report's white and blue, no green.
+const GREENS = ['rgb(15, 107, 79)', 'rgb(31, 184, 134)', 'rgb(7, 16, 13)'];
+for (const path of ['/', '/plans', '/privacy', '/terms']) {
+  test(`${path} has no green left`, { skip }, () => page(path, async (p) => {
+    const used = await p.$$eval('body *', (els) => [...new Set(els.flatMap((e) => { const s = getComputedStyle(e); return [s.color, s.backgroundColor, s.borderTopColor]; }))]);
+    assert.deepEqual(used.filter((c) => GREENS.includes(c)), []);
+  }));
+}

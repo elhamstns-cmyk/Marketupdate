@@ -121,8 +121,8 @@ function showPlans() {
   const paint = () => { main.innerHTML = `<div class="c">${steps(2)}<h2>${P.name ? 'Your report is ready. Unlock it.' : 'Choose your plan'}</h2>${mine}
     <div class="tog" role="group" aria-label="Billing"><button type="button" data-c="monthly" aria-pressed="${cycle === 'monthly'}">Monthly</button><button type="button" data-c="yearly" aria-pressed="${cycle === 'yearly'}">Yearly<span class="save">2 months free</span></button></div>
     <div class="plans">
-      <div class="card plan"><h3>${pl.basic.name}</h3><div class="pr">$${pl.basic[cycle]}<small> / ${cycle === 'yearly' ? 'year' : 'month'}</small></div><p class="muted">Greater Vancouver report with your name, photo and logo, in a clean white and blue design.</p><button class="btn ghost wide" data-p="basic">Choose ${pl.basic.name}</button></div>
-      <div class="card plan rec"><h3>${pl.pro.name}</h3><div class="pr">$${pl.pro[cycle]}<small> / ${cycle === 'yearly' ? 'year' : 'month'}</small></div><p class="muted">Your own colours, fonts and styles, every city, PDF and social images.</p><button class="btn wide" data-p="pro">Choose ${pl.pro.name}</button></div>
+      <div class="card plan"><h3>${pl.basic.name}</h3><div class="pr">$${pl.basic[cycle]}<small> / ${cycle === 'yearly' ? 'year' : 'month'}</small></div><p class="muted">Greater Vancouver report with your name, photo and logo, your own link and a client email.</p><button class="btn ghost wide" data-p="basic">Choose ${pl.basic.name}</button></div>
+      <div class="card plan rec"><h3>${pl.pro.name}</h3><div class="pr">$${pl.pro[cycle]}<small> / ${cycle === 'yearly' ? 'year' : 'month'}</small></div><p class="muted">Every city and neighbourhood, PDF, Instagram images and personal links for clients.</p><button class="btn wide" data-p="pro">Choose ${pl.pro.name}</button></div>
     </div><p class="err" id="plerr" role="status"></p><p class="small muted">Prices in Canadian dollars, plus GST. Have a promo code? Enter it at checkout.</p></div>`; };
   paint();
   main.onclick = (e) => { if (e.target.closest('[data-back]')) { e.preventDefault(); return showPreview(); } const c = e.target.closest('[data-c]'), p = e.target.closest('[data-p]'); if (c) { cycle = c.dataset.c; paint(); } if (p) checkout(p.dataset.p, p); };
@@ -744,7 +744,7 @@ async function drawIg(c) {
     <label class="tg"><input type="checkbox" id="igauto"${c.auto ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span><span><b>Post it for me every month.</b> Your new post goes up the day the report comes out.</span></label>
     <label class="tg"><input type="checkbox" id="igstory"${c.story ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span><span>Also post the story</span></label>
     <label class="igarea"><span class="lbl">Area to post</span><select id="igarea">${areas.map((a) => `<option${a === c.area ? ' selected' : ''}>${a}</option>`).join('')}</select></label>
-    <p class="small muted">Uses your current colours, font and what-to-show choices.${c.last_month ? ` Last posted: ${esc(c.last_month)}.` : ''}</p>
+    <p class="small muted">Uses your current what-to-show choices.${c.last_month ? ` Last posted: ${esc(c.last_month)}.` : ''}</p>
     <div class="igbtns" id="igbtns"><button class="btn sm" id="ignow">${sv('ig')}Post to Instagram now</button><button class="btn sm ghost" id="igoff">Disconnect</button></div>`;
   const set = async (patch) => { try { drawIg(await igApi({ action: 'settings', ...patch })); alertMsg('Saved.'); } catch (e) { alertMsg(e.message, true); } };
   $('#igauto').onchange = (e) => set({ auto: e.target.checked }); $('#igstory').onchange = (e) => set({ story: e.target.checked }); $('#igarea').onchange = (e) => set({ area: e.target.value });
