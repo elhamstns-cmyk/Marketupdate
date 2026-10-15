@@ -27,7 +27,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 8. **Never paste or ask for secret keys in chat.** Say "don't send it to me" when a key is involved.
 9. **Don't show Ella's personal email to agents.**
 10. **Supabase stays on the free plan.** Ella doesn't want to pay for extra services.
-11. **Don't push to GitHub unless Ella asks.** Pushing makes it live. Normally deliver a `site-update.zip` that she uploads.
+11. **Claude commits and pushes to GitHub itself** (Ella connected GitHub on October 15, 2026). Pushing makes it live, so push only after Ella says "go ahead" on the UI and `npm test` passes. Always pull the latest from GitHub first, so one chat never undoes another. No more zips to upload.
 12. **Ask before downloading anything** in her browser. Name the file, where it's from and its size.
 13. **Counts read like a person wrote them.** Never "9 of 9": say "all 9", "both", "no neighbourhood" or "the only one". In code, use `countPhrase()` from `hoods.js`.
 
@@ -37,7 +37,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 | What | Where |
 |---|---|
-| Code repository | **GitHub: github.com/elhamstns-cmyk/Marketupdate** (the copy on Ella's Mac was removed). Claude can read it from GitHub but can't push. Changes come back as a zip that Ella uploads with **Add file → Upload files → Commit changes**. On a Mac, press Cmd+Shift+. so hidden files like `.github` are included. |
+| Code repository | **GitHub: github.com/elhamstns-cmyk/Marketupdate** (the copy on Ella's Mac was removed). Claude commits and pushes directly (connected October 15, 2026). |
 | Code guide for AI | `ARCHITECTURE.md` in the repository |
 | GVR data files | `~/Downloads/GVR data/` (benchmark Excel files 2016–2026, September 2026 stats package) and the monthly stats packages in `~/Downloads/` |
 | GVR members' portal | portal.gvrealtors.ca: Stats Centre, Stats Package, HPI Benchmark Summary Excel. Ella is usually logged in to Chrome. |
@@ -49,8 +49,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 **Ella's setup steps** (they unlock what is already built):
 
-0. Upload the newest `site-update.zip` (S8 Homes sold with several cities, October 14; it also includes everything before it).
-1. Upload the latest `site-update.zip`. It includes the 12-month chart fix, the Neighbourhoods fill-in, and adding the Neighbourhoods section to existing saved templates once.
+1. Nothing to upload: everything up to R2 "Show me" and S8 Homes sold is live on GitHub.
 2. In Supabase SQL Editor, run `new-database-tables.sql` (the personal links and views tables).
 3. In Vercel environment variables, add `CRON_SECRET` (any long random text).
 
@@ -161,7 +160,7 @@ Copy one, fill in the part name from §8, and add your feedback:
 - **First page:** "Read HANDOFF.md and ARCHITECTURE.md from github.com/elhamstns-cmyk/Marketupdate. We're working only on the **first page (landing page)**. The UI is landing-ui.png. My feedback: …"
 - **Monthly data:** "Read HANDOFF.md and ARCHITECTURE.md from github.com/elhamstns-cmyk/Marketupdate. Help me publish **[Month] 2026**. The GVR files are in ~/Downloads."
 
-**At the end of each chat**, say: "Update HANDOFF.md with what we decided and give me the upload zip." The next chat then starts from where you left off.
+**At the end of each chat**, say: "Update HANDOFF.md with what we decided and push it." The next chat then starts from where you left off.
 
 ---
 
@@ -232,6 +231,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-15 | Process | GitHub connected: Claude commits and pushes itself (after go-ahead and passing tests), always starting from the latest GitHub version. No more site-update.zip. |
 | 2026-10-14 | R2 Area bar | **Built:** "Side by side / One at a time" replaced. One row: "Show me: Both areas (All 3 areas for 3+) · each area · + Add area". Tapping an area shows the whole report for it; a line under the row says "Every section below compares Coquitlam and Burnaby North" or "…is about Coquitlam only. Tap Both areas to compare." The ✕ shows only on the selected area. On a phone the row scrolls sideways. Dashboard setting renamed "When clients open the report, show: All areas together / The first area" (saved values `side`/`one` unchanged). UI: `docs/r2-area-bar-ui.png`. |
 | 2026-10-14 | S8 Homes sold | **Built:** with several areas, every city at once instead of one at a time. One-line story written from the numbers; Greater Vancouver on its own row (it sells about 10 times more than a city and squashed the bars); city bars side by side, with a Bars / Lines switch (opens on Bars); under the chart, each city's number and red/green change "vs September 2025". Phone and half-width cards show the last 6 months. Tried and dropped: a table under the chart, last-year circles on the lines, and house/calendar icons (too much). Ella liked the busy-season grid (option D); it can't be per neighbourhood because GVR publishes only prices for neighbourhoods. Not decided where it goes. |
 | 2026-10-14 | S5 Neighbourhoods | Removed the "<City> overall" row from the ranked list. The take now says "all 9 neighbourhoods" instead of "9 of 9" (`countPhrase()`, with a test). City cards count only neighbourhoods with prices for the chosen home type. |

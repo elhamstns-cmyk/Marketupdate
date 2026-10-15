@@ -361,7 +361,7 @@ Old `.xls` files from before 2024 need LibreOffice (`soffice --convert-to xlsx`)
 
 **Process:**
 
-- **Don't push to GitHub unless the owner asks.** Pushing deploys the live site. Commit locally, and make a zip with `git archive --format=zip -o site-update.zip HEAD`; the owner uploads it.
+- **Pushing to `main` deploys the live site.** Commit and push directly, but only after the owner's go-ahead and a passing `npm test`. Run `git pull` first so you build on the latest version.
 - Only the owner adds secrets (environment variables). Never ask for them in chat.
 
 ---
