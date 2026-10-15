@@ -2,18 +2,18 @@
 // Keep this file free of DOM code and imports, so Node can load it too. Change section ids and settings HERE only.
 
 /* ---------- sections ---------- */
-// [id, name, one-line description]. The order here is the order in the "Add a section" list.
 export const SECTIONS = [
-  ['numbers', 'Key numbers', 'Price, homes sold and days to sell, homes for sale'],
-  ['trend', 'Benchmark price over 12 months', 'Line graph, one line per area'],
-  ['market', "Buyer's or seller's market?", 'Where each area sits on the scale'],
-  ['types', 'Prices by home type', 'Detached, townhouse and condo, with pictures'],
-  ['hoods', 'Neighbourhoods', "Your client's neighbourhood, every neighbourhood at a glance, who grew most"],
-  ['growth', 'Long-term price growth', 'Growth over 3, 5 and 10 years'],
-  ['summary', 'Summary', 'The key points in plain words'],
+  // [id, name, the short line agents see under the name in the Sections panel]
+  ['numbers', 'Key numbers', 'Price, homes sold, homes for sale'],
+  ['trend', 'Benchmark price over 12 months', 'Line graph, one line for each area'],
+  ['market', "Buyer's or seller's market?", 'A scale for each area'],
+  ['types', 'Prices by home type', 'Detached, townhouse and condo'],
+  ['hoods', 'Neighbourhoods', 'Prices for each neighbourhood'],
+  ['growth', 'Long-term price growth', 'Price change over 3, 5 and 10 years'],
+  ['summary', 'Summary', 'The main points in plain words'],
   ['sold', 'Homes sold each month', 'Bar chart of the last 12 months'],
   ['compare', 'How areas compare', 'Every area ranked by price'],
-  ['contact', 'Contact me', 'Your photo and a message box for clients'],
+  ['contact', 'Contact me', 'Your photo and a message box'],
 ];
 export const SEC_IDS = SECTIONS.map((s) => s[0]);
 // Sections added after agents started saving layouts. A layout saved before one existed gets it once (see layoutOf).

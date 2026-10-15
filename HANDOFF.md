@@ -49,13 +49,13 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 **Ella's setup steps** (they unlock what is already built):
 
-1. Nothing to upload: everything up to R2 "Show me", S8 Homes sold and S4 Prices by home type is live on GitHub.
+1. Nothing to upload: everything up to R2 "Show me", S8 Homes sold, S4 Prices by home type and D6 Sections panel is live on GitHub.
 2. In Supabase SQL Editor, run `new-database-tables.sql` (the personal links and views tables).
 3. In Vercel environment variables, add `CRON_SECRET` (any long random text).
 
 **UI made, waiting for Ella's go-ahead:**
 
-- **Sections panel:** each section with an icon and a short line, and a recommended order with Summary last (sections-ui.png).
+- **Sections panel:** a recommended order with Summary last (the pictures, numbers and short lines are built, see D6 in §9).
 - **Template bar:** one slim line with "Save as template" and a ⋯ menu.
 - **Interest rates section:** Bank of Canada rate 2.25%, prime 4.45%, next announcement October 28, step graph, plus an admin "confirm each month" box (rates-ui.png).
 
@@ -176,7 +176,7 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 | D3 Me menu | Your details, account and billing, your reports, log out | `app.js → meMenu()` |
 | D4 Report canvas | The report you edit (drag, bin, select) | `board.js → mountReport()` in edit mode |
 | D5 Zoom | − 85% + and fit | `app.js → wireZoom()` |
-| D6 Sections panel | The list with on/off switches, Edit (Data and Settings), Add a section, Your details | `app.js → drawPanel()`, `wirePanel()`, `hoodsPanel()` |
+| D6 Sections panel | Numbered picture rows with on/off switches; tapping a row opens its settings under it; "You can add"; "Whole report" options; Your details (`docs/d6-sections-ui.png`) | `app.js → drawPanel()`, `secSettings()`, `wirePanel()`, `hoodsPanel()`, `addSec()`, `removeSec()` |
 | D7 Template bar | "Save as my template", "Back to the default layout" | `app.js → drawPanel()` footer `.pfoot` |
 | D8 Preview window | Post / Story / PDF preview, what's on the image, caption, post to Instagram | `app.js → openPreview()`, `social2.js` |
 | D9 Personal links window | Client links and what they looked at | `app.js → personalLinks()` |
@@ -230,6 +230,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-15 | D6 Sections panel | **Built:** each row has a small picture of the section and a number; the same number and name sit on a tag at the top of the section on the report (the tag is also the drag handle). Tapping a row opens its settings right under it (What it shows / How it looks / Up, Down, Remove), replacing the separate Edit screen with Data and Settings tabs; tapping a section on the report opens its row too. Opening a row scrolls the report so that section sits just under the top bar, with a soft blue glow. Removing (switch, Remove, or the bin) no longer makes the page jump: if the section is off screen the report glides to it, it slides out to the right and the gap closes, with an Undo message. Adding (+ Add under "You can add", or "+ Add a section" on the report) glides to the new section, which slides in from the left. Report options moved into a "Whole report" box. Panel is 410px wide. Tried and not chosen: a numbered list with icons (A), a small page map of the report (C), and settings in a pop-out card. UI: `docs/d6-sections-ui.png`. Pushed to GitHub at Ella's request. |
 | 2026-10-15 | S5 Neighbourhoods | **Built:** list column titles and a key (Ella asked what the number and lines meant); a way back after "I'm just looking around" (slim "Pick mine" bar, remembered on the next visit). Mockups `docs/s5-list-labels-ui.png`, `docs/s5-looking-around-ui.png`. Pushed to GitHub at Ella's request. |
 | 2026-10-15 | S1 Key numbers | **Built and pushed:** Ella wanted to change "since Sep 2025" to other times (not a side-by-side compare). Picked option 1 from `docs/s1-change-options-ui.png`: the blue dashed "since Sep 2025 ⌄" words are a menu (last month, 1, 3, 5, 10 years); all changes in S1 move together; it opens on 1 year. Average days to sell moved from Homes for sale into Homes sold (GVR's days on market is for homes that sold). Titles: "Key numbers · <area>", "Average days to sell", "Homes for sale: listed at the end of September" (was "now"), "Change since Sep 2025"; a short line under each number says what it means. Icons next to every title. Price uses `growth.composite` for 3/5/10 years; sold, for sale and days to sell have no history before January 2025, so they say "No number yet for Sep 2021". **Open:** fill 3/5/10 years for those three by adding GVR's old September stats packages (one-time). The first page's sample cards (`index.html`) still say "Homes for sale now". |
 | 2026-10-15 | S1 Key numbers, all sections | **Built and pushed:** Ella: say "benchmark price", never "typical". Every "Typical home price" / "Typical price" / "the typical home is…" is now "Benchmark price" across S1–S10, the area table, Instagram images and caption, PDF, CSV export, first page preview and dashboard hints. No "typical" left in the site's words. |

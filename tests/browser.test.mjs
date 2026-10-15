@@ -160,8 +160,12 @@ test('Greater Vancouver alone: clients choose a city', { skip }, () => page('/r/
 test('the Create page loads with the Sections panel and Neighbourhoods settings', { skip }, () => page('/app?plan=pro', async (p) => {
   const list = await p.$$eval('#dpanel [data-sk]', (x) => x.map((e) => e.dataset.sk));
   assert.ok(list.includes('hoods'));
-  await p.hover('[data-sk="hoods"]'); await p.click('[data-ek="hoods"]'); await p.waitForTimeout(300);
-  assert.ok(await p.$('[data-hc="city"]'), 'city setting shows');
+  // Tapping a row opens its settings right under it.
+  await p.click('#dpanel .srh[data-sk="hoods"] .tx'); await p.waitForTimeout(300);
+  assert.ok(await p.$('#dpanel .sr.open[data-li="hoods"] [data-hc="city"]'), 'city setting shows under the Neighbourhoods row');
+  // The numbers in the panel match the tags on the report.
+  const nums = (sel) => p.$$eval(sel, (x) => x.map((e) => e.textContent).join(','));
+  assert.equal(await nums('#dpanel .srl:not(.off) .th i'), await nums('#rp .dragh i'));
 }, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));
 
 for (const width of [390, 1280]) test(`D2: the Share menu opens fully on screen (${width}px)`, { skip }, () => page('/app?plan=pro', async (p) => {
@@ -208,3 +212,16 @@ test('after "I\'m just looking around" clients can still pick their neighbourhoo
   await p.click('[data-hreopen]'); await p.selectOption('[data-hpick]', 'Burke Mountain');
   assert.equal(await p.$('.nb-look'), null); assert.ok(await p.$('.nb-hero'));
 }, { width: 390 }));
+
+test('switching a section off does not make the page jump, and Undo brings it back', { skip }, () => page('/app?plan=pro', async (p) => {
+  await p.evaluate(() => scrollTo(0, 600)); await p.waitForTimeout(200);
+  const k = await p.evaluate(() => [...document.querySelectorAll('#rp .sx')].find((x) => x.getBoundingClientRect().top > 100)?.dataset.k);
+  const top = () => p.evaluate((k) => document.querySelector(`#rp .sx[data-k="${k}"]`)?.getBoundingClientRect().top, k);
+  const before = await top();
+  // Switch off a section on screen above the one we watch: the one we watch may move up by that section's height, never jump far away.
+  await p.click('#dpanel .srh[data-sk="numbers"] .swl'); await p.waitForTimeout(1600);
+  assert.equal(await p.$('#rp .sx[data-k="numbers"]'), null, 'the section is gone');
+  assert.ok(Math.abs((await top()) - before) < 700, 'the page stayed in place');
+  await p.click('.bdtoast button'); await p.waitForTimeout(1600);
+  assert.ok(await p.$('#rp .sx[data-k="numbers"]'), 'Undo put it back');
+}, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); sessionStorage.setItem('mup_zoomtip', '1'); } }));
