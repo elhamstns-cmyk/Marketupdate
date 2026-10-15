@@ -169,7 +169,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
   areas:    ['Coquitlam','Burnaby North'],   // max 6 (MAX_AREAS)
   agentTop: true,        // agent name/photo at the top
   clientAreas: true,     // clients may add/remove areas
-  view: 'side' | 'one',  // what clients see first: all areas together, or the first area (R2 "Show me")
+  view: 'side' | 'one',  // several areas side by side, or one at a time
   conf: {                // per-section choices
     trend: { title, areas:[…], types:[…], sub:false, note:false, size:'full' },
     hoods: { city, home, cmp, type:'d'|'t'|'c', off:['rank',…], take:'own'|'off', text }
@@ -268,6 +268,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 - Sections with a `PAIR` weight (`trend`, `market`, `summary`, `sold`) sit side by side unless their size is set to full.
 - **Events:** one delegated `root.onclick` and one `root.onchange`. Add new handlers there, or keep them inside your own module, as `hoods.js` does with `data-h*` attributes. **Don't reuse the `data-*` names already used in `root.onclick`.**
 - **Edit mode:** each section is wrapped in `.sx[data-k]` with a "Drag to move" handle and a bin. `saveLayout(patch)` calls `opts.edit(patch)`, and `app.js → setLayout()` saves it to `P.show`.
+- **Homes sold (`sold`):** one area draws `C.sold` (a bar chart). Several areas draw `C.soldm`: the story line, a Greater Vancouver row, the cities' bars or lines (`S.soldView`, buttons `data-sv`) and the change row. Its data comes from `charts.js → salesByArea()` (areas sharing a sales group, such as Burnaby North and South, are counted once) and the story from `soldStory()`, both tested in `tests/sold.test.mjs`. Under 520px wide it shows the last 6 months. Classes are prefixed `sd-`.
 - **Plain-language summaries** come from `summaryPoints()`. The 12-month line uses `D.history.price.composite`. Areas with no history are listed under the chart.
 
 ### 6.2 Neighbourhoods (`hoods.js`)
@@ -277,7 +278,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
   - `cmp` is `{c, h}` (city, neighbourhood or `'*'` for the whole city). `seen` holds `"city|hood"` strings.
   - The client's area, type and `seen` are kept per agent in `localStorage` under `mup_hood:<slug>` (not the city they last looked at). Nothing is written in edit mode.
   - A personal link sets the home, its city and the type.
-- **Following the report:** `board.js → draw()` calls `HO.sync(areas, focus)` before every redraw, with the R2 areas and the area tapped in R2 ("Show me: <area>"). `sync()` holds the rule for which city opens (see HANDOFF §6). Never open on a city without a card.
+- **Following the report:** `board.js → draw()` calls `HO.sync(areas, focus)` before every redraw, with the R2 areas and the area tapped in "One at a time". `sync()` holds the rule for which city opens (see HANDOFF §6). Never open on a city without a card.
 - **Blocks, in order:**
   - City cards (`.nb-cd`, `data-hcard`), or a grey card for an area without neighbourhoods (`data-hno`) that opens a message (`.nb-msg`). With no area that has neighbourhoods, a city grid instead (`.nb-grid`).
   - Pinned "Your area" bar in their city, or the slim `.nb-away` bar in another city
@@ -386,6 +387,7 @@ Run **`npm test`** before every upload. It uses Node's built-in test runner (`no
 | File | What it checks |
 |---|---|
 | `tests/layout.test.mjs` | Shared layout rules: unknown sections dropped, area limits, `NEW_SECTIONS` added once, Neighbourhoods settings, `cleanShow`, that the browser and server use the same functions, and that every Neighbourhoods block has a label |
+| `tests/sold.test.mjs` | Homes sold with several areas: numbers per area, missing months, and the story sentence |
 | `tests/data.test.mjs` | The built-in month passes the publish checks. Every area has 12 months of price history. Neighbourhood data is well formed. Broken data is rejected. |
 | `tests/api.test.mjs` | Every route answers in sample mode: config, report, personal link, tracking, cron password, admin password, 404 |
 | `tests/browser.test.mjs` | Real pages in Chromium: the report draws every default section, adding a city adds a chart line, the personal link hero shows, picking and peeking at a neighbourhood work, and the Create page shows the Neighbourhoods settings. **Skipped when Playwright isn't installed.** Set `PLAYWRIGHT_MODULE` to its `index.mjs` if it's installed globally. |

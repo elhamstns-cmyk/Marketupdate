@@ -41,6 +41,22 @@ test('adding a city adds a line to the 12-month chart', { skip }, () => page('/r
   assert.deepEqual(legend, ['Coquitlam', 'Burnaby North']);
 }));
 
+test('Homes sold with several areas: every city side by side, Greater Vancouver on its own row, bars or lines', { skip }, () => page('/r/demo?areas=greater-vancouver,coquitlam,burnaby-north,port-moody', async (p) => {
+  const legend = await p.$$eval('.cd-sold .sd-leg span', (x) => x.map((e) => e.textContent));
+  assert.deepEqual(legend, ['Coquitlam', 'Burnaby North', 'Port Moody']);
+  assert.match(await p.textContent('.cd-sold .sd-gv'), /Greater Vancouver/);
+  assert.match(await p.textContent('.cd-sold .sd-take'), /than last/);
+  assert.equal(await p.$$eval('.cd-sold .sd-m', (x) => x[0].children.length), 3, 'one bar per city each month');
+  assert.equal(await p.$$eval('.cd-sold .sd-chg > span', (x) => x.length), 4, 'each city and "vs …"');
+  await p.click('.cd-sold [data-sv="lines"]');
+  assert.equal(await p.$$eval('.cd-sold svg polyline', (x) => x.length), 3, 'one line per city');
+}));
+
+test('Homes sold with one area keeps the single bar chart', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
+  assert.ok(await p.$('.cd-sold .bars'));
+  assert.equal(await p.$('.cd-sold .sd-gb'), null);
+}));
+
 test('a personal link opens on the client\'s neighbourhood', { skip }, () => page('/r/demo?p=x', async (p) => {
   const hero = await p.textContent('.nb-hero');
   assert.match(hero, /Prepared for the Chen family/); assert.match(hero, /Burke Mountain/);
@@ -72,7 +88,7 @@ test('with several areas, Neighbourhoods shows a card for each and opens on the 
 
 test('Neighbourhoods follow the area tapped at the top, and your area stays in view in another city', { skip }, () => page('/r/demo?areas=coquitlam,port-moody', async (p) => {
   await p.selectOption('[data-hpick]', 'Burke Mountain');
-  await p.click('[data-focus="Port Moody"]');
+  await p.click('[data-view="one"]'); await p.click('[data-focus="Port Moody"]');
   assert.match(await p.textContent('.cd-hoods .nb-cd[aria-pressed="true"]'), /Port Moody/);
   assert.match(await p.textContent('.nb-hint'), /the area you picked at the top/);
   assert.match(await p.textContent('.nb-away'), /Burke Mountain/);
@@ -80,23 +96,6 @@ test('Neighbourhoods follow the area tapped at the top, and your area stays in v
   await p.click('.nb-li[data-hpeek="Heritage Woods"]');
   assert.match(await p.textContent('.nb-sheet'), /Burke Mountain \(Coquitlam\)/);
 }));
-
-test('R2 says what the report shows: both areas, or one area only', { skip }, () => page('/r/demo?areas=coquitlam,port-moody', async (p) => {
-  assert.match(await p.textContent('.abar'), /Show me:/);
-  assert.doesNotMatch(await p.textContent('.abar'), /Side by side|One at a time/);
-  assert.match(await p.textContent('[data-all]'), /Both areas/);
-  assert.match(await p.textContent('.asay'), /compares Coquitlam and Port Moody/);
-  await p.click('[data-focus="Coquitlam"]');
-  assert.match(await p.textContent('.asay'), /about Coquitlam only/);
-  assert.match(await p.textContent('.top h1'), /Coquitlam Market Report/);
-  await p.click('[data-all]');
-  assert.match(await p.textContent('.top h1'), /2 areas/);
-}));
-
-test('On a phone, the area row scrolls sideways and never makes the page wider than the screen', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-north,north-vancouver', async (p) => {
-  await p.click('[data-focus="Coquitlam"]');
-  assert.equal(await p.evaluate(() => document.documentElement.scrollWidth), 390);
-}, { width: 390 }));
 
 test('Greater Vancouver alone: clients choose a city', { skip }, () => page('/r/demo?areas=greater-vancouver', async (p) => {
   assert.match(await p.textContent('.nb-intro'), /Choose a city/);

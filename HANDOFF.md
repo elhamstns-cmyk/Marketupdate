@@ -49,7 +49,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 **Ella's setup steps** (they unlock what is already built):
 
-0. Upload the newest `site-update.zip` (S5 Neighbourhoods with several cities, October 13).
+0. Upload the newest `site-update.zip` (S8 Homes sold with several cities, October 14; it also includes everything before it).
 1. Upload the latest `site-update.zip`. It includes the 12-month chart fix, the Neighbourhoods fill-in, and adding the Neighbourhoods section to existing saved templates once.
 2. In Supabase SQL Editor, run `new-database-tables.sql` (the personal links and views tables).
 3. In Vercel environment variables, add `CRON_SECRET` (any long random text).
@@ -100,7 +100,7 @@ Recommended order (proposed, Summary last). The status is for each section.
 | 3 | **Typical price over 12 months** | Built | Ella likes this graph. Fixed: every added city now shows; missing history is named under the chart |
 | 4 | **Prices by home type** | Built | Detached, townhouse, condo, with pictures. Hide when only one type is chosen (idea) |
 | 5 | **Neighbourhoods** | Built | City cards, ranked list, 5 time buttons. See §6 |
-| 6 | **Homes sold each month** | Built | Bars brighten and show the number on hover. The story image has a headline and an insight line |
+| 6 | **Homes sold each month** | Built | One area: bars that brighten and show the number on hover. **Several areas (Oct 14):** a one-line story, Greater Vancouver on its own row, every city's bars side by side with a Bars / Lines switch, and each city's number and change from a year ago under the chart (`docs/s8-cities-ui.png`). Idea not decided: a "When do homes sell?" busy-season grid |
 | 7 | **Long-term price growth** | Built | 3, 5 and 10 years from GVR's stats package |
 | 8 | **How areas compare** | Built, off by default | Icons in the column titles; tapping adds or removes an area without the page jumping, with an Undo message |
 | 9 | **Contact me** | Built | Photo and a message box for clients |
@@ -127,7 +127,7 @@ Recommended order (proposed, Summary last). The status is for each section.
 
 1. A personal link's city.
 2. The client's own city, when it's one of the R2 areas.
-3. An area tapped in R2 ("Show me: Burnaby North"). S5 follows it, with "Showing Burnaby North, the area you picked at the top."
+3. A city tapped in R2 ("One at a time"). S5 follows it, with "Showing Burnaby North, the area you picked at the top."
 4. The agent's "City shown first", when it's one of the R2 areas.
 5. The first R2 area with neighbourhoods.
 
@@ -188,7 +188,7 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 | Name | What it is | Code |
 |---|---|---|
 | R1 Report header | Title, month, agent name and photo | `board.js → draw()` |
-| R2 Area bar | "Show me: Both areas · Coquitlam · Burnaby North · + Add area" and a line saying what the report shows (docs/r2-area-bar-ui.png) | `board.js → areaBar()` |
+| R2 Area bar | Area chips, + Add area, "Side by side / One at a time" (redesign proposed: docs/area-toggle-ui.png) | `board.js → areaBar()` |
 | S1 Key numbers | `numbers` | `board.js → R.numbers` |
 | S2 12-month price | `trend` | `R.trend`, `C.trend` |
 | S3 Buyer's or seller's market | `market` | `R.market` |
@@ -232,7 +232,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
-| 2026-10-14 | R2 Area bar | **Built:** "Side by side / One at a time" replaced. One row: "Show me: Both areas (All 3 areas for 3+) · each area · + Add area". Tapping an area shows the whole report for it; a line under the row says "Every section below compares Coquitlam and Burnaby North" or "…is about Coquitlam only. Tap Both areas to compare." The ✕ shows only on the selected area. On a phone the row scrolls sideways. Dashboard setting renamed "When clients open the report, show: All areas together / The first area" (saved values `side`/`one` unchanged). UI: `docs/r2-area-bar-ui.png`. |
+| 2026-10-14 | S8 Homes sold | **Built:** with several areas, every city at once instead of one at a time. One-line story written from the numbers; Greater Vancouver on its own row (it sells about 10 times more than a city and squashed the bars); city bars side by side, with a Bars / Lines switch (opens on Bars); under the chart, each city's number and red/green change "vs September 2025". Phone and half-width cards show the last 6 months. Tried and dropped: a table under the chart, last-year circles on the lines, and house/calendar icons (too much). Ella liked the busy-season grid (option D); it can't be per neighbourhood because GVR publishes only prices for neighbourhoods. Not decided where it goes. |
 | 2026-10-14 | S5 Neighbourhoods | Removed the "<City> overall" row from the ranked list. The take now says "all 9 neighbourhoods" instead of "9 of 9" (`countPhrase()`, with a test). City cards count only neighbourhoods with prices for the chosen home type. |
 | 2026-10-13 | S5 Neighbourhoods | **Built:** city cards (one city open at a time, follow R2, only open on a city that has a card), one ranked list instead of the tiles and "Who grew the most", time buttons Since January · 1 · 3 · 5 · 10 years (opens on 5 years; "Last month" dropped), comparisons across cities. In site-update.zip. |
 | 2026-10-13 | S5 Neighbourhoods | Several cities: city cards replace the City box; one city open at a time; S5 follows R2; the client's area is pinned when switching; the peek card works across cities. Greater Vancouver and Whistler get a grey card and a message when tapped. Whistler wording agreed. UI in `docs/s5-*.png`. |

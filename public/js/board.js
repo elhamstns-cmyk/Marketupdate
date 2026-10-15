@@ -1,7 +1,7 @@
 // The interactive market report: a page of cards (sections) the agent chooses and orders.
 // mountReport(root, D, A, opts) draws it with the agent's branding (A) and layout (A.show).
 import { get, money, esc, slug, areasOf, themeVars, palette, mix, lum, phoneFmt, roleLabel, askCopy, first, sourceLine, market, monthKey, TN } from './report.js';
-import { salesGroup } from './charts.js';
+import { salesGroup, salesByArea, soldStory, monthLong } from './charts.js';
 import { makeHoods } from './hoods.js';
 
 /* ---------- sections and layout ---------- */
@@ -49,7 +49,7 @@ export function mountReport(root, D, A, opts = {}) {
   let start = L.areas;
   if (opts.areas?.length) { const x = opts.areas.filter((a) => ALL.includes(a)); if (x.length) start = x.slice(0, MAX_AREAS); }
   else if (opts.area && ALL.includes(opts.area) && opts.area !== 'Greater Vancouver') start = L.areas.includes(opts.area) ? L.areas : [opts.area];
-  const S = { areas: [...start], focus: opts.area && start.includes(opts.area) ? opts.area : start[0], view: L.view, soldArea: null, gType: 'composite', gYears: 2, intent: null };
+  const S = { areas: [...start], focus: opts.area && start.includes(opts.area) ? opts.area : start[0], view: L.view, soldArea: null, soldView: 'bars', gType: 'composite', gYears: 2, intent: null };
   const canEdit = (ED || L.clientAreas) && ALL.length > 1;
   const XTRA = [], colour = (a) => { let i = S.areas.indexOf(a); if (i < 0) { if (!XTRA.includes(a)) XTRA.push(a); i = S.areas.length + XTRA.indexOf(a); } return COL[i % COL.length]; };
   const CF = (k) => L.conf[k] || {};
@@ -117,6 +117,8 @@ export function mountReport(root, D, A, opts = {}) {
   R.hoods = () => card('hoods', HO ? esc(HO.title()) : 'Neighbourhoods', 'Typical home prices by neighbourhood, and how they changed', '<div data-chart="hoods"></div>');
   R.summary = () => { const sh = areasFor('summary'); return card('summary', 'Summary', sh.length > 1 ? `Across your ${sh.length} areas` : esc(sh[0]), `<ol class="sum">${summaryPoints(sh).map((t, i) => `<li><em>${i + 1}</em><span>${t}</span></li>`).join('')}</ol>`); };
   R.sold = () => { const sh = areasFor('sold'); if (!sh.includes(S.soldArea)) S.soldArea = sh[0];
+    // Several areas: every area at once (bars or lines), drawn by C.soldm.
+    if (sh.length > 1) return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, '<div data-chart="soldm"></div>');
     return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, `${CF('sold').areas && sh.length > 1 ? `<div class="mini">${sh.map((a) => `<button type="button" data-sa="${esc(a)}" aria-pressed="${a === S.soldArea}">${dot(colour(a))}${esc(a)}</button>`).join('')}</div>` : ''}<div data-chart="sold"></div>`); };
   R.compare = () => card('compare', 'How areas compare', `Typical home price in every area, with the change from ${lastYear}.${canEdit ? ' Tap an area to add it to the report.' : ''}`, `<div class="rank" data-chart="rank"></div>`);
   R.contact = () => `<section class="cd cd-contact" data-sec="contact"><div class="crow">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div class="cx"><h3>Questions about your area?</h3><p class="sub">${esc([A.name, roleLabel(A), A.brokerage, A.phone].filter(Boolean).join(' · '))}</p></div><button type="button" class="btn" data-id="ctog">Contact ${F}</button></div>
@@ -189,6 +191,64 @@ export function mountReport(root, D, A, opts = {}) {
       b.addEventListener('pointerenter', on); b.addEventListener('pointerdown', on); });
     box.addEventListener('pointerleave', () => { bcs.forEach((x) => x.classList.remove('h')); box.classList.remove('hov'); });
   };
+  // Homes sold with several areas: a one-line story, the whole region on its own row, every city's bars (or lines)
+  // side by side, and each city's number and change from a year ago under the chart.
+  C.soldm = (el) => {
+    const groups = []; areasFor('sold').forEach((a) => { const g = salesGroup(a), x = groups.find((y) => y.g === g); if (x) x.areas.push(a); else groups.push({ g, areas: [a], c: colour(a) }); });
+    // An area that shares GVR's sales count with another (Burnaby North and South) is named by the whole group.
+    const label = (g) => (g === 'Grand Totals' ? 'Greater Vancouver' : g.replace('/', ' and '));
+    groups.forEach((x) => { x.name = x.areas.length > 1 ? label(x.g) : x.areas[0]; });
+    const { keys, list } = salesByArea(D.history, groups, typesFor('sold').map(([t]) => t), endKey);
+    const sub = root.querySelector('[data-id="soldsub"]'), tyNote = CF('sold').types ? ' · ' + typesFor('sold').map(([, l]) => l.toLowerCase() + 's').join(' and ') : ' · All home types';
+    if (keys.length < 2) { el.innerHTML = '<p class="na">Monthly sales are not published for these areas.</p>'; if (sub) sub.textContent = ''; return; }
+    const gv = list.find((x) => x.g === 'Grand Totals'), cities = list.filter((x) => x !== gv);
+    // On a phone (or a half-width card) show the last 6 months so the bars stay wide enough to tap.
+    const narrow = el.clientWidth < 520, from = narrow ? Math.max(0, keys.length - 6) : 0, ks = keys.slice(from), last = ks.length - 1;
+    if (sub) sub.textContent = `${narrow && from ? 'Last 6 months' : `${monthLong(keys[0])} to ${monthLong(endKey)}`}${tyNote}`.replace(/^ · /, '');
+    const ly = `${mon} ${endKey.slice(0, 4) - 1}`;
+    const chg = (x, long) => (x.pct == null ? '<span class="na">no comparison</span>' : x.pct === 0 ? `<span class="sd-fl">same${long ? ` as ${ly}` : ''}</span>`
+      : `<span class="${x.pct < 0 ? 'sd-dn' : 'sd-up'}">${x.pct < 0 ? '▼' : '▲'} ${Math.abs(x.pct)}% ${x.pct < 0 ? 'fewer' : 'more'}${long ? ` than ${ly}` : ''}</span>`);
+    const st = soldStory(list, cities, keys, mon);
+    const gvMax = gv ? Math.max(...gv.v) : 0;
+    el.innerHTML = `${st.lead ? `<p class="sd-take"><b>${esc(st.lead)}</b>${esc(st.rest)}</p>` : ''}
+      ${gv && cities.length ? (() => { const sp = `<div class="sd-sp">${gv.v.slice(from).map((v, i) => `<i${i === last ? ' class="now"' : ''} style="height:${(v / gvMax) * 100}%"></i>`).join('')}</div>`;
+        // On a phone: name and number on one line, the small bars under them, then the change.
+        return narrow ? `<div class="sd-gv nar"><div class="sd-r1">${dot(gv.c)}<b>Greater Vancouver</b><span class="sd-v"><b>${N(gv.now)}</b> sold</span></div>${sp}<div class="sd-v">${chg(gv, true)}</div></div>`
+          : `<div class="sd-gv">${dot(gv.c)}<b>Greater Vancouver</b>${sp}<span class="sd-v"><b>${N(gv.now)}</b> sold<br>${chg(gv, true)}</span></div>`; })() : ''}
+      <div class="sd-top"><div class="sd-leg">${cities.map((x) => `<span>${dot(x.c)}${esc(x.name)}</span>`).join('')}</div>
+      <div class="seg" role="group" aria-label="Chart type"><button type="button" data-sv="bars" aria-pressed="${S.soldView === 'bars'}">Bars</button><button type="button" data-sv="lines" aria-pressed="${S.soldView === 'lines'}">Lines</button></div></div>
+      <div class="sd-plot"></div><div class="ctip"></div>
+      <div class="sd-chg">${cities.map((x) => `<span>${dot(x.c)}<b>${x.now != null ? N(x.now) : '—'}</b> ${chg(x)}</span>`).join('')}<span class="sd-fl">vs ${ly}</span></div>
+      ${(() => { const sh2 = cities.filter((x) => x.areas.length === 1 && !x.g.startsWith(x.name)); return sh2.length ? `<p class="yr">${sh2.map((x) => `${esc(x.name)} counts all of ${esc(label(x.g))}`).join('. ')}, as GVR reports it.</p>` : ''; })()}`;
+    const plot = el.querySelector('.sd-plot'), tip = el.querySelector('.ctip'), W = plot.clientWidth || 600, H = narrow ? 200 : 220;
+    const mx = Math.max(...cities.flatMap((x) => x.v.slice(from))) || 1;
+    // The tooltip: the month and every city's number, for the month tapped or hovered.
+    const show = (j, xPx) => { tip.innerHTML = `<b>${monthLong(ks[j])}</b>${cities.map((x) => `<span>${dot(x.c)}${esc(x.name)} ${N(x.v[from + j])} sold</span>`).join('')}`;
+      tip.style.top = plot.offsetTop + 'px'; tip.style.left = Math.max(0, Math.min(xPx > W / 2 ? xPx - tip.offsetWidth - 12 : xPx + 12, W - tip.offsetWidth)) + 'px'; tip.style.opacity = 1; };
+    if (S.soldView === 'lines') {
+      const step = niceStep(mx, 3), top = Math.ceil(mx / step) * step, l = 34, r = 48, t = 10, b = 24, X = (j) => l + (j * (W - l - r)) / Math.max(1, last), Y = (v) => t + (1 - v / top) * (H - t - b);
+      let g = ''; for (let v = 0; v <= top + 0.1; v += step) g += `<line x1="${l}" x2="${W - r + 6}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--ln)"/><text x="${l - 7}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="var(--mut)">${N(v)}</text>`;
+      g += `<line class="sd-gd" x1="0" x2="0" y1="${t}" y2="${H - b}" stroke="var(--mut)" stroke-dasharray="3 3" opacity="0"/>`;
+      cities.forEach((x) => { const v = x.v.slice(from); g += `<polyline points="${v.map((y, j) => `${X(j)},${Y(y)}`).join(' ')}" fill="none" stroke="${x.c}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${X(last)}" cy="${Y(v[last])}" r="5" fill="${x.c}" stroke="var(--card)" stroke-width="2"/>`; });
+      // Numbers at the end of each line, nudged apart so they never overlap.
+      const ends = cities.map((x) => ({ x, y: Y(x.v[from + last]) })).sort((a, b2) => a.y - b2.y); for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 16) ends[i].y = ends[i - 1].y + 16;
+      g += ends.map((o) => `<text x="${X(last) + 10}" y="${o.y + 4}" font-size="12.5" font-weight="700" fill="${o.x.c}">${N(o.x.v[from + last])}</text>`).join('');
+      g += ks.map((k, j) => `<text x="${X(j)}" y="${H - 6}" text-anchor="middle" font-size="11" fill="${j === last ? 'var(--ink)' : 'var(--mut)'}" font-weight="${j === last ? 650 : 400}">${mName(k)}</text>`).join('');
+      g += ks.map((k, j) => `<rect class="sd-hit" data-j="${j}" x="${X(j) - (W - l - r) / Math.max(1, last) / 2}" y="0" width="${(W - l - r) / Math.max(1, last)}" height="${H}" fill="transparent"/>`).join('');
+      plot.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Homes sold each month: ${cities.map((x) => `${esc(x.name)} ${N(x.now)} in ${mon}`).join(', ')}">${g}</svg>`;
+      const gd = plot.querySelector('.sd-gd');
+      plot.querySelectorAll('.sd-hit').forEach((h) => { const on = () => { const j = +h.dataset.j; gd.setAttribute('x1', X(j)); gd.setAttribute('x2', X(j)); gd.setAttribute('opacity', 1); show(j, X(j)); };
+        h.addEventListener('pointerenter', on); h.addEventListener('pointerdown', on); });
+      plot.addEventListener('pointerleave', () => { gd.setAttribute('opacity', 0); tip.style.opacity = 0; });
+    } else {
+      plot.innerHTML = `<div class="sd-gb" style="height:${H - 24}px">${ks.map((k, j) => `<div class="sd-m${j === last ? ' now' : ''}" data-j="${j}">${cities.map((x) => `<i style="height:${(x.v[from + j] / mx) * 100}%;background:${x.c}"></i>`).join('')}</div>`).join('')}</div>
+        <div class="sd-mo">${ks.map((k, j) => `<span${j === last ? ' class="now"' : ''}>${mName(k)}</span>`).join('')}</div>`;
+      const box = plot.querySelector('.sd-gb'), ms = [...box.children];
+      ms.forEach((m) => { const on = () => { ms.forEach((y) => y.classList.toggle('h', y === m)); box.classList.add('hov'); show(+m.dataset.j, m.offsetLeft + m.offsetWidth / 2); };
+        m.addEventListener('pointerenter', on); m.addEventListener('pointerdown', on); });
+      box.addEventListener('pointerleave', () => { ms.forEach((y) => y.classList.remove('h')); box.classList.remove('hov'); tip.style.opacity = 0; });
+    }
+  };
   C.growth = (el) => {
     const G = D.growth?.[S.gType] || {}, p = S.gYears, yrs = [3, 5, 10][p], tn = { composite: '', detached: 'detached homes', townhome: 'townhouses', condo: 'condos' }[S.gType];
     const sh = areasFor('growth'), have = sh.filter((a) => G[a]), miss = sh.filter((a) => !G[a]);
@@ -239,19 +299,12 @@ export function mountReport(root, D, A, opts = {}) {
   const PAIR = { trend: 7, market: 5, summary: 6, sold: 6 };
   const pairs = (k) => PAIR[k] && CF(k).size !== 'full';
   function rows(secs) { const out = []; for (let i = 0; i < secs.length; i++) { const a = secs[i], b = secs[i + 1]; if (pairs(a) && pairs(b)) { out.push([a, b]); i++; } else out.push([a]); } return out; }
-  // R2: "Show me: Both areas · Coquitlam · Burnaby North · + Add area", and a line saying what the report below shows.
-  const ALLIC = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg>';
-  const EYE = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
-  const PIN = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
-  const allLabel = () => (S.areas.length === 2 ? 'Both areas' : `All ${S.areas.length} areas`);
   function areaBar() {
     if (!canEdit && S.areas.length < 2) return '';
-    const free = ALL.filter((a) => !S.areas.includes(a)), many = S.areas.length > 1, one = S.view === 'one' && many;
-    const tabs = many ? `<button type="button" class="chip tabby aall${one ? '' : ' on'}" data-all aria-pressed="${!one}">${ALLIC}${allLabel()}</button>` : '';
-    const say = !many ? '' : one ? `<p class="asay">${PIN}<span>Every section below is <b>about ${esc(S.focus)} only</b>. Tap <b>${allLabel()}</b> to compare.</span></p>`
-      : `<p class="asay">${EYE}<span>Every section below <b>compares ${S.areas.length === 2 ? `${esc(S.areas[0])} and ${esc(S.areas[1])}` : `all ${S.areas.length} areas`}</b>.</span></p>`;
-    return `<div class="abar"><span class="al">Show me:</span><div class="chs">${tabs}${S.areas.map((a) => `<span class="chip${many ? ' tabby' : ''}${one && a === S.focus ? ' on' : ''}"${many ? ` data-focus="${esc(a)}" role="button" tabindex="0" aria-pressed="${one && a === S.focus}"` : ''}>${dot(colour(a))}${esc(a)}${canEdit && many ? `<button type="button" class="x" data-rm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}
-      ${canEdit && S.areas.length < MAX_AREAS && free.length ? `<label class="add">+ Add area<select data-id="add" aria-label="Add an area"><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}</div>${say}</div>`;
+    const free = ALL.filter((a) => !S.areas.includes(a)), one = S.view === 'one' && S.areas.length > 1;
+    return `<div class="abar"><span class="al">Areas</span><div class="chs">${S.areas.map((a) => `<span class="chip tabby${one && a === S.focus ? ' on' : ''}" ${one ? `data-focus="${esc(a)}"` : `data-sa="${esc(a)}"`} role="button" tabindex="0">${dot(colour(a))}${esc(a)}${canEdit && S.areas.length > 1 ? `<button type="button" class="x" data-rm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}
+      ${canEdit && S.areas.length < MAX_AREAS && free.length ? `<label class="add">+ Add area<select data-id="add" aria-label="Add an area"><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}</div>
+      ${S.areas.length > 1 ? `<div class="seg" role="group" aria-label="How to show several areas"><button type="button" data-view="side" aria-pressed="${S.view === 'side'}">Side by side</button><button type="button" data-view="one" aria-pressed="${S.view === 'one'}">One at a time</button></div>` : ''}</div>`;
   }
   const NAME = Object.fromEntries(SECTIONS.map(([k, l]) => [k, l]));
   // Agent view: click a section to edit it (outlined, with an "Editing" tag); "+ Add a section" at the end.
@@ -311,9 +364,8 @@ export function mountReport(root, D, A, opts = {}) {
     if (ED && b('[data-bin]')) { const k = b('[data-bin]').dataset.bin; if (L.sections.length < 2) return; saveLayout({ sections: L.sections.filter((x) => x !== k) }); SEL = null; draw(); return opts.onSelect?.(null); }
     if (ED && b('.sx') && !b('button,a,input,select,label,.mrow,[data-chart="trend"]')) { const k = b('.sx').dataset.k; root._select(k); opts.onSelect?.(k); }
     if (b('[data-rm]')) { e.stopPropagation(); const a = b('[data-rm]').dataset.rm; return setAreas(S.areas.filter((x) => x !== a)); }
-    // Tapping an area shows the whole report for that area; "Both areas" / "All 3 areas" compares them again.
-    if (b('[data-focus]')) { S.focus = b('[data-focus]').dataset.focus; S.view = 'one'; return draw(); }
-    if (b('[data-all]')) { S.view = 'side'; return draw(); }
+    if (b('[data-focus]')) { S.focus = b('[data-focus]').dataset.focus; return draw(); }
+    if (b('[data-view]')) { S.view = b('[data-view]').dataset.view; if (ED) saveLayout({ view: S.view }); return draw(); }
     if (b('[data-id="ctog"]')) { const x = q('cbox'); x.hidden = !x.hidden; if (!x.hidden) q('where')?.focus(); return; }
     if (b('[data-mv]')) { const x = b('[data-mv]'), s2 = [...L.sections], i = s2.indexOf(x.dataset.k), j = i + +x.dataset.mv; if (j < 0 || j >= s2.length) return; [s2[i], s2[j]] = [s2[j], s2[i]]; saveLayout({ sections: s2 }); return draw(); }
     if (b('[data-hide]')) { saveLayout({ sections: L.sections.filter((k) => k !== b('[data-hide]').dataset.hide) }); return draw(); }
@@ -326,13 +378,15 @@ export function mountReport(root, D, A, opts = {}) {
     if (b('[data-more]')) { S.rankAll = !S.rankAll; return C.rank(root.querySelector('[data-chart="rank"]')); }
     if (b('[data-gt]')) { S.gType = b('[data-gt]').dataset.gt; root.querySelectorAll('[data-gt]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.gt === S.gType)); return C.growth(root.querySelector('[data-chart="growth"]')); }
     if (b('[data-gy]')) { S.gYears = +b('[data-gy]').dataset.gy; root.querySelectorAll('[data-gy]').forEach((x) => x.setAttribute('aria-pressed', +x.dataset.gy === S.gYears)); return C.growth(root.querySelector('[data-chart="growth"]')); }
-    if (b('[data-sa]')) { S.soldArea = b('[data-sa]').dataset.sa; const el = root.querySelector('[data-chart="sold"]'); if (el) { C.sold(el); el.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } return; }
+    if (b('[data-sv]')) { S.soldView = b('[data-sv]').dataset.sv; const el = root.querySelector('[data-chart="soldm"]'); if (el) C.soldm(el); return; }
+    // Area chips pick the area for "Homes sold" when it shows one area at a time; with several areas it shows them all.
+    if (b('[data-sa]') && !root.querySelector('[data-chart="soldm"]')) { S.soldArea = b('[data-sa]').dataset.sa; const el = root.querySelector('[data-chart="sold"]'); if (el) { C.sold(el); el.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } return; }
     if (b('.mrow')) { const r = b('.mrow'), on = !r.classList.contains('h'); root.querySelectorAll('.mrow').forEach((x) => x.classList.remove('h')); r.classList.toggle('h', on); return; }
     if (b('[data-id="intent"] button')) { const x = b('button'), on = x.getAttribute('aria-pressed') === 'true'; q('intent').querySelectorAll('button').forEach((y) => y.setAttribute('aria-pressed', 'false')); x.setAttribute('aria-pressed', String(!on)); S.intent = on ? null : x.textContent; return msg(); }
     if (b('[data-id="copy"]')) { navigator.clipboard?.writeText(text()).then(() => { q('copy').textContent = 'Copied'; setTimeout(() => q('copy') && (q('copy').textContent = 'Copy message'), 1800); }).catch(() => {}); }
   };
   root.onchange = (e) => { if (e.target.dataset.id === 'add' && e.target.value) setAreas([...S.areas, e.target.value], e.target.value); };
-  root.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-focus]')) { e.preventDefault(); e.target.click(); } };
+  root.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-focus],[data-sa]')) { e.preventDefault(); e.target.click(); } };
   draw();
   if (root._ro) root._ro.disconnect();
   if (window.ResizeObserver) { let w = root.clientWidth, tm; root._ro = new ResizeObserver(() => { const cw = root.clientWidth; if (Math.abs(cw - w) > 24) { w = cw; clearTimeout(tm); tm = setTimeout(charts, 120); } }); root._ro.observe(root); }

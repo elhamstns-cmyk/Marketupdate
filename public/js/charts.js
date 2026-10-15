@@ -24,6 +24,42 @@ export function salesSeries(H, area, types, end) {
   let i = out.length - 1; while (i >= 0 && out[i][1] != null) i--;
   return { rows: out.slice(i + 1), group: g };
 }
+// Monthly sales for several areas, for "Homes sold each month" with more than one area.
+// areas: [{name, g}] (g = sales group). Areas that share a sales group (Burnaby North and South) are counted once.
+// Returns {keys, list: [{name, g, v:[…], now, ly, pct}]}: keys is the longest run of months ending at `end`
+// where every area has a number; ly is the same month a year earlier; pct is the whole-number change (null if not published).
+export function salesByArea(H, areas, types, end) {
+  const sum = (g, k) => types.reduce((n, t) => (n == null || H?.sales?.[t]?.[g]?.[k] == null ? null : n + H.sales[t][g][k]), 0);
+  const all = Array.from({ length: 12 }, (_, i) => addM(end, i - 11));
+  let i = all.length - 1; while (i >= 0 && areas.every((a) => sum(a.g, all[i]) != null)) i--;
+  const keys = all.slice(i + 1);
+  const list = areas.map((a) => { const v = keys.map((k) => sum(a.g, k)), now = sum(a.g, end), ly = sum(a.g, addM(end, -12));
+    return { ...a, v, now, ly, pct: now != null && ly ? Math.round(((now - ly) / ly) * 100) : null }; });
+  return { keys, list };
+}
+const FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const and = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+// The one-line story above the chart, in plain words. Text only (escape it before use).
+// list: from salesByArea (whole region included, if shown); cities: the ones drawn in the chart; month: "September".
+// Returns {lead, rest}: lead is the bold start ("Fewer homes sold than last September"), rest finishes the thought.
+export function soldStory(list, cities, keys, month) {
+  const has = list.filter((x) => x.pct != null), fewer = has.filter((x) => x.pct < 0), more = has.filter((x) => x.pct > 0), same = has.filter((x) => x.pct === 0);
+  const names = (xs) => and(xs.map((x) => x.name)), out = [];
+  let lead = '';
+  if (fewer.length) { lead = `Fewer homes sold than last ${month}`; out.push(` in ${names(fewer)}.`); if (more.length) out.push(` More sold in ${names(more)}.`); }
+  else if (more.length) { lead = `More homes sold than last ${month}`; out.push(` in ${names(more)}.`); }
+  if (same.length) out.push(lead ? ` ${names(same)} held steady.` : '');
+  if (!lead && same.length) lead = `${names(same)} sold about as many homes as last ${month}.`;
+  // Busiest month, only when the chart shows at least 6 months and more than one city.
+  if (keys.length >= 6 && cities.length > 1) {
+    const peak = new Map(); cities.forEach((x) => { const k = keys[x.v.indexOf(Math.max(...x.v))], m = FULL[+k.slice(5) - 1]; peak.set(m, [...(peak.get(m) || []), x.name]); });
+    const groups = [...peak].sort((a, b) => b[1].length - a[1].length), [m1, n1] = groups[0];
+    const head = n1.length === cities.length ? `${m1} was the busiest month for ${cities.length === 2 ? 'both areas' : `all ${cities.length} areas`}` : n1.length > 1 ? `${m1} was the busiest month for ${and(n1)}` : `${n1[0]}'s busiest month was ${m1}`;
+    const tail = groups.slice(1).flatMap(([m, ns]) => ns.map((n) => `${n}'s was ${m}`));
+    out.push(` ${head}${tail.length ? `; ${tail.join(', ')}` : ''}.`);
+  }
+  return { lead, rest: out.join('') };
+}
 // Plain facts people notice: streaks, since January, over 12 months.
 export function trendFacts(series) {
   if (series.length < 3) return [];
