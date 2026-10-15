@@ -3,6 +3,7 @@ import { esc, areasOf, STYLES, FONTS, BASIC_THEME, loadFonts, SHOW_NUMBERS, SHOW
 import { reportLink, emailDraft, caption, socialImage, download } from './exports.js';
 import { calmImage, calmCaption, imgOpts, IMG_PARTS } from './social2.js';
 import { hoodCities, hoodNames, defaultCity, BLOCKS, HTYPES } from './hoods.js';
+import { activity, times as timesW, mins } from './activity.js';
 import { sv, isPhone, canShareFiles, toFile, shareMenu, closeMenu, qrModal } from './share.js';
 
 const $ = (s) => document.querySelector(s), main = $('#main');
@@ -208,7 +209,7 @@ function showPreview() {
 }
 
 /* ---------- dashboard ---------- */
-let P = {}, D = null, active = false, area = 'Greater Vancouver', tab = 'report', view = 'create', HIST = [], filter = 'all';
+let P = {}, D = null, MK = [], active = false, area = 'Greater Vancouver', tab = 'report', view = 'create', HIST = [], filter = 'all';
 const DETAILS = [['name', 'Your name', 'text', 'Jane Smith'], ['brokerage', 'Brokerage', 'text', 'Your brokerage'], ['contact_email', 'Email for clients', 'email', 'you@email.com'], ['website', 'Website (optional)', 'text', 'Website (optional)']];
 const ACCENTS = ['#0f6b4f', '#14233f', '#1d4f9c', '#b3202e', '#d0a94a', '#6b3fa0', '#111312'], BGS = ['#ffffff', '#f7f4ee', '#eef3fb', '#111312'];
 const isPro = () => P.plan === 'pro';
@@ -266,10 +267,10 @@ async function start() {
   if (recovering) { recovering = false; return showNewPassword(); }
   try {
     let j = await api('/api/me');
-    if (cfg.demo) { P = { plan: qs.get('plan') === 'basic' ? 'basic' : 'pro', slug: 'demo', ...JSON.parse(localStorage.getItem('mup_demo_profile') || '{}') }; if (qs.get('plan')) P.plan = qs.get('plan') === 'basic' ? 'basic' : 'pro'; D = j.report; active = !qs.has('newuser'); $('#logout').hidden = false; }
+    if (cfg.demo) { P = { plan: qs.get('plan') === 'basic' ? 'basic' : 'pro', slug: 'demo', ...JSON.parse(localStorage.getItem('mup_demo_profile') || '{}') }; if (qs.get('plan')) P.plan = qs.get('plan') === 'basic' ? 'basic' : 'pro'; D = j.report; MK = j.months || []; active = !qs.has('newuser'); $('#logout').hidden = false; }
     else {
       for (let i = 0; qs.has('welcome') && !j.active && i < 8; i++) { main.innerHTML = `<div class="c">${steps(3)}<p class="lead">Confirming your payment…</p></div>`; await new Promise((r) => setTimeout(r, 1500)); j = await api('/api/me'); }
-      P = j.profile; D = j.report; active = j.active; $('#logout').hidden = false;
+      P = j.profile; D = j.report; MK = j.months || []; active = j.active; $('#logout').hidden = false;
     }
   } catch (e) { if (e.message !== 'signed out') main.innerHTML = `<div class="c"><p class="err">${esc(e.message)}</p></div>`; return; }
   if (!P.role && sessionStorage.getItem('mup_role')) { P.role = sessionStorage.getItem('mup_role') === 'broker' ? 'broker' : 'realtor'; dirty.add('role'); }
@@ -334,7 +335,7 @@ const EYE = '<svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="n
 // Panel state: m 'list', 'section' (one section's settings page) or 'details'; k = the selected section.
 let PS = { m: 'list', k: null }, ZOOM = 0.85, IGS = null;
 const cur = () => layoutOf(agent(), D);
-const snap = (L) => ({ sections: L.sections, known: SEC_IDS, areas: L.areas, agentTop: L.agentTop, clientAreas: L.clientAreas, view: L.view, conf: L.conf });
+const snap = (L) => ({ sections: L.sections, known: SEC_IDS, areas: L.areas, agentTop: L.agentTop, clientAreas: L.clientAreas, view: L.view, conf: L.conf, months: L.months });
 const mode = () => (P.show?.mode === 'template' && P.show?.template ? 'template' : 'default');
 // Every layout change goes through here. On "My template", the template follows along.
 function setLayout(patch, redraw = true) {
@@ -499,6 +500,16 @@ function secPage(k, L) {
 // An iPhone-style switch row.
 const iptg = (attr, l, on) => `<label class="ipr"><span class="ipn">${l}</span><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>`;
 let LASTM = 'list';
+// D10 Month settings: clients may look at past months, how far back, and links that open on one month.
+const MONTHL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const mLong = (k) => `${MONTHL[+k.slice(5) - 1]} ${k.slice(0, 4)}`;
+function monthsPanel(M) {
+  const first = MK[MK.length - 1], have = MK.length > 1 ? `Months available now: ${mLong(first)} to ${mLong(MK[0])}.` : 'Older months will show here once they are added.';
+  return `<div class="ipl">Past months</div><div class="ipg">${iptg('data-mt="on"', 'Clients can look at past months', M.on)}
+    ${M.on ? `<div class="ipad"><span class="ipn">How far back clients can go</span><div class="seg2">${[[12, 'Last 12 months'], [36, 'Last 3 years'], [0, 'Back to 2016']].map(([v, l]) => `<button type="button" data-mback="${v}" aria-pressed="${M.back === v}">${l}</button>`).join('')}</div></div>` : ''}
+    ${iptg('data-mt="links"', 'Send a client one month', M.links)}</div>
+    <p class="ipf">Adds a month button under the title. Clients always open on the newest month. ${have} "Send a client one month" adds "Opens on" to personal links, e.g. the month they bought their home.</p>`;
+}
 function drawPanel() {
   const el = $('#dpanel'); if (!el) return; const L = cur(), pro = isPro(), keep = el.querySelector('.pbody')?.scrollTop || 0;
   $('#rp')?._select?.(PS.m === 'list' ? PS.k : null); $('#rp')?._adding?.(false);
@@ -524,7 +535,8 @@ function drawPanel() {
       <div class="ipl">On your report</div><div class="ipg">${L.sections.map(row).join('')}</div>
       ${off.length ? `<div class="ipl" id="canadd">More sections</div><div class="ipg">${off.map(([k, l]) => `<div class="ipr" data-li="${k}">${sic(k)}<span class="ipn">${esc(l)}</span><button type="button" class="ipadd" data-addk="${k}">Add</button></div>`).join('')}</div>` : ''}
       <div class="ipl">Whole report</div><div class="ipg">${L.areas.length > 1 ? `<div class="ipad"><span class="ipn">When clients open it, show</span><div class="seg2"><button type="button" data-vw="side" aria-pressed="${L.view === 'side'}">All areas</button><button type="button" data-vw="one" aria-pressed="${L.view === 'one'}">The first area</button></div></div>` : ''}
-      ${iptg('data-lt="agentTop"', 'My name and photo at the top', L.agentTop)}${iptg('data-lt="clientAreas"', 'Clients can add or remove areas', L.clientAreas)}</div>`;
+      ${iptg('data-lt="agentTop"', 'My name and photo at the top', L.agentTop)}${iptg('data-lt="clientAreas"', 'Clients can add or remove areas', L.clientAreas)}</div>
+      ${monthsPanel(L.months)}`;
   }
   if (pro && PS.m !== 'details') { const m = mode(), isDef = sameLayout(L, { ...DEFAULT_LAYOUT, areas: L.areas });
     foot = m === 'template' ? `<span class="st"><i class="ok"></i>Using your template. Changes save to it.</span>${isDef ? '' : '<button type="button" class="linkbtn" id="ltreset">Back to the default layout</button>'}`
@@ -549,6 +561,7 @@ function wirePanel() {
     if (d.go2) return openPage(d.go2);
     if (d.addk) return addSec(d.addk);
     if (d.sz) return setConf(k, { size: d.sz === 'full' ? 'full' : undefined });
+    if ('mback' in d) return setLayout({ months: { ...L.months, back: +d.mback } }, false);
     if (d.own) return setConf(k, { areas: d.own === '1' ? [...L.areas] : undefined });
     if (d.arm) return setConf(k, { areas: (L.conf[k]?.areas || L.areas).filter((a) => a !== d.arm) });
     if (d.ty) { const on = L.conf[k]?.types || [...TYPE_KEYS], next = on.includes(d.ty) ? on.filter((x) => x !== d.ty) : [...on, d.ty];
@@ -571,6 +584,7 @@ function wirePanel() {
     if (t.matches('[data-aadd]') && t.value) return setConf(k, { areas: [...(L.conf[k]?.areas || L.areas), t.value] });
     if (t.dataset.cf) return setConf(k, { [t.dataset.cf]: t.checked ? undefined : false });
     if (t.dataset.lt) return setLayout({ [t.dataset.lt]: t.checked });
+    if (t.dataset.mt) return setLayout({ months: { ...L.months, [t.dataset.mt]: t.checked } }, false);
     if (t.dataset.k === 'role') { P.role = t.value; touch('role'); return later(); }
     if (t.dataset.k === 'phone') t.value = localPhone(t.value);
     const im = t.dataset.img; if (!im || !t.files[0]) return;
@@ -626,56 +640,98 @@ function shareDrop(btn) {
     openPreview(k); };
   setTimeout(() => document.addEventListener('click', function off(ev) { if (!ev.target.closest('.dmenu') && !ev.target.closest('#sharebtn')) { closeMenu(); document.removeEventListener('click', off, true); } }, true));
 }
-/* Personal links: one link per client, with their name and neighbourhood. Shows what each client looked at. */
+/* D9 Client activity: one personal link per client (their name and neighbourhood), and how active each client is. */
 const PL_DEMO = 'mup_demo_plinks';
 const plLink = (it) => `${location.origin}/r/${P.slug}?p=${it.id}`;
 const ago = (d) => { if (!d) return ''; const m = (Date.now() - new Date(d)) / 6e4; return m < 60 ? 'just now' : m < 1440 ? `${Math.round(m / 60)} h ago` : m < 2880 ? 'yesterday' : `${Math.round(m / 1440)} days ago`; };
-const timesW = (n) => (n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`);
+const when = (d) => { const x = new Date(d), t = new Date(), y = new Date(t - 864e5), hm = x.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' }).replace(/\s?([ap])\.?m\.?/i, (_, a) => a.toLowerCase() + 'm');
+  return x.toDateString() === t.toDateString() ? `Today, ${hm}` : x.toDateString() === y.toDateString() ? `Yesterday, ${hm}` : x.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }); };
+// The sample client in demo mode: made-up visits, marked "Sample" on screen.
+function demoClient(now = Date.now()) {
+  const at = (d, h) => new Date(now - d * 864e5 - h * 36e5).toISOString(), v = (d, h, s, parts, acts = [], end = true, dev = 'phone') => ({ started_at: at(d, h), updated_at: at(d, h - s / 3600), seconds: s, parts, acts, reached_end: end, device: dev, month: monthKey(D.month) });
+  const visits = [v(0, 1, 240, { hoods: 170, trend: 40, market: 30 }), v(1, 3, 180, { hoods: 120, trend: 60 }, ['type:c']), v(3, 2, 120, { hoods: 60, market: 40, types: 20 }, ['contact'], false, 'computer'), v(9, 5, 200, { hoods: 110, trend: 60, market: 30 }), v(20, 4, 140, { hoods: 80, types: 60 }, [], false)];
+  const views = [{ hood: 'Westwood Plateau', kind: 'compare', created_at: at(0, 1) }, { hood: 'Westwood Plateau', kind: 'peek', created_at: at(1, 3) }, { hood: 'Coquitlam West', kind: 'peek', created_at: at(1, 3) }, { hood: 'Westwood Plateau', kind: 'peek', created_at: at(9, 5) }];
+  return { id: 'sample', name: 'the Chen family', city: 'Coquitlam', hood: 'Burke Mountain', type: 'd', opens: visits.length, last_opened_at: visits[0].started_at, sample: true, visits, views };
+}
 async function personalLinks() {
   if (!isPro()) return alertMsg('Personal links are part of Pro.', true);
   if (!ready()) return;
   document.querySelector('.plm')?.remove(); const W = document.createElement('div'); W.className = 'plm'; document.body.appendChild(W);
-  let data = { items: [], weekly: true, top: [] }, city = defaultCity(D, cur().conf.hoods || {}, cur().areas), err = '';
-  const close = () => { W.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => e.key === 'Escape' && close(); document.addEventListener('keydown', k1);
+  let data = { items: [], weekly: true, top: [], general: 0 }, city = defaultCity(D, cur().conf.hoods || {}, cur().areas), err = '', days = 30, open = null, loading = true;
+  const close = () => { W.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => e.key === 'Escape' && (open ? (open = null, draw()) : close()); document.addEventListener('keydown', k1);
   async function load() {
-    if (cfg.demo) { try { data.items = JSON.parse(localStorage.getItem(PL_DEMO) || '[]'); } catch { data.items = []; }
-      if (!data.items.length) data.items = [{ id: 'sample', name: 'the Chen family', city: 'Coquitlam', hood: 'Burke Mountain', type: 'd', opens: 3, last_opened_at: new Date(Date.now() - 2 * 864e5).toISOString(), looked: [['Westwood Plateau', 3], ['Maillardville', 1]], sample: true }];
-      data.top = [['Westwood Plateau', 9], ['Burke Mountain', 6], ['Coquitlam West', 4]]; return; }
-    try { data = await api('/api/links'); } catch (e) { err = e.message; }
+    loading = true;
+    if (cfg.demo) { let mine = []; try { mine = JSON.parse(localStorage.getItem(PL_DEMO) || '[]'); } catch {}
+      const c = demoClient(); data.items = [c, ...mine].map((x) => ({ ...x, act: activity(x, x.visits || [], x.views || [], { days, latest: monthKey(D.month) }) }));
+      data.top = [['Westwood Plateau', 9], ['Burke Mountain', 6], ['Coquitlam West', 4]]; data.general = 0; loading = false; return; }
+    try { data = await api(`/api/links?days=${days}`); err = ''; } catch (e) { err = e.message; }
+    loading = false;
   }
   const tname = (t) => (HTYPES.find(([k]) => k === t) || HTYPES[0])[1];
+  const pill = (a) => `<span class="ca-pill ca-${a.level}"><i></i>${a.label}</span>`;
+  const sub = (a) => (a.level === 'hot' ? `opened ${timesW(a.week)} this week` : a.level === 'none' ? '' : a.months.length ? 'looked at past months' : a.visits ? `opened ${timesW(a.visits)}` : a.lastAt ? `last opened ${ago(a.lastAt)}` : '');
+  const most = (x, a) => (a.looked.length ? `${esc(a.looked[0][0])}<small>${timesW(a.looked[0][1])}${a.types.length ? ` · and ${a.types.map((t) => ({ d: 'detached', t: 'townhouses', c: 'condos' })[t]).join(', ')}` : ''}</small>`
+    : a.months.length ? `${esc(mLong(a.months[a.months.length - 1]))}<small>an older month</small>` : a.visits ? `Their own area only<small>${esc(x.hood)}</small>` : '<span class="ca-dash">—</span>');
+  const PER = [[30, 'Last 30 days'], [7, 'Last 7 days'], [365, 'All time']], perName = PER.find(([d]) => d === days)?.[1].toLowerCase();
+  function row(x) { const a = x.act;
+    return `<tr data-cao="${esc(x.id)}" tabindex="0"><td><b>${esc(x.name)}</b>${x.sample ? ' <span class="pltag2">Sample</span>' : ''}<small>${esc(x.hood)}${x.month ? ` · opens on ${esc(mLong(x.month))}` : ''}</small></td>
+      <td>${pill(a)}<small>${sub(a)}</small></td>
+      <td>${a.visits ? `<b>${timesW(a.visits)}</b><small>Last: ${esc(when(a.lastAt))}</small>` : a.lastAt ? `<span class="ca-dash">—</span><small>Last: ${esc(when(a.lastAt))}</small>` : '<span class="ca-dash">—</span>'}</td>
+      <td>${a.visits ? `<b>${mins(a.seconds)}</b><small>${a.ends ? `read to the end ${timesW(a.ends)}` : a.visits > 1 ? `about ${mins(a.seconds / a.visits)} a visit` : 'one visit'}</small>` : '<span class="ca-dash">—</span>'}</td>
+      <td>${most(x, a)}</td>
+      <td class="ca-btns"><button type="button" class="linkbtn" data-plc="${esc(x.id)}">Copy link</button><button type="button" class="plx" data-pld="${esc(x.id)}" aria-label="Remove ${esc(x.name)}" title="Remove">✕</button></td></tr>`; }
+  // One client's details: numbers, visits per week, time per section, recent visits, why it matters.
+  function detail(x) { const a = x.act, mx = Math.max(1, ...a.weeks), ps = a.parts.slice(0, 5), pm = Math.max(1, ...ps.map((p) => p[2])), d = a.visits - a.prevVisits;
+    const note = `Hi ${x.name.replace(/^the /i, '')}, here is this month's market report for ${x.hood}: ${plLink(x)}`;
+    return `<button type="button" class="back ca-back" data-cab>‹ All clients</button>
+      <div class="ca-dh"><h3>${esc(x.name)}</h3>${pill(a)}${x.sample ? '<span class="pltag2">Sample</span>' : ''}</div>
+      <p class="muted small">Their area: ${esc(x.hood)}, ${esc(x.city)} · ${esc(tname(x.type))}${x.month ? ` · their link opens on ${esc(mLong(x.month))}` : ''}</p>
+      ${a.level === 'none' ? `<p class="ca-empty">They haven't opened their link yet. Copy it and send it in a text or email.</p>` : `
+      <div class="ca-stats"><div><small>Opened (${perName})</small><b>${a.visits ? timesW(a.visits) : 'not yet'}</b>${days < 365 && d ? `<span class="${d > 0 ? 'upv' : 'dnv'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)} ${d > 0 ? 'more' : 'fewer'} than the ${days} days before</span>` : ''}</div>
+        <div><small>Time reading</small><b>${a.visits ? mins(a.seconds) : '—'}</b><span class="muted">in total</span></div>
+        <div><small>Read to the end</small><b>${a.visits ? (a.ends === a.visits ? (a.visits === 1 ? 'yes' : a.visits === 2 ? 'both visits' : `all ${a.visits} visits`) : a.ends ? `${a.ends} of ${a.visits} visits` : 'not yet') : '—'}</b></div></div>
+      <span class="lbl2">Visits per week</span><div class="ca-bars">${a.weeks.map((n, i) => `<div title="${n ? timesW(n) : 'no visits'}" style="height:${n ? Math.max(8, (n / mx) * 100) : 4}%" class="${n ? '' : 'z'}"></div>`).join('')}</div><div class="ca-wk"><span>8 weeks ago</span><span>this week</span></div>
+      ${ps.length ? `<span class="lbl2">What they spent time on</span>${ps.map(([k, l, sec]) => `<div class="ca-sec"><span>${l}</span><div><i style="width:${(sec / pm) * 100}%"></i></div><b>${mins(sec)}</b></div>`).join('')}` : ''}
+      ${a.recent.length ? `<span class="lbl2">Recent visits</span><ul class="ca-tl">${a.recent.map((r) => `<li><b>${esc(when(r.at))}</b> · ${mins(r.seconds)}${r.device ? ` on a ${r.device}` : ''}${r.did.length ? ` · ${r.did.map(esc).join(' · ')}` : ''}</li>`).join('')}</ul>` : ''}`}
+      ${a.why ? `<div class="ca-why"><b>Why it matters:</b> ${esc(a.why)}</div>` : ''}
+      <div class="ca-act"><a class="btn" href="mailto:?subject=${encodeURIComponent(`Your ${x.hood} market report`)}&body=${encodeURIComponent(note)}">✉ Send them a note</a><button type="button" class="btn ghost" data-plc="${esc(x.id)}">Copy their link</button></div>`; }
   function draw() {
-    const names = hoodNames(D, city), it = (x) => { const looked = x.looked || [];
-      const act = looked.length ? `<span class="pltag">Curious</span>Looked at ${looked.map(([h, n]) => `<b>${esc(h)}</b> ${timesW(n)}`).join(', ')}`
-        : x.last_opened_at ? `Opened ${ago(x.last_opened_at)}${x.opens > 1 ? ` · ${x.opens} visits` : ''}, only looked at their area` : 'Not opened yet';
-      return `<div class="plr"><div><b>${esc(x.name)}</b><small>${esc(x.hood)} · ${esc(tname(x.type))}</small></div><div class="pla">${act}</div>
-        <div class="plb"><button type="button" class="linkbtn" data-plc="${esc(x.id)}">Copy link</button><button type="button" class="plx" data-pld="${esc(x.id)}" aria-label="Remove ${esc(x.name)}" title="Remove">✕</button></div></div>`; };
-    W.innerHTML = `<div class="plbox" role="dialog" aria-modal="true" aria-labelledby="plt"><div class="plh"><div><h3 id="plt">Personal links</h3><p class="muted small">Each client gets their own link with their name and neighbourhood. It updates itself every month, so send it once.</p></div><button type="button" class="x" data-plx aria-label="Close">✕</button></div>
-      <div class="plf"><input type="text" id="pln" maxlength="60" placeholder="Client name, e.g. the Chen family">
+    const L = cur(), names = hoodNames(D, city), mOpt = L.months.links && MK.length > 1;
+    const x = open && data.items.find((i) => i.id === open);
+    W.innerHTML = `<div class="plbox cabox" role="dialog" aria-modal="true" aria-labelledby="plt"><div class="plh"><div><h3 id="plt">Client activity</h3><p class="muted small">Each client gets their own link with their name and neighbourhood. It updates itself every month, so send it once. Then see who is actively looking.</p></div><button type="button" class="x" data-plx aria-label="Close">✕</button></div>
+      ${x ? detail(x) : `<div class="plf${mOpt ? ' plf6' : ''}"><input type="text" id="pln" maxlength="60" placeholder="Client name, e.g. the Chen family">
         <select id="plcity" aria-label="City">${hoodCities(D).map((c) => `<option${c === city ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>
         <select id="plh" aria-label="Neighbourhood"><option value="">Neighbourhood</option>${names.map((n) => `<option>${esc(n)}</option>`).join('')}</select>
         <select id="plt2" aria-label="Home type">${HTYPES.map(([t, l]) => `<option value="${t}">${l}</option>`).join('')}</select>
+        ${mOpt ? `<select id="plm2" aria-label="Opens on"><option value="">Opens on the newest month</option>${MK.slice(1).map((k) => `<option value="${k}">Opens on ${esc(mLong(k))}</option>`).join('')}</select>` : ''}
         <button type="button" class="btn" data-plmake>Create link</button></div>
       ${err ? `<p class="err small">${esc(err)}</p>` : ''}
-      <div class="pll">${data.items.length ? data.items.map(it).join('') : '<p class="muted small center">No personal links yet. Add your first client above.</p>'}</div>
-      ${data.top?.length ? `<p class="small muted">Most-viewed neighbourhoods in the last 30 days (everyone who opened your report): ${data.top.map(([h, n]) => `${esc(h)} (${n})`).join(', ')}.</p>` : ''}
-      <label class="tgr"><span>Email me once a week with what clients looked at</span><input type="checkbox" data-plw${data.weekly !== false ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>
-      <div class="plsoon"><b>Add many at once</b> <span class="pltag2">Later</span><br>Upload a contact list or connect your CRM (like Follow Up Boss) to make links for everyone automatically.</div></div>`;
+      <div class="ca-top"><b>Most active first</b><div class="seg2">${PER.map(([d, l]) => `<button type="button" data-cad="${d}" aria-pressed="${d === days}">${l}</button>`).join('')}</div></div>
+      ${data.items.length ? `<div class="ca-wrap"><table class="ca-tb"><thead><tr><th>👤 Client</th><th>🔥 How active</th><th>👁 Opened</th><th>⏱ Time reading</th><th>📍 Looked at most</th><th></th></tr></thead><tbody>${data.items.map(row).join('')}</tbody></table></div>`
+        : `<p class="muted small center">${loading ? 'Loading…' : 'No personal links yet. Add your first client above.'}</p>`}
+      <p class="small muted">Tap a client to see what they read. ${data.general ? `Your general link (Instagram, your website) was opened ${timesW(data.general)} in the ${perName.replace('all time', 'last year')}. We can't tell who opened it.` : 'Your general link (Instagram, your website) is counted only as totals. We can’t tell who opened it.'}</p>
+      ${data.top?.length ? `<p class="small muted">Most-viewed neighbourhoods (everyone who opened your report): ${data.top.map(([h, n]) => `${esc(h)} (${n})`).join(', ')}.</p>` : ''}
+      <label class="tgr"><span>Email me every Monday with which clients were actively looking</span><input type="checkbox" data-plw${data.weekly !== false ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>
+      <div class="plsoon"><b>Add many at once</b> <span class="pltag2">Later</span><br>Upload a contact list or connect your CRM (like Follow Up Boss) to make links for everyone automatically.</div>`}</div>`;
   }
-  W.onclick = async (e) => { if (e.target === W || e.target.closest('[data-plx]')) return close(); const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.plc) { const x = data.items.find((i) => i.id === b.dataset.plc); return navigator.clipboard.writeText(plLink(x)).then(() => alertMsg(`Link for ${x.name} copied.`)).catch(() => alertMsg('Copying was blocked by the browser.', true)); }
-    if (b.dataset.pld) { const x = data.items.find((i) => i.id === b.dataset.pld); if (!confirm(`Remove the personal link for ${x.name}? The link will stop showing their name.`)) return;
-      data.items = data.items.filter((i) => i.id !== x.id); if (cfg.demo) { try { localStorage.setItem(PL_DEMO, JSON.stringify(data.items.filter((i) => !i.sample))); } catch {} } else api('/api/links', { action: 'delete', id: x.id }).catch((er) => alertMsg(er.message, true)); return draw(); }
-    if ('plmake' in b.dataset) { const name = $('#pln').value.trim(), hood = $('#plh').value, type = $('#plt2').value;
+  W.onclick = async (e) => { if (e.target === W || e.target.closest('[data-plx]')) return close(); const b = e.target.closest('button');
+    if (!b) { const r = e.target.closest('[data-cao]'); if (r && !e.target.closest('a')) { open = r.dataset.cao; draw(); W.querySelector('.plbox').scrollTop = 0; } return; }
+    if ('cab' in b.dataset) { open = null; return draw(); }
+    if (b.dataset.cad) { days = +b.dataset.cad; draw(); await load(); return draw(); }
+    if (b.dataset.plc) { e.stopPropagation(); const x = data.items.find((i) => i.id === b.dataset.plc); return navigator.clipboard.writeText(plLink(x)).then(() => alertMsg(`Link for ${x.name} copied.`)).catch(() => alertMsg('Copying was blocked by the browser.', true)); }
+    if (b.dataset.pld) { e.stopPropagation(); const x = data.items.find((i) => i.id === b.dataset.pld); if (!confirm(`Remove the personal link for ${x.name}? The link will stop showing their name.`)) return;
+      data.items = data.items.filter((i) => i.id !== x.id); if (cfg.demo) { try { localStorage.setItem(PL_DEMO, JSON.stringify(data.items.filter((i) => !i.sample).map(({ act, ...r }) => r))); } catch {} } else api('/api/links', { action: 'delete', id: x.id }).catch((er) => alertMsg(er.message, true)); return draw(); }
+    if ('plmake' in b.dataset) { const name = $('#pln').value.trim(), hood = $('#plh').value, type = $('#plt2').value, month = $('#plm2')?.value || null;
       if (!name || !hood) return alertMsg('Add the client name and pick their neighbourhood.', true);
       let x; b.disabled = true;
-      try { if (cfg.demo) { x = { id: Math.random().toString(36).slice(2, 10), name, city, hood, type, opens: 0, looked: [] }; data.items = [x, ...data.items.filter((i) => !i.sample)]; localStorage.setItem(PL_DEMO, JSON.stringify(data.items)); }
-        else { x = (await api('/api/links', { name, city, hood, type })).item; data.items = [x, ...data.items]; } }
+      try { if (cfg.demo) { x = { id: Math.random().toString(36).slice(2, 10), name, city, hood, type, month, opens: 0, looked: [] }; const mine = [x, ...data.items.filter((i) => !i.sample)].map(({ act, ...r }) => r); localStorage.setItem(PL_DEMO, JSON.stringify(mine)); x.act = activity(x, [], [], {}); data.items = [...data.items, x]; }
+        else { x = (await api('/api/links', { name, city, hood, type, month })).item; data.items = [...data.items, x]; } }
       catch (er) { b.disabled = false; return alertMsg(er.message, true); }
       draw(); navigator.clipboard?.writeText(plLink(x)).then(() => alertMsg(`Link for ${name} created and copied. Paste it in a text or email to them.`)).catch(() => alertMsg(`Link for ${name} created.`)); } };
+  W.onkeydown = (e) => { if (e.key === 'Enter' && e.target.matches('[data-cao]')) e.target.click(); };
   W.onchange = (e) => { const t = e.target;
     if (t.id === 'plcity') { city = t.value; const n = $('#pln').value; draw(); $('#pln').value = n; }
-    if (t.matches('[data-plw]')) { data.weekly = t.checked; if (!cfg.demo) api('/api/links', { action: 'weekly', on: t.checked }).catch((er) => alertMsg(er.message, true)); alertMsg(t.checked ? 'Weekly email is on.' : 'Weekly email is off.'); } };
+    if (t.matches('[data-plw]')) { data.weekly = t.checked; if (!cfg.demo) api('/api/links', { action: 'weekly', on: t.checked }).catch((er) => alertMsg(er.message, true)); alertMsg(t.checked ? 'Monday email is on.' : 'Monday email is off.'); } };
   draw(); await load(); draw(); $('#pln')?.focus();
 }
 // The preview window: see the image (or PDF) first, choose what's on it, then download, post or send to a phone.

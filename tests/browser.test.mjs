@@ -22,9 +22,13 @@ before(async () => {
 after(async () => { await browser?.close(); server?.kill(); });
 
 // Opens a page, collects script errors (font loading failures are ignored), runs the checks.
-async function page(path, check, { width = 1240, setup } = {}) {
+async function page(path, check, { width = 1240, setup, months } = {}) {
   const p = await browser.newPage({ viewport: { width, height: 900 } }), errors = [];
   p.on('pageerror', (e) => errors.push(e.message));
+  // Sample mode has one month. `months` pretends more are published (same numbers), to test the month picker.
+  if (months) await p.route('**/api/report?*', async (r) => { const res = await r.fetch(), j = await res.json(); j.months = months; j.latest = months[0];
+    const m = /m=(\d{4}-\d{2})/.exec(r.request().url()); if (m) j.report.month = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][+m[1].slice(5) - 1] + ' ' + m[1].slice(0, 4);
+    await r.fulfill({ response: res, body: JSON.stringify(j) }); });
   if (setup) { await p.goto(BASE + '/app'); await p.evaluate(setup); }
   await p.goto(BASE + path); await p.waitForTimeout(1200);
   try { await check(p); assert.deepEqual(errors, []); } finally { await p.close(); }
@@ -240,3 +244,19 @@ test('switching a section off does not make the page jump, and Undo brings it ba
   await p.click('.bdtoast button'); await p.waitForTimeout(1600);
   assert.ok(await p.$('#rp .sx[data-k="numbers"]'), 'Undo put it back');
 }, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); sessionStorage.setItem('mup_zoomtip', '1'); } }));
+
+test('past months: the month button opens the list, picking a month shows it with a way back to the newest', { skip }, () => page('/r/demo?p=x', async (p) => {
+  await p.click('[data-mopen]');
+  assert.equal(await p.$$eval('.mo-grid button:not([disabled])', (x) => x.length), 9, 'January to September 2026');
+  await p.click('[data-mo="2026-07"]'); await p.waitForTimeout(600);
+  assert.match(p.url(), /m=2026-07/);
+  assert.match(await p.textContent('.mo-old'), /You're looking at July 2026\. Changes compare with July 2025\./);
+  assert.match(await p.textContent('.kpis'), /vs July 2025/);
+  await p.click('.mo-old button'); await p.waitForTimeout(600);
+  assert.equal(await p.$('.mo-old'), null); assert.doesNotMatch(p.url(), /m=/);
+  assert.match(await p.textContent('footer'), /can see when you open this report/);
+}, { months: ['2026-09', '2026-08', '2026-07', '2026-06', '2026-05', '2026-04', '2026-03', '2026-02', '2026-01', '2025-12'] }));
+
+test('with only one month published there is no month button', { skip }, () => page('/r/demo', async (p) => {
+  assert.equal(await p.$('[data-mopen]'), null);
+}));

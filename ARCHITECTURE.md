@@ -153,7 +153,8 @@ The client calls this document `D`.
 | `exports` | `id` (short) | History of what an agent made (link, email, pdf, post, story, caption) with the settings at the time. `/r/<slug>?v=<id>` opens that version |
 | `leads` | `email` | Everyone who started sign-up, plus marketing consent |
 | `instagram` | `user_id` | Instagram connection: token (server-only), auto-post settings |
-| `personal_links` | `id` (short) | Client name, city, hood, type, opens, last_opened_at |
+| `personal_links` | `id` (short) | Client name, city, hood, type, `month` (a link made for one month, else empty), opens, last_opened_at |
+| `visits` | `id` (made by the page) | One report open: `link_id` (null = general link), `month`, `device`, `seconds` (reading time), `reached_end`, `parts` (seconds per section), `acts` (taps: `contact`, `email`, `text`, `copy`, `type:c`, `month:2021-03`, `area:<name>`), `started_at`, `updated_at`. Removed after 400 days by `weekly` |
 | `hood_views` | bigserial | What clients looked at in Neighbourhoods: `link_id` (null = anonymous), `hood`, `kind` = `pick`, `peek` or `compare` |
 
 **Migrations:** append `create table if not exists` or `alter table … add column if not exists` to the end of `schema.sql`, and give the owner just the new block to run.
@@ -176,6 +177,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
   },
   template: { …same layout keys… },  // saved "my template"
   mode: 'template' | 'default',
+  months: { on: true, back: 36, links: false },  // past months (R1.1): may clients pick an older month, how far back (12, 36, 0 = all), links made for one month
   img: { post:{price,forsale,market,sold,photo}, story:{…} }   // what is on Instagram images
   // + legacy on/off keys (prices, changes, sold, …) from an older design
 }
@@ -209,13 +211,13 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 
 | Route | Access | Notes |
 |---|---|---|
-| `report` | Public | `?slug=`. Optional `?v=<export id>` (saved version) and `?p=<personal link id>` (adds `personal`, counts the open). Returns `{agent, report, plan, view, personal}`. In demo, `?p=` returns a sample. |
-| `me` | Agent | GET: profile, `active`, and a report trimmed for the plan. POST: update profile fields, `theme`, `show`. Creates `slug` from the name. |
+| `report` | Public | `?slug=`. Optional `?v=<export id>` (saved version), `?p=<personal link id>` (adds `personal`, counts the open unless `sw=1`), `?m=2024-03` (an older month, when `months` allows it or it's a link made for that month). Returns `{agent, report, plan, view, personal, months, latest}`: `months` are the month keys the client may pick (newest first, Pro only). In demo, `?p=` returns a sample and `months` has only the sample month. |
+| `me` | Agent | GET: profile, `active`, a report trimmed for the plan, and `months` (every published month, Pro). POST: update profile fields, `theme`, `show`. Creates `slug` from the name. |
 | `exports` | Agent | Create or list history items. Making the same thing again reuses the same id. |
 | `instagram` | Agent (Pro) | GET is the OAuth callback. POST actions: connect URL, settings, post now (`{post, story, caption}` JPEG data URLs → Storage → Graph API). |
-| `links` | Agent (Pro) | GET: personal links, each with `looked` (neighbourhoods viewed in the last 30 days, other than their own), plus `weekly` and `top`. POST: create, `{action:'delete'}`, or `{action:'weekly', on}`. |
-| `track` | Public | Beacon `{slug, p, kind, city, hood}`. Writes to `hood_views` only for active Pro agents. Always returns 200. |
-| `weekly` | Cron (`CRON_SECRET`) | Emails each Pro agent about the last 7 days of views. Skips agents with nothing new or with the email turned off. |
+| `links` | Agent (Pro) | GET `?days=7\|30\|365`: personal links, most active first, each with `act` (from `activity.js → activity()`) and `looked`, plus `general` (general-link opens), `weekly` and `top`. POST: create (with optional `month`), `{action:'delete'}`, or `{action:'weekly', on}`. |
+| `track` | Public | Beacon. `{slug, p, kind: pick\|peek\|compare, city, hood}` → `hood_views`; `{slug, p, kind: 'visit', id, m, sec, end, dev, parts, acts}` → upsert into `visits` (`cleanVisit()` caps numbers and keeps only known sections and taps). Only for active Pro agents. Always returns 200. |
+| `weekly` | Cron (`CRON_SECRET`) | Emails each Pro agent which clients were actively looking in the last 7 days (`weeklyLines()`, very active first, plus links never opened and general-link opens). Skips agents with nothing new or with the email turned off. Deletes visits older than 400 days. |
 | `checkout`, `portal` | Agent | Stripe Checkout session and billing portal |
 | `stripe-webhook` | Stripe | Syncs `status`, `plan` and `period_end`. Sends a welcome email. |
 | `subscribe` | Public | Lead capture with consent text |
@@ -240,7 +242,9 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 
 | Module | Role | Key exports |
 |---|---|---|
-| `layout.js` | **Layout rules shared with the server** (no DOM, no imports). Section list, defaults, `NEW_SECTIONS`, and the cleaning of everything an agent can save. `lib/util.js` imports it too. | `SECTIONS`, `SEC_IDS`, `NEW_SECTIONS`, `DEFAULT_LAYOUT`, `MAX_AREAS`, `TYPE_KEYS`, `HOOD_BLOCK_KEYS`, `cleanAreas`, `cleanHoods`, `cleanConf`, `cleanLayout`, `cleanShow`, `layoutOf(show, areas)`, `sameLayout` |
+| `layout.js` | **Layout rules shared with the server** (no DOM, no imports). Section list, defaults, `NEW_SECTIONS`, past-month rules, and the cleaning of everything an agent can save. `lib/util.js` imports it too. | `SECTIONS`, `SEC_IDS`, `NEW_SECTIONS`, `DEFAULT_LAYOUT`, `DEFAULT_MONTHS`, `MONTHS_BACK`, `MAX_AREAS`, `TYPE_KEYS`, `HOOD_BLOCK_KEYS`, `cleanAreas`, `cleanHoods`, `cleanConf`, `cleanMonths`, `monthsAllowed(keys, months)`, `cleanLayout`, `cleanShow`, `layoutOf(show, areas)`, `sameLayout` |
+| `activity.js` | **Client activity rules, shared with the server** (no DOM, no imports): turns a link's visits and Neighbourhoods views into a level, numbers, time per section, recent visits in plain words, and a "Why it matters" line made only of facts | `activity(link, visits, views, {days, now, latest})`, `LEVEL`, `PART`, `times`, `mins`, `monthName` |
+| `visit.js` | The report page's reading tracker: reading time (only while on screen and active in the last 2 minutes), the section in the middle of the screen, read to the end, taps. Sends `kind:'visit'` beacons every 30 s when something changed, and when the page is hidden or closed | `startVisit({slug, p, month, root})` → `{act, month}` |
 | `board.js` | **The report renderer.** Used by the public report, the dashboard canvas and previews. | `mountReport(root, D, A, opts)`, `SECTIONS`, `SEC_IDS`, `DEFAULT_LAYOUT`, `layoutOf`, `cleanConf`, `cleanHoods`, `sameLayout`, `MAX_AREAS`, `PAIRABLE`, `USES_TYPES`, `USES_AREAS`, `TYPE_KEYS` |
 | `hoods.js` | Neighbourhoods section (its own state and events) | `makeHoods(ctx)`, `HTYPES`, `BLOCKS`, `hoodCities`, `hoodNames`, `defaultCity` |
 | `app.js` | The Create page (dashboard). Long file. | Not imported by others. Runs on load (top-level `await`). |
@@ -260,6 +264,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
   - `selected`, `adding`, `onSelect(k)`, `onAdd()`: edit-mode panel sync
   - `personal`: a personal link's `{id, name, city, hood, type}`
   - `track(kind, data)`: the beacon. It is null in edit or embedded mode.
+  - `months`: `{list, latest, onPick(key)}` for the month button (R1.1). `report.html` loads the picked month with `?m=…&sw=1` and mounts the report again, keeping the areas in the URL. Classes are prefixed `mo-`.
 
 **How it works:**
 
@@ -389,6 +394,7 @@ Run **`npm test`** before every upload. It uses Node's built-in test runner (`no
 | File | What it checks |
 |---|---|
 | `tests/layout.test.mjs` | Shared layout rules: unknown sections dropped, area limits, `NEW_SECTIONS` added once, Neighbourhoods settings, `cleanShow`, that the browser and server use the same functions, and that every Neighbourhoods block has a label |
+| `tests/activity.test.mjs` | Past-month rules (defaults, how far back), what a visit may store, activity levels and the "Why it matters" line, the Monday email lines |
 | `tests/sold.test.mjs` | Homes sold with several areas: numbers per area, missing months, and the story sentence |
 | `tests/data.test.mjs` | The built-in month passes the publish checks. Every area has 12 months of price history. Neighbourhood data is well formed. Broken data is rejected. |
 | `tests/api.test.mjs` | Every route answers in sample mode: config, report, personal link, tracking, cron password, admin password, 404 |
@@ -418,12 +424,13 @@ For visual changes, still take Playwright screenshots at desktop width and at 39
 - PDF redesign to the calm look
 - Instagram app review (rename the app; enter the `/api/ig-callback` URLs in Meta)
 - Bulk personal links (CSV upload or a Follow Up Boss connection)
+- Publish older months (for the month button) and extend `data/history.js` back to 2016 for the 12-month chart on older months
 - Neighbourhood sales counts
 
 **Technical debt:**
 
 - `app.js` and `board.js` are large. Split out the panel, share and preview code.
-- `/api/track` has no rate limit.
+- `/api/track` has no rate limit. Visit beacons come at most every 30 seconds per open page.
 - Logos and photos are stored as data URLs in `profiles`. Move them to Storage.
 - `.env.example` and the README still mention Resend and "custom colours/fonts". Both are outdated.
 - `report.css`, the `*Old` exports and the legacy `show` on/off keys are leftovers from earlier designs. Check before deleting.

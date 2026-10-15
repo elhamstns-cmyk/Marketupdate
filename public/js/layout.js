@@ -23,7 +23,10 @@ export const TYPE_KEYS = ['detached', 'townhome', 'condo'];
 // The parts of the Neighbourhoods section an agent can switch off (labels live in hoods.js → BLOCKS).
 // 'tiles' is the ranked list of every neighbourhood (it replaced the coloured tiles and "Who grew the most").
 export const HOOD_BLOCK_KEYS = ['hero', 'tiles', 'compare', 'take'];
-export const DEFAULT_LAYOUT = { sections: SEC_IDS.filter((k) => k !== 'compare'), areas: ['Greater Vancouver'], agentTop: true, clientAreas: true, view: 'side', conf: {} };
+// Past months (R1.1): clients may pick an older month, how far back (months; 0 = every month we have), and links that open on one month.
+export const MONTHS_BACK = [12, 36, 0];
+export const DEFAULT_MONTHS = { on: true, back: 36, links: false };
+export const DEFAULT_LAYOUT = { sections: SEC_IDS.filter((k) => k !== 'compare'), areas: ['Greater Vancouver'], agentTop: true, clientAreas: true, view: 'side', conf: {}, months: { ...DEFAULT_MONTHS } };
 // The older on/off switches (before sections). Still saved so old reports keep working.
 const SHOW_KEYS = ['prices', 'changes', 'sold', 'forsale', 'days', 'market', 'detached', 'townhome', 'condo', 'summary', 'trend', 'compare', 'picker'];
 const IMG_KEYS = ['price', 'forsale', 'market', 'sold', 'photo'];
@@ -61,6 +64,19 @@ export function cleanConf(c, all) {
   return o;
 }
 
+// Past-month choices, with the defaults filled in.
+export function cleanMonths(m) {
+  const x = m && typeof m === 'object' ? m : {};
+  return { on: 'on' in x ? x.on !== false : DEFAULT_MONTHS.on, back: MONTHS_BACK.includes(x.back) ? x.back : DEFAULT_MONTHS.back, links: 'links' in x ? x.links === true : DEFAULT_MONTHS.links };
+}
+// Which month keys ("2026-09") a client may pick: newest first, at most `back` months behind the newest (0 = all).
+export function monthsAllowed(keys, m) {
+  const k = [...new Set((keys || []).filter((x) => /^\d{4}-\d{2}$/.test(x)))].sort().reverse(); if (!k.length) return [];
+  const c = cleanMonths(m); if (!c.on) return [k[0]]; if (!c.back) return k;
+  const [y, mo] = k[0].split('-').map(Number), lim = (y * 12 + mo - 1) - (c.back - 1);
+  return k.filter((x) => { const [a, b] = x.split('-').map(Number); return a * 12 + b - 1 >= lim; });
+}
+
 /* ---------- saving (server) ---------- */
 // A layout as it is stored: only the keys the agent actually set.
 export function cleanLayout(s) {
@@ -71,6 +87,7 @@ export function cleanLayout(s) {
   for (const k of ['agentTop', 'clientAreas']) if (k in s) o[k] = s[k] !== false;
   if (s.view === 'one' || s.view === 'side') o.view = s.view;
   if (s.conf) o.conf = cleanConf(s.conf);
+  if (s.months) o.months = cleanMonths(s.months);
   return o;
 }
 // Everything in profiles.show: the older switches, the current layout, the saved template, and what's on the Instagram images.
@@ -93,6 +110,6 @@ export function layoutOf(show, all) {
   if (Array.isArray(s.sections) && !Array.isArray(s.known)) for (const k of NEW_SECTIONS) if (!sections.includes(k)) { const i = sections.indexOf('types'); sections.splice(i < 0 ? Math.max(0, sections.length - 1) : i + 1, 0, k); }
   let areas = cleanAreas(s.areas, all) || [];
   if (!areas.length) areas = ['Greater Vancouver'];
-  return { sections, areas, agentTop: s.agentTop !== false, clientAreas: s.clientAreas !== false, view: s.view === 'one' ? 'one' : 'side', conf: cleanConf(s.conf, all) };
+  return { sections, areas, agentTop: s.agentTop !== false, clientAreas: s.clientAreas !== false, view: s.view === 'one' ? 'one' : 'side', conf: cleanConf(s.conf, all), months: cleanMonths(s.months) };
 }
 export const sameLayout = (a, b) => JSON.stringify([a.sections, a.agentTop, a.clientAreas, a.view, a.conf || {}]) === JSON.stringify([b.sections, b.agentTop, b.clientAreas, b.view, b.conf || {}]);

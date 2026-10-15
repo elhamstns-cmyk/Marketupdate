@@ -384,15 +384,39 @@ export function mountReport(root, D, A, opts = {}) {
     addEventListener('pointermove', move); addEventListener('pointerup', up); move(e);
   }
   if (ED) root.onpointerdown = (e) => { const h = e.target.closest('[data-drag]'); if (h && e.button === 0) startDrag(e, h.dataset.drag); };
+  // R1.1 Month button and R1.2 older-month line. opts.months = { list: ['2026-09', …] newest first, latest, onPick(key) }.
+  const MO = { list: (!ED && opts.months?.list) || [], latest: opts.months?.latest || endKey };
+  const MONTHL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const mLong = (k) => `${MONTHL[+k.slice(5) - 1]} ${k.slice(0, 4)}`;
+  const CAL = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+  const CLOCK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  S.moYear = S.moYear || +endKey.slice(0, 4);
+  function monthPop() {
+    const yrs = [...new Set(MO.list.map((k) => +k.slice(0, 4)))].sort(), y = S.moYear, i = yrs.indexOf(y), last = MO.list[MO.list.length - 1];
+    return `<div class="mo-pop" role="dialog" aria-label="Choose a month"><div class="mo-hd"><b>Choose a month</b><button type="button" class="mo-x" data-mclose aria-label="Close">✕</button></div>
+      <div class="mo-yr"><button type="button" data-myr="${yrs[i - 1] || ''}" aria-label="Year before"${i > 0 ? '' : ' disabled'}>‹</button><b>${y}</b><button type="button" data-myr="${yrs[i + 1] || ''}" aria-label="Year after"${i < yrs.length - 1 ? '' : ' disabled'}>›</button></div>
+      <div class="mo-grid">${MON.map((m, j) => { const k = `${y}-${String(j + 1).padStart(2, '0')}`, has = MO.list.includes(k);
+        return `<button type="button" class="${k === endKey ? 'on' : ''}"${has ? ` data-mo="${k}"` : ' disabled'} aria-pressed="${k === endKey}" aria-label="${MONTHL[j]} ${y}${has ? '' : ', not available'}">${m}</button>`; }).join('')}</div>
+      <p class="mo-note">Every month from ${mLong(last)} to ${mLong(MO.latest)}.${MO.list.length < 3 ? '' : ' Greyed-out months are not available.'}</p>
+      ${endKey !== MO.latest ? `<button type="button" class="mo-new" data-mo="${MO.latest}">Show the newest month</button>` : ''}</div>`;
+  }
+  const oldLine = () => (MO.list.length && endKey !== MO.latest ? `<div class="mo-old">${CLOCK}<span>You're looking at <b>${esc(D.month)}</b>. Changes compare with ${esc(lastYear)}.</span><button type="button" data-mo="${MO.latest}">See the newest month (${mLong(MO.latest)}) →</button></div>` : '');
+  function pickMonth(k) { S.moOpen = false; if (k && k !== endKey) opts.months?.onPick?.(k); else draw(); }
+  // Escape or a tap outside closes the month list. Listeners from an earlier mount of this root are removed first.
+  root._moOff?.(); root._moOff = null;
+  if (MO.list.length > 1) { const key = (e) => { if (e.key === 'Escape' && S.moOpen) { S.moOpen = false; draw(); root.querySelector('[data-mopen]')?.focus(); } },
+    out = (e) => { if (S.moOpen && !e.target.closest('.mo-pop,[data-mopen]')) { S.moOpen = false; draw(); } };
+    document.addEventListener('keydown', key); document.addEventListener('click', out);
+    root._moOff = () => { document.removeEventListener('keydown', key); document.removeEventListener('click', out); }; }
   function draw() {
     // Neighbourhoods follow the areas at the top, and the area tapped there when one area is picked ("Show me: <area>").
     HO?.sync(S.areas, S.view === 'one' && S.areas.length > 1 ? S.focus : null);
     const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1).filter((k) => k !== 'hoods' || HO);
     const head = sh.length === 1 ? `${esc(sh[0])} Market Report` : `Market Report: ${sh.length} areas`;
-    root.innerHTML = `<div class="bw"><header class="top"><div><h1>${head}</h1><p class="sub">${esc(D.month)} · Source: Greater Vancouver REALTORS®</p></div>
+    root.innerHTML = `<div class="bw"><header class="top"><div><h1>${head}</h1>${MO.list.length > 1 ? `<div class="mo-row"><button type="button" class="mo-btn" data-mopen aria-haspopup="dialog" aria-expanded="${!!S.moOpen}">${CAL}${esc(D.month)}<i aria-hidden="true">▾</i></button><span class="sub">Source: Greater Vancouver REALTORS®</span>${S.moOpen ? monthPop() : ''}</div>` : `<p class="sub">${esc(D.month)} · Source: Greater Vancouver REALTORS®</p>`}</div>
       ${L.agentTop && A.name ? `<div class="agent">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><b>${esc(A.name)}</b><span>${esc([roleLabel(A), A.brokerage].filter(Boolean).join(' · '))}</span>${A.phone ? `<span>${esc(A.phone)}</span>` : ''}</div>${A.logo ? `<img class="lg" src="${esc(A.logo)}" alt="">` : ''}</div>` : ''}</header>
-      ${areaBar()}${rows(secs).map((r) => (r.length === 2 ? `<div class="pair" style="grid-template-columns:${PAIR[r[0]]}fr ${PAIR[r[1]]}fr">${sec(r[0])}${sec(r[1])}</div>` : sec(r[0]))).join('')}${ED ? addBox() : ''}
-      <footer>${esc(sourceLine(D))}</footer></div>`;
+      ${oldLine()}${areaBar()}${rows(secs).map((r) => (r.length === 2 ? `<div class="pair" style="grid-template-columns:${PAIR[r[0]]}fr ${PAIR[r[1]]}fr">${sec(r[0])}${sec(r[1])}</div>` : sec(r[0]))).join('')}${ED ? addBox() : ''}
+      <footer>${esc(sourceLine(D))}${opts.personal && !ED ? `<span class="mo-priv">${EYE}${esc(A.name ? first(A) : 'Your agent')} can see when you open this report and which parts you read.</span>` : ''}</footer></div>`;
     charts(); wire();
   }
   function charts() { root.querySelectorAll('[data-chart]').forEach((el) => C[el.dataset.chart](el)); }
@@ -416,6 +440,10 @@ export function mountReport(root, D, A, opts = {}) {
     // Tapping an area shows the whole report for that area; "Both areas" / "All 3 areas" compares them again.
     if (b('[data-focus]')) { S.focus = b('[data-focus]').dataset.focus; S.view = 'one'; return draw(); }
     if (b('[data-all]')) { S.view = 'side'; return draw(); }
+    if (b('[data-mopen]')) { S.moOpen = !S.moOpen; S.moYear = +endKey.slice(0, 4); draw(); return root.querySelector('.mo-grid .on,.mo-grid button:not([disabled])')?.focus(); }
+    if (b('[data-mclose]')) { S.moOpen = false; return draw(); }
+    if (b('[data-myr]')) { const y = +b('[data-myr]').dataset.myr; if (y) { S.moYear = y; draw(); root.querySelector('.mo-yr b')?.focus?.(); } return; }
+    if (b('[data-mo]')) return pickMonth(b('[data-mo]').dataset.mo);
     if (b('[data-id="ctog"]')) { const x = q('cbox'); x.hidden = !x.hidden; if (!x.hidden) q('where')?.focus(); return; }
     if (b('[data-mv]')) { const x = b('[data-mv]'), s2 = [...L.sections], i = s2.indexOf(x.dataset.k), j = i + +x.dataset.mv; if (j < 0 || j >= s2.length) return; [s2[i], s2[j]] = [s2[j], s2[i]]; saveLayout({ sections: s2 }); return draw(); }
     if (b('[data-hide]')) { saveLayout({ sections: L.sections.filter((k) => k !== b('[data-hide]').dataset.hide) }); return draw(); }

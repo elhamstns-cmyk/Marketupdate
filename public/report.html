@@ -4,10 +4,12 @@
 <div id="sample" class="sample" hidden>Sample report with a made-up person. <a href="/">Get your own</a></div>
 <div id="root"><p style="text-align:center;padding:60px 20px;font-family:system-ui">Loading the report…</p></div>
 <script type="module">
-import { areasOf, slug, SAMPLES, loadFonts } from '/js/report.js';
+import { areasOf, slug, SAMPLES, loadFonts, monthKey } from '/js/report.js';
 import { mountReport } from '/js/board.js';
+import { startVisit } from '/js/visit.js';
 const s = location.pathname.split('/')[2], q = new URLSearchParams(location.search);
-const r = await fetch('/api/report?slug=' + encodeURIComponent(s) + (q.get('v') ? '&v=' + encodeURIComponent(q.get('v')) : '') + (q.get('p') ? '&p=' + encodeURIComponent(q.get('p')) : '')), j = await r.json();
+const url = (m, sw) => '/api/report?slug=' + encodeURIComponent(s) + (q.get('v') ? '&v=' + encodeURIComponent(q.get('v')) : '') + (q.get('p') ? '&p=' + encodeURIComponent(q.get('p')) : '') + (m ? '&m=' + m : '') + (sw ? '&sw=1' : '');
+const r = await fetch(url(q.get('m'))), j = await r.json();
 const root = document.getElementById('root');
 if (!r.ok) root.innerHTML = `<p style="text-align:center;padding:60px 20px;font-family:system-ui">${j.error || 'This report is not available right now.'}</p>`;
 else {
@@ -16,12 +18,23 @@ else {
   // The dashboard's live preview passes the agent's unsaved choices.
   if (q.get('preview')) try { const o = JSON.parse(q.get('preview')); A = { ...A, theme: o.theme || A.theme, show: o.show || A.show }; } catch {}
   const area = j.view?.area || q.get('area') || areasOf(j.report).find((a) => slug(a) === location.hash.slice(1));
-  document.title = `${area || 'Greater Vancouver'} Market Report, ${j.report.month} | ${A.name}`;
-  const pick = (q.get('areas') || '').split(',').filter(Boolean), areas = areasOf(j.report).filter((a) => pick.includes(slug(a))).sort((a, b) => pick.indexOf(slug(a)) - pick.indexOf(slug(b)));
   loadFonts(['modern']);
   // What a client looks at in Neighbourhoods goes to the agent (named only with a personal link).
   const track = j.sample ? null : (kind, d) => { try { navigator.sendBeacon('/api/track', new Blob([JSON.stringify({ slug: s, p: j.personal?.id || '', kind, ...d })], { type: 'text/plain' })); } catch {} };
-  mountReport(root, j.report, A, { area, areas, personal: j.personal, track });
+  // Reading time, sections and taps for Client activity (D9).
+  const visit = j.sample || q.get('preview') ? null : startVisit({ slug: s, p: j.personal?.id || '', month: monthKey(j.report.month), root });
+  // Past months (R1.1): picking a month loads it and draws the report again, keeping the areas the client chose.
+  const mount = (D) => {
+    const pick = (new URLSearchParams(location.search).get('areas') || '').split(',').filter(Boolean), areas = areasOf(D).filter((a) => pick.includes(slug(a))).sort((a, b) => pick.indexOf(slug(a)) - pick.indexOf(slug(b)));
+    document.title = `${area || 'Greater Vancouver'} Market Report, ${D.month} | ${A.name}`;
+    mountReport(root, D, A, { area, areas, personal: j.personal, track, months: { list: j.months || [], latest: j.latest, onPick } });
+  };
+  async function onPick(k) {
+    try { const r2 = await fetch(url(k, 1)), j2 = await r2.json(); if (!r2.ok || !j2.report) return;
+      const u = new URL(location.href); if (k === j.latest) u.searchParams.delete('m'); else u.searchParams.set('m', k); history.replaceState(null, '', u.toString().replace(/%2C/g, ','));
+      visit?.month(k); mount(j2.report); scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+  }
+  mount(j.report);
   document.body.style.background = getComputedStyle(root).backgroundColor;
 }
 </script></body></html>

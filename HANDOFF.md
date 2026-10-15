@@ -52,12 +52,16 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 1. Nothing to upload: everything up to R2 "Show me", S8 Homes sold, S4 Prices by home type and D6 Sections panel is live on GitHub.
 2. In Supabase SQL Editor, run `new-database-tables.sql` (the personal links and views tables).
 3. In Vercel environment variables, add `CRON_SECRET` (any long random text).
+4. **Past months and Client activity (October 15, pushed):** in Supabase SQL Editor run `supabase/client-activity.sql` (adds the `visits` table and a month for personal links).
+5. **Fill in older months** so the month button has something to show. It appears once a report has two or more published months. Each older month needs its GVR Stats Package (and the HPI Benchmark Summary Excel for Neighbourhoods) published at `/admin` like a normal month. Before 2025, the 12-month price chart also needs `data/history.js` extended from the benchmark Excel files (2016–2026, already in `~/Downloads/GVR data/`). Claude asks before downloading anything from the GVR portal.
 
 **UI made, waiting for Ella's go-ahead:**
 
 - **Sections panel:** a recommended order with Summary last (the pictures, numbers and short lines are built, see D6 in §9).
 - **Template bar:** one slim line with "Save as template" and a ⋯ menu.
 - **Interest rates section:** Bank of Canada rate 2.25%, prime 4.45%, next announcement October 28, step graph, plus an admin "confirm each month" box (rates-ui.png).
+
+**Decided October 15 (built, defaults chosen by Claude because they weren't picked):** past months open on **Last 3 years**, "Send a client one month" starts **off**, and personal-link reports show "<Agent> can see when you open this report and which parts you read." Ella can change any of these.
 
 **Ideas shown earlier, not decided:**
 
@@ -179,13 +183,16 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 | D6 Sections panel | iPhone-style grouped list: icon, name, switch, › for each section; first tap picks it and scrolls the report to it, second tap (or ›) opens its settings page with ‹ Sections; More sections (Add); Whole report; Your details (`docs/d6-sections-ui.png`) | `app.js → drawPanel()`, `secPage()`, `tapRow()`, `wirePanel()`, `hoodsPanel()`, `addSec()`, `removeSec()` |
 | D7 Template bar | "Save as my template", "Back to the default layout" | `app.js → drawPanel()` footer `.pfoot` |
 | D8 Preview window | Post / Story / PDF preview, what's on the image, caption, post to Instagram | `app.js → openPreview()`, `social2.js` |
-| D9 Personal links window | Client links and what they looked at | `app.js → personalLinks()` |
+| D9 Client activity | Opens from Share (was "Personal links window"): each client's link, how active they are, opens, reading time, sections, what they looked at, one client's details, the Monday email switch (`docs/activity-ui.png`) | `app.js → personalLinks()`, `activity.js` |
+| D10 Month settings | Sections panel → Options → Past months: let clients look at past months, how far back (12 months, 3 years, back to 2016), send a client one month (`docs/months-ui.png`) | `app.js → monthsPanel()` |
 
 **Report (what clients see, `/r/<agent>`):**
 
 | Name | What it is | Code |
 |---|---|---|
 | R1 Report header | Title, month, agent name and photo | `board.js → draw()` |
+| R1.1 Month button | The 📅 month under the title; opens the month list (a sheet on a phone). Shows only with two or more months | `board.js → monthPop()` |
+| R1.2 Older month line | "You're looking at March 2024. Changes compare with March 2023." and "See the newest month" | `board.js → oldLine()` |
 | R2 Area bar | "Show me: Both areas · Coquitlam · Burnaby North · + Add area" and a line saying what the report shows (docs/r2-area-bar-ui.png) | `board.js → areaBar()` |
 | S1 Key numbers | `numbers` | `board.js → R.numbers` |
 | S2 12-month price | `trend` | `R.trend`, `C.trend` |
@@ -217,7 +224,7 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 | P7 PDF page | `public/print.html` |
 | P8 Share page (story link) | `public/share.html` |
 | P9 Admin | `public/admin.html` |
-| E1 Emails | "Report ready" (`admin-publish`), welcome (`stripe-webhook`), weekly (`weekly`) |
+| E1 Emails | "Report ready" (`admin-publish`), welcome (`stripe-webhook`), Monday "who's actively looking" (`weekly`) |
 | I1 Instagram images | `social2.js → calmImage()` |
 
 Labelled pictures: `docs/map-*.png`, and Ella's pinned "Market Update Part Names" page on claude.ai.
@@ -230,6 +237,8 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-15 | R1.1, R1.2, D10 Past months | **Built** from `docs/months-ui.png` (approved). Clients pick a year, then a month; months with no report are greyed out. An older month shows a blue line with "See the newest month". Clients always open on the newest month; the URL keeps `?m=2024-03` while they look. Agent settings: on/off (starts on), how far back (12 months, 3 years (default), back to 2016), and "Send a client one month" (starts off; adds "Opens on <month>" to the personal link form). Pro only. The button shows only when two or more months are published, so older months need to be published (see §4). |
+| 2026-10-15 | D9 Client activity, E1 Monday email | **Built** from `docs/activity-ui.png` (approved). Personal links window renamed Client activity. Per client: Very active (opened 3+ times this week, or twice with 5+ minutes) / Some interest (opened in 30 days) / Quiet lately / Not opened yet; opens, last open, reading time, read to the end, most-looked-at neighbourhood or month. Last 30 days / Last 7 days / All time. Tap a client: visits per week (8 weeks), time per section, last 5 visits in plain words, "Why it matters" (facts only, no guessing), Send them a note, Copy their link. General link: totals only. Monday email lists very active clients first and names links never opened. Reading time counts only while the page is on screen and the client did something in the last 2 minutes. Visits older than 400 days are removed every Monday. |
 | 2026-10-15 | S5 Neighbourhoods | Removed the key line above the list ("Prices went up · Prices went down · A longer bar…"). The column titles stay. |
 | 2026-10-15 | S1 Key numbers | With several areas, the change is the last column in all three cards so they line up: Homes sold is now Area · Sold · Days to sell · Change since Sep 2025 ⌄. |
 | 2026-10-15 | D6 Sections panel | **Simplified and pushed (Ella: the picture rows were too much):** like iPhone Settings. Grouped white lists on grey; each row is a small blue icon, the name, a switch and ›. No pictures, numbers or descriptions. **First tap** picks the section (light blue) and scrolls the report to it; **second tap** (or ›) slides to its settings page with "‹ Sections" (Areas, Home types as a checklist, Title, Size, Move up / Move down, red "Remove from report"). On the report, the number and name tags are gone: back to "⠿ Drag to move" on hover and on the picked section. Kept: slide out / slide in when removing or adding, no page jump, Undo. UI: `docs/d6-sections-ui.png`. |
