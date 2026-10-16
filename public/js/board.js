@@ -97,7 +97,7 @@ export function mountReport(root, D, A, opts = {}) {
       const h = CF('numbers').title ? esc(CF('numbers').title) : `Key numbers · ${esc(a)}`;
       return `<section class="kn" data-sec="numbers"><h3 class="kn-h">${knIc('all')}${h}</h3><div class="kn-k">
         ${k('price', 'Benchmark price', o.price ? money(o.price) : '—', line(c.price, true), 'The price of a standard home here (MLS® HPI)', 'kn-p')}
-        <div class="kn-pr"><span class="kn-tag">Sold in ${mon}</span>
+        <div class="kn-pr">
           ${k('sold', 'Homes sold', o.sales != null ? N(o.sales) : '—', line(c.sales), `Sales that closed in ${mon}`)}
           ${k('dom', 'Average days on market', o.dom != null ? `${o.dom} days` : '—', o.dom == null ? none('not published') : c.dom == null ? `${miss()} ${pick('')}` : `${days(c.dom)} ${pick('since ')}`, 'How long those homes were listed before they sold')}</div>
         ${k('sale', 'Homes for sale', o.active != null ? N(o.active) : '—', line(c.active), `Listed at the end of ${mon}`, 'kn-f')}
@@ -117,7 +117,7 @@ export function mountReport(root, D, A, opts = {}) {
     const ttl = (ic, h, s2) => `<div class="kn-th"><span class="kn-tt">${knIc(ic)}${h}</span><span class="kn-ts">${s2}</span></div>`;
     const name = (r) => `<span class="kn-an">${dot(colour(r.a))}${esc(r.a)}</span>`;
     const val = (r, f) => { const [v, ch] = f(r); return `<span class="kn-ln"><b>${v}</b>${ch}</span>`; };
-    const grid = `<div class="kn-g"><div class="kn-gs"></div><div class="kn-gs"></div><div class="kn-gh">Sold in ${mon}</div><div class="kn-gs"></div>
+    const grid = `<div class="kn-g">
       <div class="kn-th kn-ta"><span class="kn-ts">City</span></div>${cols.map(([ic, h, s2]) => ttl(ic, h, s2)).join('')}
       ${R1.map((r) => `<div class="kn-c${r.gv ? ' kn-gv' : ''}">${name(r)}</div>${cols.map((c) => `<div class="kn-c kn-sp${r.gv ? ' kn-gv' : ''}">${val(r, c[3])}</div>`).join('')}`).join('')}</div>`;
     // On a phone each column becomes its own block, title on top.

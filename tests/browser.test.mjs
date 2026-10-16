@@ -56,7 +56,7 @@ test('Key numbers with several areas: titles on top of each column, one menu for
   const S = '[data-sec="numbers"] .kn-g';
   const titles = await p.$$eval(`${S} .kn-tt`, (x) => x.map((e) => e.textContent.trim()));
   assert.deepEqual(titles, ['Benchmark price', 'Homes sold', 'Days on market', 'Homes for sale']);
-  assert.match(await p.textContent(`${S} .kn-gh`), /Sold in September/i);
+  assert.equal(await p.$(`${S} .kn-gh`), null, 'no "Sold in September" heading');
   // Greater Vancouver comes first.
   const names = await p.$$eval(`${S} .kn-an`, (x) => x.map((e) => e.textContent.trim()));
   assert.equal(names[0], 'Greater Vancouver');
