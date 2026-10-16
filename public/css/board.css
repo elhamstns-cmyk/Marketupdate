@@ -92,6 +92,11 @@
 @container (max-width:760px){.bd .kn-g{display:none}.bd .kn-bs{display:block}.bd .kn-ln b{font-size:15px}}
 @container (max-width:980px){.bd .kn-k{grid-template-columns:1fr 1fr;grid-template-areas:"p f" "pr pr"}}
 @container (max-width:430px){.bd .kn-k{grid-template-columns:1fr;grid-template-areas:"p" "pr" "f"}}
+/* one area, when the tiles have room: the change sits level with the big number, the "since" menu under it */
+@container ((min-width:640px) and (max-width:980px)) or (min-width:1180px){.bd .kn .kpi{grid-template-columns:auto 1fr;column-gap:14px}
+.bd .kn .kpi>.kl,.bd .kn .kpi>.kn-s{grid-column:1/-1}.bd .kn .kpi>.kv{grid-column:1;grid-row:2}.bd .kn .kpi>.kc{display:contents}
+.bd .kn .kpi>.kc>.ch,.bd .kn .kpi>.kc>.na{grid-column:2;grid-row:2;justify-self:end;align-self:center;text-align:right}.bd .kn .kpi>.kc>.ch{font-size:15px}.bd .kn .kpi>.kc>.na{font-size:12.6px}
+.bd .kn .kpi>.kc>.kn-sel{grid-column:2;grid-row:3;justify-self:end;font-size:12.6px;margin-top:-4px}}
 .bd .tiles{display:grid;grid-template-columns:repeat(var(--tc,3),1fr);gap:14px}.bd .tile{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--ln);border-radius:12px;padding:14px}.bd .tile>div{display:grid;gap:2px}
 
 /* line chart */
