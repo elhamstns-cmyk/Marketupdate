@@ -245,6 +245,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-16 | S1 Key numbers | The report's "Key numbers" title now uses the same three-bar icon as the Sections panel (it had a four-square grid). |
 | 2026-10-16 | S1 Key numbers | One area: the red/green change now sits level with the big number on the right of each tile, with the blue "since Sep 2025 ⌄" under it, when the tiles are wide enough (2×2 tiles, or 4 tiles on a wide screen). Narrow tiles and phones keep the change under the number (`docs/s1-change-inline-ui.png`). |
 | 2026-10-16 | P4 Your report preview | **Fixed (Ella: scrolling the left side scrolled the right side).** On a computer the details panel and the report each fill the window under the steps and scroll on their own; scrolling one never moves the other, and the page itself stays still. The PREVIEW watermark sits in the middle of the report box. Phones unchanged (one column, normal scrolling). Test added. |
 | 2026-10-16 | P1 First page | **Fixed (Ella: Start jumps up):** the closing band has its own email box and Start, so people sign up there without the page moving; Start in the top menu glides to the email box and puts the cursor in it. Both use the same sign-up. |

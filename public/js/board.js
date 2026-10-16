@@ -43,10 +43,10 @@ const HOUSE = {
   condo: '<path d="M5 20V9h5v11"/><path d="M10 20V4h9v16"/><path d="M13 8h3M13 12h3M13 16h3"/><path d="M3 20h18"/>',
   composite: '<path d="M3 12 9 7l6 5"/><path d="M5 11v8h8v-8"/><path d="M14 9l3-2 4 3v9h-6"/>',
 };
-// Small line icons for Key numbers (S1).
+// Small line icons for Key numbers (S1). 'all' is the same three bars as the Sections panel (app.js SIC.numbers).
 const KN_IC = { price: '<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
   sold: '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/>', dom: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-  sale: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-6h6v6"/>', all: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' };
+  sale: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-6h6v6"/>', all: '<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="16" rx="1.5"/><rect x="16" y="4" width="5" height="16" rx="1.5"/>' };
 const knIc = (k) => `<svg class="kn-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KN_IC[k]}</svg>`;
 const house = (k, s = 30) => `<svg class="hs" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${HOUSE[k]}</svg>`;
 const short = (v) => (v >= 1e6 ? '$' + (v / 1e6).toFixed(2) + 'M' : '$' + Math.round(v / 1000) + 'K');
