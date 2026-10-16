@@ -556,3 +556,6 @@ body.oncreate>.nav{display:none}
 .ip .ipchev{color:#a3aab4;font-size:1.15rem;line-height:1;margin-left:2px}
 .ip .ipsel{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
 .ip .ip2 .ipchev{margin-left:auto}
+/* Settings switches: a plain grey track when off (no green), and an always-on row that isn't faded. */
+.ip .sw2{background:#cfd5de}
+.ip .ipkeep{opacity:1}.ip .ipkeep .sw2{opacity:.5}

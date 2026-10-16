@@ -478,6 +478,8 @@ const tgl = (attr, l, on) => `<label class="tgr"><span>${l}</span><input type="c
 // Neighbourhoods settings, kept short: what clients see (a switch for each part), what it opens on, and personal links.
 // "Neighbourhood shown first" and "Compare with" were taken out of the panel (Oct 2026); saved values still work.
 function hoodsPanel(c, L) {
+  // "Every neighbourhood" is always on, so the section is never empty. "Compare two" needs the client's own
+  // neighbourhood, so it is greyed out while "Their neighbourhood" is off.
   const city = c.city && D.hoods?.[c.city] ? c.city : defaultCity(D, c, L.areas), off = c.off || [], own = c.take === 'own';
   const takeOn = !off.includes('take') && c.take !== 'off';
   const g = (label, body, foot) => `<div class="ipl">${label}</div><div class="ipg">${body}</div>${foot ? `<p class="ipf">${foot}</p>` : ''}`;
@@ -485,8 +487,8 @@ function hoodsPanel(c, L) {
   const pick = (attr, l, opts, cur) => `<label class="ipr ippick"><span class="ipn">${l}</span><span class="ipv">${esc((opts.find(([v]) => v === cur) || opts[0])[1])}</span><span class="ipchev" aria-hidden="true">›</span>
     <select class="ipsel" ${attr} aria-label="${l}">${opts.map(([v, x]) => `<option value="${esc(v)}"${v === cur ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></label>`;
   return g('What your clients see', `${iptg2('data-hb="hero"', 'hood', 'Their neighbourhood', 'Its price and how it changed', !off.includes('hero'))}
-      ${iptg2('data-hb="tiles"', 'list', 'Every neighbourhood', 'A list, best to worst', !off.includes('tiles'))}
-      ${iptg2('data-hb="compare"', 'two', 'Compare two', 'Their area next to another', !off.includes('compare'))}
+      ${iptg2('data-hb="tiles"', 'list', 'Every neighbourhood', 'Always shown. To hide the section, use the bin', true, true).replace('ipoff', 'ipoff ipkeep')}
+      ${off.includes('hero') ? iptg2('data-hb="compare"', 'two', 'Compare two', 'Needs "Their neighbourhood" on', false, true) : iptg2('data-hb="compare"', 'two', 'Compare two', 'Their area next to another', !off.includes('compare'))}
       ${iptg2('data-htake', 'me', 'Your take', 'A short note with your photo', takeOn)}
       ${takeOn ? `<div class="ipad"><div class="seg2"><button type="button" data-htw="auto" aria-pressed="${!own}">Written for me</button><button type="button" data-htw="own" aria-pressed="${own}">In my own words</button></div>
         ${own ? `<textarea class="inp2" data-htext rows="4" maxlength="600" placeholder="A few lines for your clients about this month" style="margin-top:10px">${esc(c.text || '')}</textarea>` : ''}</div>` : ''}`)

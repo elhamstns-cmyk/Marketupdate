@@ -66,7 +66,8 @@ export function makeHoods(ctx) {
   [S.homeCity, S.home] = homeOf(P?.city, P?.hood) || homeOf(saved.homeCity || saved.city, saved.home) || homeOf(agentCity || defaultCity(D, conf, ctx.areas), conf.home) || [null, null];
   if (conf.cmp && agentCity && H[agentCity][conf.cmp]) S.cmp = { c: agentCity, h: conf.cmp };
 
-  const on = (b) => !(conf.off || []).includes(b);
+  // "Every neighbourhood" (tiles) is always shown, and "Compare two" needs "Their neighbourhood".
+  const on = (b) => b === 'tiles' || (!(conf.off || []).includes(b) && !(b === 'compare' && (conf.off || []).includes('hero')));
   const save = () => { if (ctx.edit) return; try { localStorage.setItem(key, JSON.stringify({ homeCity: S.homeCity, home: S.home, type: S.type, seen: S.seen.slice(0, 6), looking: S.browse && !S.home })); } catch {} };
   const hs = () => H[S.city] || {};
   const row = (n, c = S.city) => H[c]?.[n]?.[S.type] || null;

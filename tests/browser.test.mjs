@@ -241,6 +241,12 @@ test('Neighbourhoods settings are short: what clients see, what it opens on, per
   await p.click('#dpanel label:has([data-htake])'); await p.waitForTimeout(300);
   assert.equal(await p.$('#dpanel [data-htw]'), null, 'switching Your take off hides its choices');
   assert.equal(await p.$('#rp .nb-take'), null, 'and the take leaves the report');
+  // "Every neighbourhood" can't be switched off; "Compare two" greys out without "Their neighbourhood".
+  assert.ok(await p.$('#dpanel [data-hb="tiles"]:disabled:checked'), 'Every neighbourhood is always on');
+  await p.click('#dpanel label:has([data-hb="hero"])'); await p.waitForTimeout(300);
+  assert.ok(await p.$('#dpanel [data-hb="compare"]:disabled'), 'Compare two is greyed out');
+  assert.match(await p.textContent('#dpanel label:has([data-hb="compare"])'), /Needs "Their neighbourhood" on/);
+  assert.ok(await p.$('#rp .nb-list'), 'the list stays on the report');
 }, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));
 
 for (const width of [390, 1280]) test(`D2: the Share menu opens fully on screen (${width}px)`, { skip }, () => page('/app?plan=pro', async (p) => {
