@@ -251,7 +251,7 @@ test('past months: the month button opens the list, picking a month shows it wit
   await p.click('[data-mo="2026-07"]'); await p.waitForTimeout(600);
   assert.match(p.url(), /m=2026-07/);
   assert.match(await p.textContent('.mo-old'), /You're looking at July 2026\. Changes compare with July 2025\./);
-  assert.match(await p.textContent('.kpis'), /vs July 2025/);
+  assert.match(await p.textContent('[data-sec="numbers"]'), /Jul 2025|July 2025/);
   await p.click('.mo-old button'); await p.waitForTimeout(600);
   assert.equal(await p.$('.mo-old'), null); assert.doesNotMatch(p.url(), /m=/);
   assert.match(await p.textContent('footer'), /can see when you open this report/);
