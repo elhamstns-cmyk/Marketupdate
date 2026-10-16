@@ -53,14 +53,17 @@ test('Instagram removal callback only accepts requests signed by Meta', async ()
   assert.equal((await call('/api/ig-callback', { method: 'POST', body: 'signed_request=bad.data' })).status, 400);
 });
 
-test('S5 Ask about my neighbourhood: checks the form, and answers in sample mode', async () => {
-  const bad = await call('/api/ask', { method: 'POST', body: { slug: 'demo', city: 'Coquitlam', hood: 'Burke Mountain', name: 'Sara', email: 'nope' } });
+test('S5 Ask about my neighbourhood: no name or email needed from a personal link; an email or phone from anyone else', async () => {
+  const bad = await call('/api/ask', { method: 'POST', body: { slug: 'demo', city: 'Coquitlam', hood: 'Burke Mountain', contact: 'nope' } });
   assert.equal(bad.status, 400);
-  const none = await call('/api/ask', { method: 'POST', body: { slug: 'demo', email: 'sara@example.com' } });
+  const none = await call('/api/ask', { method: 'POST', body: { slug: 'demo', contact: 'sara@example.com' } });
   assert.equal(none.status, 400);
-  const ok = await call('/api/ask', { method: 'POST', body: { slug: 'demo', city: 'Coquitlam', hood: 'Burke Mountain', name: 'Sara', email: 'sara@example.com' } });
-  assert.equal(ok.status, 200); assert.equal(ok.json.ok, true);
-  // A robot filling the hidden field gets a quiet "ok" and nothing is saved.
-  const bot = await call('/api/ask', { method: 'POST', body: { website: 'x', name: 'x' } });
+  for (const contact of ['sara@example.com', '604-555-0199']) {
+    const ok = await call('/api/ask', { method: 'POST', body: { slug: 'demo', city: 'Coquitlam', hood: 'Burke Mountain', contact } });
+    assert.equal(ok.status, 200, contact); assert.equal(ok.json.ok, true);
+  }
+  const known = await call('/api/ask', { method: 'POST', body: { slug: 'demo', city: 'Coquitlam', hood: 'Burke Mountain', p: 'sample' } });
+  assert.equal(known.status, 200);
+  const bot = await call('/api/ask', { method: 'POST', body: { website: 'x' } });
   assert.equal(bot.status, 200);
 });

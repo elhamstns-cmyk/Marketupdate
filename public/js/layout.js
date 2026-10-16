@@ -30,11 +30,11 @@ export const HOOD_BLOCK_KEYS = ['hero', 'tiles', 'compare', 'take'];
 export const MONTHS_BACK = [12, 36, 0];
 export const DEFAULT_MONTHS = { on: true, back: 36, links: false };
 // D11 What clients can do: pick their own neighbourhood; when they can't, ask the agent about it; and what happens when they ask
-// ('send' = their own personal link is sent for the agent right away, 'tell' = the agent is told and replies).
-export const DEFAULT_CLIENTS = { pick: true, ask: true, reply: 'send' };
+// ('show' = their neighbourhood's numbers open for them right away, 'tell' = the agent is told and replies). Older saved 'send' counts as 'show'.
+export const DEFAULT_CLIENTS = { pick: true, ask: true, reply: 'show' };
 export function cleanClients(c) {
   const x = c && typeof c === 'object' ? c : {};
-  return { pick: x.pick !== false, ask: x.ask !== false, reply: x.reply === 'tell' ? 'tell' : 'send' };
+  return { pick: x.pick !== false, ask: x.ask !== false, reply: x.reply === 'tell' ? 'tell' : 'show' };
 }
 export const DEFAULT_LAYOUT = { sections: SEC_IDS.filter((k) => k !== 'compare'), areas: ['Greater Vancouver'], agentTop: true, clientAreas: true, view: 'side', conf: {}, months: { ...DEFAULT_MONTHS }, clients: { ...DEFAULT_CLIENTS } };
 // The older on/off switches (before sections). Still saved so old reports keep working.

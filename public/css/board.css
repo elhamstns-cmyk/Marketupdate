@@ -515,3 +515,5 @@ button.nb-li:hover{background:#f6f7fa}
 .nbask-tick{width:54px;height:54px;border-radius:50%;background:#e8f5ee;color:#1a8f4e;display:grid;place-items:center;margin:0 auto 12px;font-size:26px}
 .nbask-open{display:block;border-radius:12px;background:#1d4fbf;color:#fff;font-weight:700;text-decoration:none;padding:13px;margin-bottom:8px}
 .nbask-done{border:0;background:none;color:#1d4fbf;font:600 15px Inter,system-ui,sans-serif;padding:10px;cursor:pointer}
+.bd .nbmore{display:flex;align-items:center;gap:10px;width:100%;margin-top:14px;border:0;border-radius:12px;background:#eef3fc;padding:13px 16px;font:500 15px var(--bf);color:var(--ink);text-align:left;cursor:pointer}
+.bd .nbmore b{color:#1d4fbf}.bd .nbmore:hover{background:#e3ebfa}

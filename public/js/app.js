@@ -531,8 +531,8 @@ function clientsPanel(L) {
     ${hoods ? iptg2('data-cl="pick"', 'hood', 'Pick their neighbourhood', 'For example Westwood Plateau in Coquitlam', C.pick) : ''}
     ${hoods ? iptg2('data-cl="ask"', 'ask', 'Ask you about their neighbourhood', C.pick ? "Shows a button when they can't pick one" : 'A button in place of Neighbourhoods', C.ask, C.pick) : ''}
     ${iptg2('data-mt="on"', 'cal', 'Look at past months', 'Up to 3 years back', L.months.on)}</div>
-    ${hoods && !C.pick && C.ask ? `<div class="ipl">When a client asks</div><div class="ipg"><div class="ipad"><div class="seg2"><button type="button" data-reply="send" aria-pressed="${C.reply === 'send'}">Send it for me</button><button type="button" data-reply="tell" aria-pressed="${C.reply === 'tell'}">Just tell me</button></div></div></div>
-    <p class="ipf">${C.reply === 'send' ? 'They get their own link with their neighbourhood right away. You get an email too.' : 'You get an email, and it waits for you in Clients.'}</p>` : ''}
+    ${hoods && !C.pick && C.ask ? `<div class="ipl">When a client asks</div><div class="ipg"><div class="ipad"><div class="seg2"><button type="button" data-reply="show" aria-pressed="${C.reply === 'show'}">Show it right away</button><button type="button" data-reply="tell" aria-pressed="${C.reply === 'tell'}">Just tell me</button></div></div></div>
+    <p class="ipf">${C.reply === 'show' ? "Their neighbourhood's numbers open for them at once, and you're told." : "You're told, and you reply yourself."} People you don't know (your Instagram or website link) leave an email or phone either way.</p>` : ''}
     ${L.areas.length > 1 ? `<div class="ipl">Report opens on</div><div class="ipg"><div class="ipad"><div class="seg2"><button type="button" data-vw="side" aria-pressed="${L.view === 'side'}">All cities together</button><button type="button" data-vw="one" aria-pressed="${L.view === 'one'}">The first city</button></div></div></div>` : ''}`;
 }
 function drawPanel() {
@@ -703,7 +703,7 @@ async function personalLinks(host) {
     : a.months.length ? `${esc(mLong(a.months[a.months.length - 1]))}<small>an older month</small>` : a.visits ? `Their own area only<small>${esc(x.hood)}</small>` : '<span class="ca-dash">—</span>');
   const PER = [[30, 'Last 30 days'], [7, 'Last 7 days'], [365, 'All time']], perName = PER.find(([d]) => d === days)?.[1].toLowerCase();
   function row(x) { const a = x.act;
-    return `<tr data-cao="${esc(x.id)}" tabindex="0"><td><b>${esc(x.name)}</b>${x.sample ? ' <span class="pltag2">Sample</span>' : ''}<small>${esc(x.hood)}${x.month ? ` · opens on ${esc(mLong(x.month))}` : ''}</small></td>
+    return `<tr data-cao="${esc(x.id)}" tabindex="0"><td><b>${esc(x.name || 'Someone')}</b>${x.sample ? ' <span class="pltag2">Sample</span>' : ''}<small>${esc(x.hood)}${x.month ? ` · opens on ${esc(mLong(x.month))}` : ''}</small></td>
       <td>${pill(a)}<small>${sub(a)}</small></td>
       <td>${a.visits ? `<b>${timesW(a.visits)}</b><small>Last: ${esc(when(a.lastAt))}</small>` : a.lastAt ? `<span class="ca-dash">—</span><small>Last: ${esc(when(a.lastAt))}</small>` : '<span class="ca-dash">—</span>'}</td>
       <td>${a.visits ? `<b>${mins(a.seconds)}</b><small>${a.ends ? `read to the end ${timesW(a.ends)}` : a.visits > 1 ? `about ${mins(a.seconds / a.visits)} a visit` : 'one visit'}</small>` : '<span class="ca-dash">—</span>'}</td>
@@ -713,7 +713,7 @@ async function personalLinks(host) {
   function detail(x) { const a = x.act, mx = Math.max(1, ...a.weeks), ps = a.parts.slice(0, 5), pm = Math.max(1, ...ps.map((p) => p[2])), d = a.visits - a.prevVisits;
     const note = `Hi ${x.name.replace(/^the /i, '')}, here is this month's market report for ${x.hood}: ${plLink(x)}`;
     return `<button type="button" class="back ca-back" data-cab>‹ All clients</button>
-      <div class="ca-dh"><h3>${esc(x.name)}</h3>${pill(a)}${x.sample ? '<span class="pltag2">Sample</span>' : ''}</div>
+      <div class="ca-dh"><h3>${esc(x.name || 'Someone')}</h3>${pill(a)}${x.sample ? '<span class="pltag2">Sample</span>' : ''}</div>
       <p class="muted small">Their area: ${esc(x.hood)}, ${esc(x.city)} · ${esc(tname(x.type))}${x.month ? ` · their link opens on ${esc(mLong(x.month))}` : ''}</p>
       ${a.level === 'none' ? `<p class="ca-empty">They haven't opened their link yet. Copy it and send it in a text or email.</p>` : `
       <div class="ca-stats"><div><small>Opened (${perName})</small><b>${a.visits ? timesW(a.visits) : 'not yet'}</b>${days < 365 && d ? `<span class="${d > 0 ? 'upv' : 'dnv'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)} ${d > 0 ? 'more' : 'fewer'} than the ${days} days before</span>` : ''}</div>
@@ -728,9 +728,11 @@ async function personalLinks(host) {
   function reqHtml() {
     const rq = (data.requests || []).filter((r) => r.status !== 'done').slice(0, 20), done = (data.requests || []).filter((r) => r.status === 'done').length;
     return `<div class="cp-l">Asked about their neighbourhood ${rq.filter((r) => r.status === 'new').length ? `<span>${rq.filter((r) => r.status === 'new').length} new</span>` : ''}</div>
-      <div class="cp-card">${rq.length ? rq.map((r) => `<div class="rq"><span class="rq-d${r.status === 'new' ? ' on' : ''}"></span><div class="rq-t"><b>${esc(r.name)}</b> asked about <b>${esc(r.hood)}</b>, ${esc(r.city)}<small>${esc(r.email)} · ${esc(when(r.created_at))}${r.status === 'sent' && r.mode === 'send' ? ' · sent for you automatically' : ''}</small></div>
-        ${r.status === 'new' ? `<button type="button" class="btn sm" data-rqs="${esc(r.id)}">Send their link</button><button type="button" class="btn sm ghost" data-rqd="${esc(r.id)}">Done</button>` : '<span class="rq-ok">✓ Sent</span>'}</div>`).join('')
-        : `<p class="cp-empty">No one has asked yet. When "Pick their neighbourhood" is off, clients can ask you about theirs, and it shows here.</p>`}</div>${done ? `<p class="small muted cp-note">${done === 1 ? '1 request' : `${done} requests`} marked done.</p>` : ''}`;
+      <div class="cp-card">${rq.length ? rq.map((r) => { const who = r.name || 'Someone', c = r.contact || r.email || '', tel = c && !c.includes('@') ? c.replace(/[^\d+]/g, '') : '';
+        const how = r.from_link ? 'Their personal link' : c ? esc(c) : '', what = r.status === 'sent' ? 'shown to them right away' : '';
+        return `<div class="rq"><span class="rq-d${r.status === 'new' ? ' on' : ''}"></span><div class="rq-t"><b>${esc(who)}</b> asked about <b>${esc(r.hood)}</b>, ${esc(r.city)}<small>${[how, esc(when(r.created_at)), what].filter(Boolean).join(' · ')}</small></div>
+        ${r.status === 'new' && c ? `<a class="btn sm" href="${tel ? `sms:${tel}` : `mailto:${esc(c)}?subject=${encodeURIComponent(`Your ${r.hood} numbers`)}`}">${tel ? 'Call or text' : 'Email'}</a>` : ''}${r.status === 'new' ? `<button type="button" class="btn sm ghost" data-rqd="${esc(r.id)}">Done</button>` : '<span class="rq-ok">✓</span>'}</div>`; }).join('')
+        : `<p class="cp-empty">No one has asked yet. When "Pick their neighbourhood" is off, clients can ask you about a neighbourhood, and it shows here.</p>`}</div>${done ? `<p class="small muted cp-note">${done === 1 ? '1 request' : `${done} requests`} marked done.</p>` : ''}`;
   }
   // P10: what the agent sent this month and before (links, emails, PDFs, images), from their history.
   function sentHtml() {
@@ -760,10 +762,10 @@ async function personalLinks(host) {
       : `<div class="plbox cabox" role="dialog" aria-modal="true" aria-labelledby="plt"><div class="plh"><div><h3 id="plt">Client activity</h3><p class="muted small">Each client gets their own link with their name and neighbourhood. It updates itself every month, so send it once. Then see who is actively looking.</p></div><button type="button" class="x" data-plx aria-label="Close">✕</button></div>${inner}</div>`;
   }
   W.onclick = async (e) => { if ((!host && e.target === W) || e.target.closest('[data-plx]')) return close(); const b = e.target.closest('button');
-    if (b && (b.dataset.rqs || b.dataset.rqd)) { const id = b.dataset.rqs || b.dataset.rqd; b.disabled = true;
-      try { const j = await api('/api/links', { action: 'request', id, do: b.dataset.rqs ? 'send' : 'done' });
-        data.requests = data.requests.map((r) => (r.id === id ? j.request : r)); if (j.item && !data.items.some((i) => i.id === j.item.id)) data.items = [...data.items, j.item];
-        REQN = data.requests.filter((r) => r.status === 'new').length; drawNav(); alertMsg(b.dataset.rqs ? `Sent. ${j.request.name} got their ${j.request.hood} link from you.` : 'Marked done.'); }
+    if (b && b.dataset.rqd) { const id = b.dataset.rqd; b.disabled = true;
+      try { const j = await api('/api/links', { action: 'request', id, do: 'done' });
+        data.requests = data.requests.map((r) => (r.id === id ? j.request : r));
+        REQN = data.requests.filter((r) => r.status === 'new').length; drawNav(); alertMsg('Marked done.'); }
       catch (er) { b.disabled = false; return alertMsg(er.message, true); } return draw(); }
     if (!b) { const r = e.target.closest('[data-cao]'); if (r && !e.target.closest('a')) { open = r.dataset.cao; draw(); W.querySelector('.plbox').scrollTop = 0; } return; }
     if ('cab' in b.dataset) { open = null; return draw(); }

@@ -282,6 +282,10 @@ export function makeHoods(ctx) {
 
   /* ----- draw ----- */
   function body() {
+    // A personal link when the agent turned off "Pick their neighbourhood": only the client's own neighbourhood, and a line to ask about another.
+    if (ctx.locked) { if (!S.home) return ''; S.city = S.homeCity; fixType();
+      return `${on('hero') ? hero() : ''}${ctx.more || ''}<div class="nb-ctl">${typeTabs()}</div>${on('take') ? take() : ''}
+      <p class="note">Benchmark price is the MLS® Home Price Index benchmark price, ${esc(D.month)}.</p>`; }
     const top = cardCities(), none = !top.some((c) => H[c]);
     if (!S.city || !H[S.city]) return '<p class="na">Neighbourhood prices are not published for this city.</p>';
     fixType();
@@ -315,6 +319,6 @@ export function makeHoods(ctx) {
       if (t.matches('[data-hcmp="b"]')) { const [c, h] = t.value.split('|'); S.cmp = { c, h }; ctx.track?.('compare', { city: c, hood: h }); return render(); } };
   }
   // The section title: with a single city and no cards, the title names it.
-  const title = () => { const cs = cardCities(); return cs.length === 1 && cs[0] === S.city ? `Neighbourhoods in ${S.city}` : 'Neighbourhoods'; };
+  const title = () => { if (ctx.locked) return 'Your neighbourhood'; const cs = cardCities(); return cs.length === 1 && cs[0] === S.city ? `Neighbourhoods in ${S.city}` : 'Neighbourhoods'; };
   return { title, mount: wire, sync, state: S };
 }

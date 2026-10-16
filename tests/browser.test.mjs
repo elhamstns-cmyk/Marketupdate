@@ -303,14 +303,26 @@ test('with only one month published there is no month button', { skip }, () => p
   assert.equal(await p.$('[data-mopen]'), null);
 }));
 
-test('S5: with "Pick their neighbourhood" off, clients see one Ask button and a short form', { skip }, () => page('/r/demo?areas=coquitlam&preview=' + encodeURIComponent(JSON.stringify({ show: { areas: ['Coquitlam'], clients: { pick: false, ask: true, reply: 'send' } } })), async (p) => {
+const OFF = encodeURIComponent(JSON.stringify({ show: { areas: ['Coquitlam'], clients: { pick: false, ask: true, reply: 'show' } } }));
+test('S5: with "Pick their neighbourhood" off, someone on the general link asks with only a neighbourhood and an email or phone', { skip }, () => page('/r/demo?areas=coquitlam&preview=' + OFF, async (p) => {
   assert.ok(await p.$('.nbask [data-ask]'), 'the Ask card shows');
   assert.equal(await p.$('.nb-ask'), null, 'no neighbourhood picker');
-  await p.click('[data-ask]'); await p.click('.nbask-go');
-  assert.match(await p.textContent('.nbask-err'), /choose your neighbourhood/);
-  await p.selectOption('.nbask-p select', { index: 1 }); await p.fill('.nbask-p [name="name"]', 'Sara Ahmadi'); await p.fill('.nbask-p [name="email"]', 'sara@example.com');
-  await p.click('.nbask-go'); await p.waitForTimeout(500);
-  assert.match(await p.textContent('.nbask-ok'), /on its way/);
+  await p.click('[data-ask]');
+  assert.equal(await p.$('.nbask-p [name="name"]'), null, 'no name field');
+  await p.click('.nbask-go'); assert.match(await p.textContent('.nbask-err'), /choose a neighbourhood/);
+  await p.selectOption('.nbask-p select', { index: 1 }); await p.click('.nbask-go');
+  assert.match(await p.textContent('.nbask-err'), /email or phone/);
+  await p.fill('.nbask-p [name="contact"]', '604-555-0199'); await p.click('.nbask-go'); await p.waitForTimeout(300);
+  assert.match(await p.textContent('.nbask-ok'), /Here it is/);
+}, { width: 390 }));
+
+test('S5: a personal link with picking off shows only their neighbourhood, and asking needs only the neighbourhood', { skip }, () => page('/r/demo?p=x&areas=coquitlam&preview=' + OFF, async (p) => {
+  assert.match(await p.textContent('.cd-hoods h3'), /Your neighbourhood/);
+  assert.ok(await p.$('.nb-hero'), 'their own neighbourhood');
+  assert.equal(await p.$('.nb-li'), null, 'no list of every neighbourhood');
+  await p.click('.nbmore');
+  assert.equal(await p.$('.nbask-p [name="contact"]'), null, 'no email or phone field');
+  assert.match(await p.textContent('.nbask-s'), /told it's you/);
 }, { width: 390 }));
 
 test('P10/P11: tabs at the top, Save goes to Saved reports, Clients shows requests and activity', { skip }, () => page('/app?plan=pro', async (p) => {

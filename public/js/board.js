@@ -76,6 +76,8 @@ export function mountReport(root, D, A, opts = {}) {
   root.style.cssText = themeVars(TH) + `;--ink:#1b2430;--mut:#6b7380;--ln:#e6e8ee;--pg:${dark ? p.bg : '#f3f4f7'};--card:${dark ? mix(p.ink, p.bg, 0.07) : p.bg};--dn:${dark ? '#ff7d6b' : '#d6452f'};--up:${dark ? '#4fc98b' : '#1a8f4e'};--hl:${mix(p.fill, p.bg, 0.1)};--soft:${mix(p.fill, p.bg, 0.28)};--bar:#4f86e8`;
   // Neighbourhoods keep their own state (the client's area, what they looked at) while the rest of the report redraws.
   const HO = D.hoods && Object.keys(D.hoods).length ? makeHoods({ D, A, conf: CF('hoods'), areas: start, colour, edit: ED || !!opts.embedded, personal: opts.personal, vars: root.style.cssText,
+    // A personal link with picking off shows only their own neighbourhood, with a line to ask the agent about another one.
+    locked: !L.clients.pick && !!opts.personal?.hood, more: L.clients.ask && !L.clients.pick && opts.personal?.hood ? `<button type="button" class="nbmore" data-ask><span aria-hidden="true">🏘</span><span>Curious about another neighbourhood? <b>Ask ${esc((A.name || 'your agent').trim().split(/\s+/)[0])}</b></span></button>` : '',
     track: ED || opts.embedded ? null : opts.track, onCity: ED ? (c) => saveLayout({ conf: { ...L.conf, hoods: { ...CF('hoods'), city: c, home: undefined, cmp: undefined } } }) : null }) : null;
 
   /* ----- section renderers: each returns [html, after-draw hook] ----- */
@@ -160,21 +162,21 @@ export function mountReport(root, D, A, opts = {}) {
     <p>Get the benchmark price for your own neighbourhood, and how it changed over 1, 5 and 10 years.</p><button type="button" class="nbask-b" data-ask>Ask about my neighbourhood</button>
     ${A.name ? `<div class="nbask-ag">${A.photo ? `<img src="${esc(A.photo)}" alt="">` : ''}<span>${esc([A.name, A.brokerage].filter(Boolean).join(' · '))}</span></div>` : ''}</section>`;
   // The short form, as a sheet from the bottom (outside .bd, so its styles use fixed colours).
+  // A personal link: we know who they are, so only the neighbourhood. Anyone else (general link): the neighbourhood and an email or phone.
   function openAsk() {
     if (ED || opts.embedded) return toast('Clients tap this to ask about their neighbourhood. You can try it on your report link.');
     document.querySelector('.nbask-sheet')?.remove();
-    const firstName = (A.name || '').trim().split(/\s+/)[0] || 'Your agent';
-    const cities = [...new Set([...S.areas, ...hoodCities(D)])].filter((c) => D.hoods?.[c] && hoodNames(D, c).length);
-    const opts2 = cities.map((c) => `<optgroup label="${esc(c)}">${hoodNames(D, c).map((n) => `<option value="${esc(c)}|${esc(n)}">${esc(n)}, ${esc(c)}</option>`).join('')}</optgroup>`).join('');
-    const w = document.createElement('div'); w.className = 'nbask-sheet'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-label', 'Ask about my neighbourhood');
+    const firstName = (A.name || '').trim().split(/\s+/)[0] || 'Your agent', known = !!opts.personal?.id;
+    const cities = [...new Set([...(known ? [opts.personal.city] : []), ...S.areas, ...hoodCities(D)])].filter((c) => D.hoods?.[c] && hoodNames(D, c).length);
+    const opts2 = cities.map((c) => `<optgroup label="${esc(c)}">${hoodNames(D, c).filter((n) => !(known && c === opts.personal.city && n === opts.personal.hood)).map((n) => `<option value="${esc(c)}|${esc(n)}">${esc(n)}, ${esc(c)}</option>`).join('')}</optgroup>`).join('');
+    const w = document.createElement('div'); w.className = 'nbask-sheet'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-label', 'Ask about a neighbourhood');
     w.innerHTML = `<div class="nbask-dim" data-x></div><form class="nbask-p" novalidate><div class="nbask-grab"></div><button type="button" class="nbask-x" data-x aria-label="Close">✕</button>
-      <h3>Your neighbourhood</h3><p class="nbask-s">${esc(firstName)} will send you its numbers.</p>
-      <label>Your neighbourhood<select name="hood" required><option value="">Choose your neighbourhood</option>${opts2}</select></label>
-      <label>Your name<input name="name" autocomplete="name" maxlength="60" required></label>
-      <label>Email<input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@email.com" required></label>
+      <h3>${known ? 'Which neighbourhood?' : 'Your neighbourhood'}</h3><p class="nbask-s">${known ? `${esc(firstName)} will be told it's you.` : `${esc(firstName)} will send you its numbers.`}</p>
+      <label>Neighbourhood<select name="hood" required><option value="">Choose a neighbourhood</option>${opts2}</select></label>
+      ${known ? '' : '<label>Your email or phone<input name="contact" autocomplete="email" maxlength="120" placeholder="So they can reach you" required></label>'}
       <input name="website" class="nbask-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-      <p class="nbask-err" role="alert"></p><button type="submit" class="nbask-go">Send it to me</button>
-      <p class="nbask-fine">Only ${esc(firstName)} sees this. ${esc(firstName)} may contact you about it. You can ask them to stop any time.</p></form>`;
+      <p class="nbask-err" role="alert"></p><button type="submit" class="nbask-go">${known ? `Ask ${esc(firstName)}` : 'Send it to me'}</button>
+      ${known ? '' : `<p class="nbask-fine">Only ${esc(firstName)} sees this. You can ask them to stop any time.</p>`}</form>`;
     document.body.appendChild(w);
     const f = w.querySelector('form'), err = w.querySelector('.nbask-err'), close = () => w.remove();
     w.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) close(); });
@@ -182,16 +184,15 @@ export function mountReport(root, D, A, opts = {}) {
     setTimeout(() => f.hood.focus(), 50);
     f.addEventListener('input', () => { err.textContent = ''; }); f.addEventListener('change', () => { err.textContent = ''; });
     f.onsubmit = async (e) => { e.preventDefault(); err.textContent = '';
-      const [city, hood] = (f.hood.value || '|').split('|'), name = f.name.value.trim(), email = f.email.value.trim();
-      if (!hood) return (err.textContent = 'Please choose your neighbourhood.');
-      if (!name) return (err.textContent = 'Please add your name.');
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return (err.textContent = 'Please check your email address.');
+      const [city, hood] = (f.hood.value || '|').split('|'), contact = known ? '' : f.contact.value.trim();
+      if (!hood) return (err.textContent = 'Please choose a neighbourhood.');
+      if (!known && !(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact) || contact.replace(/\D/g, '').length >= 10)) return (err.textContent = 'Please add your email or phone number.');
       const go = f.querySelector('.nbask-go'); go.disabled = true; go.textContent = 'Sending…';
-      try { const r = await fetch('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: A.slug, city, hood, name, email, website: f.website.value }) });
+      try { const r = await fetch('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: A.slug, city, hood, p: opts.personal?.id || null, contact, website: f.website.value }) });
         const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) throw new Error(j.error || 'Something went wrong. Please try again.');
-        f.innerHTML = j.mode === 'send' ? `<div class="nbask-ok"><span class="nbask-tick">✓</span><h3>It's on its way</h3><p>Check your email in a minute for your ${esc(hood)} numbers. They update every month.</p>${j.url ? `<a class="nbask-open" href="${esc(j.url)}">Open it now</a>` : ''}<button type="button" class="nbask-done" data-x>Close</button></div>`
-          : `<div class="nbask-ok"><span class="nbask-tick">✓</span><h3>Thanks, ${esc(name.split(/\s+/)[0])}</h3><p>${esc(firstName)} will send you your ${esc(hood)} numbers soon.</p><button type="button" class="nbask-done" data-x>Close</button></div>`;
-      } catch (x) { err.textContent = x.message; go.disabled = false; go.textContent = 'Send it to me'; } };
+        if (j.mode === 'show' && j.url) { f.innerHTML = `<div class="nbask-ok"><span class="nbask-tick">✓</span><h3>Here it is</h3><p>Opening your ${esc(hood)} numbers…</p></div>`; setTimeout(() => { location.href = j.url; }, 700); return; }
+        f.innerHTML = `<div class="nbask-ok"><span class="nbask-tick">✓</span><h3>Thanks</h3><p>${esc(firstName)} will send you your ${esc(hood)} numbers soon.</p><button type="button" class="nbask-done" data-x>Close</button></div>`;
+      } catch (x) { err.textContent = x.message; go.disabled = false; go.textContent = known ? `Ask ${firstName}` : 'Send it to me'; } };
   }
   R.hoods = () => askMode() ? askCard() : card('hoods', HO ? esc(HO.title()) : 'Neighbourhoods', 'Benchmark prices by neighbourhood, and how they changed', '<div data-chart="hoods"></div>');
   R.summary = () => { const sh = areasFor('summary'); return card('summary', 'Summary', sh.length > 1 ? `Across your ${sh.length} cities` : esc(sh[0]), `<ol class="sum">${summaryPoints(sh).map((t, i) => `<li><em>${i + 1}</em><span>${t}</span></li>`).join('')}</ol>`); };
