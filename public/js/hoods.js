@@ -58,7 +58,7 @@ export function makeHoods(ctx) {
   if (!ctx.edit) try { saved = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch {}
   const P = ctx.personal && H[ctx.personal.city]?.[ctx.personal.hood] ? ctx.personal : null;
   const S = { city: null, homeCity: null, home: null, type: P?.type || saved.type || conf.type || 'd', per: START_PER, cmp: null, note: null, peek: null,
-    seen: Array.isArray(saved.seen) ? saved.seen.filter((s) => typeof s === 'string' && s.includes('|')) : [], browse: false, rankAll: false, allCities: false,
+    seen: Array.isArray(saved.seen) ? saved.seen.filter((s) => typeof s === 'string' && s.includes('|')) : [], browse: !!saved.looking, reopen: false, rankAll: false, allCities: false,
     areas: [], focus: null, fromTop: false, synced: false };
   // The client's own neighbourhood: a personal link, then what this phone remembers, then the agent's "shown first".
   const homeOf = (c, h) => (c && h && H[c]?.[h] ? [c, h] : null);
@@ -67,7 +67,7 @@ export function makeHoods(ctx) {
   if (conf.cmp && agentCity && H[agentCity][conf.cmp]) S.cmp = { c: agentCity, h: conf.cmp };
 
   const on = (b) => !(conf.off || []).includes(b);
-  const save = () => { if (ctx.edit) return; try { localStorage.setItem(key, JSON.stringify({ homeCity: S.homeCity, home: S.home, type: S.type, seen: S.seen.slice(0, 6) })); } catch {} };
+  const save = () => { if (ctx.edit) return; try { localStorage.setItem(key, JSON.stringify({ homeCity: S.homeCity, home: S.home, type: S.type, seen: S.seen.slice(0, 6), looking: S.browse && !S.home })); } catch {} };
   const hs = () => H[S.city] || {};
   const row = (n, c = S.city) => H[c]?.[n]?.[S.type] || null;
   const homeRow = () => (S.home ? row(S.home, S.homeCity) : null);
@@ -151,12 +151,14 @@ export function makeHoods(ctx) {
     return `<button type="button" class="nb-away" data-hcard="${esc(S.homeCity)}"><span class="nb-sq">★</span><span class="nb-aw"><b>${esc(S.home)}</b>Your area · ${esc(S.homeCity)}</span>
       <span class="nb-ar">${x ? `<b>${short(x[I.p])}</b>${pc(x[I[S.per]])}` : ''}</span></button>`;
   }
+  // "I'm just looking around" shrinks the picker to this slim bar, so they can still pick their own later.
+  const look = () => `<div class="nb-look"><span class="nb-sq">?</span><span class="nb-aw"><b>Live in ${esc(S.city)}?</b>See how your neighbourhood compares.</span><button type="button" class="nb-go" data-hreopen>Pick mine</button></div>`;
   function ask() {
     const names = hoodNames(D, S.city);
-    return `<div class="nb-ask"><b>Which ${esc(S.city)} neighbourhood is yours?</b><p>See what homes like yours are worth and how prices changed.</p>
+    return `<div class="nb-ask">${S.reopen ? '<button type="button" class="nb-askx" data-hshrink aria-label="Close">✕</button>' : ''}<b>Which ${esc(S.city)} neighbourhood is yours?</b><p>See what homes like yours are worth and how prices changed.</p>
       <select data-hpick aria-label="Choose your neighbourhood"><option value="">Choose your neighbourhood</option>${names.map((n) => `<option>${esc(n)}</option>`).join('')}</select>
       <div class="nb-chips">${names.slice(0, 5).map((n) => `<button type="button" data-hhome="${esc(n)}">${esc(n)}</button>`).join('')}${names.length > 5 ? `<span>+ ${names.length - 5} more</span>` : ''}</div>
-      <button type="button" class="nb-lk light" data-hbrowse>I'm just looking around</button></div>`;
+      ${S.reopen ? '' : '<button type="button" class="nb-lk light" data-hbrowse>I\'m just looking around</button>'}</div>`;
   }
   function spark(x) {
     const p = x[I.p], pts = [[10, 'y10'], [5, 'y5'], [3, 'y3'], [1, 'y1'], [0.5, 'm6'], [0.25, 'm3'], [1 / 12, 'm1']].filter(([, k]) => x[I[k]] != null).map(([yr, k]) => [yr, then(p, x[I[k]])]).concat([[0, p]]);
@@ -189,11 +191,13 @@ export function makeHoods(ctx) {
     const vals = names.map((n) => row(n)[I[k]]), lo = Math.min(0, ...vals), hi = Math.max(0, ...vals), span = hi - lo || 1, z = (-lo / span) * 100;
     const bar = (v) => `<span class="nb-br">${v == null ? '' : `<i class="${v < 0 ? 'dn' : 'upv'}" style="left:${(v < 0 ? z + (v / span) * 100 : z).toFixed(1)}%;width:${((Math.abs(v) / span) * 100).toFixed(1)}%"></i>`}${lo < 0 && hi > 0 ? `<b class="nb-zero" style="left:${z.toFixed(1)}%"></b>` : ''}</span>`;
     const item = (n) => { const x = row(n), me = here() && n === S.home;
-      return `<button type="button" class="nb-li${me ? ' nb-me' : ''}" data-hpeek="${esc(n)}"><span class="nb-ln">${me ? '★ ' : ''}${esc(n)}<small>${short(x[I.p])}</small></span>${pc(x[I[k]])}${bar(x[I[k]])}</button>`; };
+      return `<button type="button" class="nb-li${me ? ' nb-me' : ''}" data-hpeek="${esc(n)}"><span class="nb-ln">${me ? '★ ' : ''}${esc(n)}<small>Price today ${short(x[I.p])}</small></span><span class="nb-pr">${short(x[I.p])}</span>${pc(x[I[k]])}${bar(x[I[k]])}</button>`; };
     const list = S.rankAll || names.length <= 12 ? names : names.filter((n, i) => i < 10 || (here() && n === S.home));
     const html = list.map(item).join('');
-    const anyUp = names.some((n) => row(n)[I[k]] > 0);
-    return `<p class="sub nb-rs">${esc(tlab())} · change ${WHEN[k]}, ${anyUp ? 'best first' : 'smallest drop first'}. Tap one to take a look.</p>
+    // A key and column titles, so every number and bar says what it is.
+    const shortWhen = { sj: 'since Jan', y1: 'in 1 yr', y3: 'in 3 yrs', y5: 'in 5 yrs', y10: 'in 10 yrs' }[k];
+    return `<div class="nb-key2"><span><i class="upv"></i>Prices went up</span><span><i class="dn"></i>Prices went down</span><span>A longer bar means a bigger change. Tap a neighbourhood to take a look.</span></div>
+      <div class="nb-lh" aria-hidden="true"><span class="nb-ln">Neighbourhood<span class="nb-short"> · price today</span></span><span class="nb-pr">Typical price today</span><span class="nb-bh">How much prices changed ${WHEN[k]}</span><span class="nb-vh"><span class="nb-long">Change</span><span class="nb-short">Change ${shortWhen}</span></span></div>
       <div class="nb-list">${html}</div>${names.length > list.length || S.rankAll ? `<button type="button" class="nb-more" data-hmore>${S.rankAll ? 'Show fewer' : `Show all ${names.length} neighbourhoods`}</button>` : ''}`;
   }
 
@@ -267,7 +271,7 @@ export function makeHoods(ctx) {
       if (b.dataset.hhome) { close(); pickHome(b.dataset.hhome, c); } };
   }
   function pickHome(n, c = S.city) {
-    S.home = n; S.homeCity = c; S.browse = false; if (S.cmp && S.cmp.c === c && S.cmp.h === n) S.cmp = null;
+    S.home = n; S.homeCity = c; S.browse = false; S.reopen = false; if (S.cmp && S.cmp.c === c && S.cmp.h === n) S.cmp = null;
     if (S.city !== c && withHoods().includes(c)) S.city = c;
     fixType(); save(); ctx.track?.('pick', { city: c, hood: n }); render(); el?.querySelector('.nb-pin,.nb-hero')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -282,8 +286,8 @@ export function makeHoods(ctx) {
     const top = cardCities(), none = !top.some((c) => H[c]);
     if (!S.city || !H[S.city]) return '<p class="na">Neighbourhood prices are not published for this city.</p>';
     fixType();
-    const asking = !S.home && !S.browse && on('hero');
-    return `${none ? chooser() : cards()}${pin()}${away()}${asking ? ask() : on('hero') && here() ? hero() : ''}
+    const picker = !S.home && on('hero') ? (S.browse && !S.reopen ? look() : ask()) : '';
+    return `${none ? chooser() : cards()}${pin()}${away()}${picker || (on('hero') && here() ? hero() : '')}
       ${on('tiles') ? `<div class="nb-hd"><h4 class="nb-h">Every ${esc(S.city)} neighbourhood</h4><div class="nb-ctl">${typeTabs()}${perTabs()}</div></div>${ranked()}` : `<div class="nb-ctl">${typeTabs()}</div>`}
       ${on('compare') ? compare() : ''}${seen()}${on('take') ? take() : ''}
       <p class="note">Benchmark price is the MLS® Home Price Index benchmark price, ${esc(D.month)}. Small neighbourhoods have fewer sales, so their numbers move more from month to month. The longer periods are steadier.</p>`;
@@ -302,8 +306,10 @@ export function makeHoods(ctx) {
       if (d.htype) { S.type = d.htype; save(); return render(); }
       if (d.hper) { S.per = d.hper; return render(); }
       if (d.hmore != null) { S.rankAll = !S.rankAll; return render(); }
-      if (d.hbrowse != null) { S.browse = true; return render(); }
-      if (d.hchange != null) { S.home = null; S.homeCity = null; S.browse = false; save(); render(); return el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
+      if (d.hbrowse != null) { S.browse = true; S.reopen = false; save(); return render(); }
+      if (d.hreopen != null) { S.reopen = true; return render(); }
+      if (d.hshrink != null) { S.reopen = false; return render(); }
+      if (d.hchange != null) { S.home = null; S.homeCity = null; S.browse = false; S.reopen = false; save(); render(); return el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
     el.onchange = (e) => { const t = e.target;
       if (t.matches('[data-hpick]') && t.value) return pickHome(t.value);
       if (t.matches('[data-hcmp="a"]')) return pickHome(t.value, S.homeCity);

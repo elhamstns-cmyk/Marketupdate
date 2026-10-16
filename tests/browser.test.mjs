@@ -185,3 +185,26 @@ for (const path of ['/', '/plans', '/privacy', '/terms']) {
     assert.deepEqual(used.filter((c) => GREENS.includes(c)), []);
   }));
 }
+
+test('the neighbourhood list says what its numbers and bars mean', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
+  await p.click('[data-hbrowse]');
+  assert.match(await p.textContent('.nb-lh'), /Typical price today/);
+  assert.match(await p.textContent('.nb-lh'), /How much prices changed in 5 years/);
+  assert.match(await p.textContent('.nb-key2'), /Prices went up.*Prices went down.*longer bar/s);
+  await p.click('[data-hper="y10"]');
+  assert.match(await p.textContent('.nb-lh'), /changed in 10 years/);
+}));
+
+test('after "I\'m just looking around" clients can still pick their neighbourhood, even on their next visit', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
+  await p.click('[data-hbrowse]');
+  assert.equal(await p.$('.nb-ask'), null);
+  assert.match(await p.textContent('.nb-look'), /Live in Coquitlam\?/);
+  await p.click('[data-hreopen]');
+  assert.ok(await p.$('.nb-ask [data-hshrink]'), 'the picker opens again with a close button');
+  await p.click('[data-hshrink]');
+  assert.ok(await p.$('.nb-look'));
+  await p.reload(); await p.waitForTimeout(1000);
+  assert.ok(await p.$('.nb-look'), 'remembered on the next visit');
+  await p.click('[data-hreopen]'); await p.selectOption('[data-hpick]', 'Burke Mountain');
+  assert.equal(await p.$('.nb-look'), null); assert.ok(await p.$('.nb-hero'));
+}, { width: 390 }));
