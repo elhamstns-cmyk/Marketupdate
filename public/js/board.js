@@ -388,7 +388,6 @@ export function mountReport(root, D, A, opts = {}) {
   const MO = { list: (!ED && opts.months?.list) || [], latest: opts.months?.latest || endKey };
   const MONTHL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const mLong = (k) => `${MONTHL[+k.slice(5) - 1]} ${k.slice(0, 4)}`;
-  const CAL = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
   const CLOCK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
   S.moYear = S.moYear || +endKey.slice(0, 4);
   function monthPop() {
@@ -413,7 +412,7 @@ export function mountReport(root, D, A, opts = {}) {
     HO?.sync(S.areas, S.view === 'one' && S.areas.length > 1 ? S.focus : null);
     const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1).filter((k) => k !== 'hoods' || HO);
     const head = sh.length === 1 ? `${esc(sh[0])} Market Report` : `Market Report: ${sh.length} areas`;
-    root.innerHTML = `<div class="bw"><header class="top"><div><h1>${head}</h1>${MO.list.length > 1 ? `<div class="mo-row"><button type="button" class="mo-btn" data-mopen aria-haspopup="dialog" aria-expanded="${!!S.moOpen}">${CAL}${esc(D.month)}<i aria-hidden="true">▾</i></button><span class="sub">Source: Greater Vancouver REALTORS®</span>${S.moOpen ? monthPop() : ''}</div>` : `<p class="sub">${esc(D.month)} · Source: Greater Vancouver REALTORS®</p>`}</div>
+    root.innerHTML = `<div class="bw"><header class="top"><div><h1>${head}</h1>${MO.list.length > 1 ? `<div class="mo-row"><button type="button" class="mo-btn" data-mopen aria-haspopup="dialog" aria-expanded="${!!S.moOpen}">${esc(D.month)}<i aria-hidden="true">▾</i></button><span class="sub">Source: Greater Vancouver REALTORS®</span>${S.moOpen ? monthPop() : ''}</div>` : `<p class="sub">${esc(D.month)} · Source: Greater Vancouver REALTORS®</p>`}</div>
       ${L.agentTop && A.name ? `<div class="agent">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><b>${esc(A.name)}</b><span>${esc([roleLabel(A), A.brokerage].filter(Boolean).join(' · '))}</span>${A.phone ? `<span>${esc(A.phone)}</span>` : ''}</div>${A.logo ? `<img class="lg" src="${esc(A.logo)}" alt="">` : ''}</div>` : ''}</header>
       ${oldLine()}${areaBar()}${rows(secs).map((r) => (r.length === 2 ? `<div class="pair" style="grid-template-columns:${PAIR[r[0]]}fr ${PAIR[r[1]]}fr">${sec(r[0])}${sec(r[1])}</div>` : sec(r[0]))).join('')}${ED ? addBox() : ''}
       <footer>${esc(sourceLine(D))}${opts.personal && !ED ? `<span class="mo-priv">${EYE}${esc(A.name ? first(A) : 'Your agent')} can see when you open this report and which parts you read.</span>` : ''}</footer></div>`;

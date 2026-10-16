@@ -191,7 +191,7 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 | Name | What it is | Code |
 |---|---|---|
 | R1 Report header | Title, month, agent name and photo | `board.js → draw()` |
-| R1.1 Month button | The 📅 month under the title; opens the month list (a sheet on a phone). Shows only with two or more months | `board.js → monthPop()` |
+| R1.1 Month button | The month under the title (no icon); opens the month list (a sheet on a phone). Shows only with two or more months | `board.js → monthPop()` |
 | R1.2 Older month line | "You're looking at March 2024. Changes compare with March 2023." and "See the newest month" | `board.js → oldLine()` |
 | R2 Area bar | "Show me: Both areas · Coquitlam · Burnaby North · + Add area" and a line saying what the report shows (docs/r2-area-bar-ui.png) | `board.js → areaBar()` |
 | S1 Key numbers | `numbers` | `board.js → R.numbers` |
@@ -237,6 +237,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-15 | R1.1 Month button | Calendar icon removed: the button is just the month and ▾. |
 | 2026-10-15 | R1.1, R1.2, D10 Past months | **Built** from `docs/months-ui.png` (approved). Clients pick a year, then a month; months with no report are greyed out. An older month shows a blue line with "See the newest month". Clients always open on the newest month; the URL keeps `?m=2024-03` while they look. Agent settings: on/off (starts on), how far back (12 months, 3 years (default), back to 2016), and "Send a client one month" (starts off; adds "Opens on <month>" to the personal link form). Pro only. The button shows only when two or more months are published, so older months need to be published (see §4). |
 | 2026-10-15 | D9 Client activity, E1 Monday email | **Built** from `docs/activity-ui.png` (approved). Personal links window renamed Client activity. Per client: Very active (opened 3+ times this week, or twice with 5+ minutes) / Some interest (opened in 30 days) / Quiet lately / Not opened yet; opens, last open, reading time, read to the end, most-looked-at neighbourhood or month. Last 30 days / Last 7 days / All time. Tap a client: visits per week (8 weeks), time per section, last 5 visits in plain words, "Why it matters" (facts only, no guessing), Send them a note, Copy their link. General link: totals only. Monday email lists very active clients first and names links never opened. Reading time counts only while the page is on screen and the client did something in the last 2 minutes. Visits older than 400 days are removed every Monday. |
 | 2026-10-15 | S5 Neighbourhoods | Removed the key line above the list ("Prices went up · Prices went down · A longer bar…"). The column titles stay. |
