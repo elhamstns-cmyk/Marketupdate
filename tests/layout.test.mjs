@@ -97,3 +97,12 @@ test('every S2 event has a month, a name, a date line and a story, in time order
   let last = '';
   for (const e of EVENTS) { assert.match(e.k, /^\d{4}-\d{2}$/); assert.ok(e.t && e.w && e.d, e.k); assert.ok(EVENT_ICON[e.ic], `${e.k} icon`); assert.ok(e.k >= last, `${e.k} out of order`); last = e.k; }
 });
+
+test('D11: What clients can do starts on, and keeps only known choices', async () => {
+  const { cleanClients, layoutOf, cleanLayout } = await import('../public/js/layout.js');
+  assert.deepEqual(cleanClients(), { pick: true, ask: true, reply: 'send' });
+  assert.deepEqual(cleanClients({ pick: false, ask: 'yes', reply: 'shout' }), { pick: false, ask: true, reply: 'send' });
+  assert.equal(cleanClients({ reply: 'tell' }).reply, 'tell');
+  assert.deepEqual(layoutOf({ clients: { pick: false } }).clients, { pick: false, ask: true, reply: 'send' });
+  assert.equal(cleanLayout({ clients: { pick: false, reply: 'tell' } }).clients.reply, 'tell');
+});

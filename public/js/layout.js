@@ -12,7 +12,7 @@ export const SECTIONS = [
   ['growth', 'Long-term price growth', 'Price change over 3, 5 and 10 years'],
   ['summary', 'Summary', 'The main points in plain words'],
   ['sold', 'Homes sold each month', 'Bar chart of the last 12 months'],
-  ['compare', 'How areas compare', 'Every area ranked by price'],
+  ['compare', 'How cities compare', 'Every city ranked by price'],
   ['contact', 'Contact me', 'Your photo and a message box'],
 ];
 export const SEC_IDS = SECTIONS.map((s) => s[0]);
@@ -29,7 +29,14 @@ export const HOOD_BLOCK_KEYS = ['hero', 'tiles', 'compare', 'take'];
 // Past months (R1.1): clients may pick an older month, how far back (months; 0 = every month we have), and links that open on one month.
 export const MONTHS_BACK = [12, 36, 0];
 export const DEFAULT_MONTHS = { on: true, back: 36, links: false };
-export const DEFAULT_LAYOUT = { sections: SEC_IDS.filter((k) => k !== 'compare'), areas: ['Greater Vancouver'], agentTop: true, clientAreas: true, view: 'side', conf: {}, months: { ...DEFAULT_MONTHS } };
+// D11 What clients can do: pick their own neighbourhood; when they can't, ask the agent about it; and what happens when they ask
+// ('send' = their own personal link is sent for the agent right away, 'tell' = the agent is told and replies).
+export const DEFAULT_CLIENTS = { pick: true, ask: true, reply: 'send' };
+export function cleanClients(c) {
+  const x = c && typeof c === 'object' ? c : {};
+  return { pick: x.pick !== false, ask: x.ask !== false, reply: x.reply === 'tell' ? 'tell' : 'send' };
+}
+export const DEFAULT_LAYOUT = { sections: SEC_IDS.filter((k) => k !== 'compare'), areas: ['Greater Vancouver'], agentTop: true, clientAreas: true, view: 'side', conf: {}, months: { ...DEFAULT_MONTHS }, clients: { ...DEFAULT_CLIENTS } };
 // The older on/off switches (before sections). Still saved so old reports keep working.
 const SHOW_KEYS = ['prices', 'changes', 'sold', 'forsale', 'days', 'market', 'detached', 'townhome', 'condo', 'summary', 'trend', 'compare', 'picker'];
 const IMG_KEYS = ['price', 'forsale', 'market', 'sold', 'photo'];
@@ -92,6 +99,7 @@ export function cleanLayout(s) {
   if (s.view === 'one' || s.view === 'side') o.view = s.view;
   if (s.conf) o.conf = cleanConf(s.conf);
   if (s.months) o.months = cleanMonths(s.months);
+  if (s.clients) o.clients = cleanClients(s.clients);
   return o;
 }
 // Everything in profiles.show: the older switches, the current layout, the saved template, and what's on the Instagram images.
@@ -114,6 +122,7 @@ export function layoutOf(show, all) {
   if (Array.isArray(s.sections) && !Array.isArray(s.known)) for (const k of NEW_SECTIONS) if (!sections.includes(k)) { const i = sections.indexOf('types'); sections.splice(i < 0 ? Math.max(0, sections.length - 1) : i + 1, 0, k); }
   let areas = cleanAreas(s.areas, all) || [];
   if (!areas.length) areas = ['Greater Vancouver'];
-  return { sections, areas, agentTop: s.agentTop !== false, clientAreas: s.clientAreas !== false, view: s.view === 'one' ? 'one' : 'side', conf: cleanConf(s.conf, all), months: cleanMonths(s.months) };
+  return { sections, areas, agentTop: s.agentTop !== false, clientAreas: s.clientAreas !== false, view: s.view === 'one' ? 'one' : 'side', conf: cleanConf(s.conf, all), months: cleanMonths(s.months), clients: cleanClients(s.clients) };
 }
-export const sameLayout = (a, b) => JSON.stringify([a.sections, a.agentTop, a.clientAreas, a.view, a.conf || {}]) === JSON.stringify([b.sections, b.agentTop, b.clientAreas, b.view, b.conf || {}]);
+const cl = (x) => JSON.stringify(cleanClients(x));
+export const sameLayout = (a, b) => JSON.stringify([a.sections, a.agentTop, a.clientAreas, a.view, a.conf || {}, cl(a.clients)]) === JSON.stringify([b.sections, b.agentTop, b.clientAreas, b.view, b.conf || {}, cl(b.clients)]);

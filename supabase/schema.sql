@@ -119,3 +119,16 @@ create table if not exists visits (
 create index if not exists visits_user_time on visits (user_id, started_at desc);
 create index if not exists visits_link_time on visits (link_id, started_at desc);
 alter table visits enable row level security;
+
+-- S5 Ask about my neighbourhood and P10 Clients (October 2026): clients who asked an agent about their neighbourhood.
+create table if not exists hood_requests (
+  id text primary key,
+  user_id uuid not null references profiles(id) on delete cascade,
+  name text not null, email text not null, city text not null, hood text not null,
+  mode text default 'tell',            -- 'send' = their link was sent for the agent, 'tell' = the agent was told
+  status text default 'new',           -- 'new', 'sent' or 'done'
+  link_id text references personal_links(id) on delete set null,
+  created_at timestamptz default now()
+);
+create index if not exists hood_requests_user on hood_requests (user_id, created_at desc);
+alter table hood_requests enable row level security;

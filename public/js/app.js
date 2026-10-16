@@ -312,7 +312,7 @@ async function saveNow() {
 // The agent sees exactly what clients see. They select, drag, remove and add sections right on the report,
 // switch sections on and off in the panel, and save it all as their template for every new month.
 const firstArea = () => layoutOf(agent(), D).areas[0];
-const layoutName = () => { const a = layoutOf(agent(), D).areas; return a.length === 1 ? a[0] : a.length === 2 ? a.join(' and ') : `${a.length} areas`; };
+const layoutName = () => { const a = layoutOf(agent(), D).areas; return a.length === 1 ? a[0] : a.length === 2 ? a.join(' and ') : `${a.length} cities`; };
 const shareText = (link) => { const n = layoutName(); return { url: link, subject: `${n} market update: ${D.month}`, short: `Here is the ${D.month} market update for ${n}: ${link}`, body: emailDraft(D, agent(), firstArea(), link).text }; };
 const avatar = () => (P.photo ? `<img src="${esc(P.photo)}" alt="">` : `<span class="ini">${esc((P.name || '?').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase())}</span>`);
 const SEC = Object.fromEntries(SECTIONS.map(([k, l, d]) => [k, { l, d }]));
@@ -336,7 +336,7 @@ const EYE = '<svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="n
 const GEAR = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>', BIN2 = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
 let PS = { m: 'list', k: null }, ZOOM = 0.85, IGS = null;
 const cur = () => layoutOf(agent(), D);
-const snap = (L) => ({ sections: L.sections, known: SEC_IDS, areas: L.areas, agentTop: L.agentTop, clientAreas: L.clientAreas, view: L.view, conf: L.conf, months: L.months });
+const snap = (L) => ({ sections: L.sections, known: SEC_IDS, areas: L.areas, agentTop: L.agentTop, clientAreas: L.clientAreas, view: L.view, conf: L.conf, months: L.months, clients: L.clients });
 const mode = () => (P.show?.mode === 'template' && P.show?.template ? 'template' : 'default');
 // Every layout change goes through here. On "My template", the template follows along.
 function setLayout(patch, redraw = true) {
@@ -491,7 +491,7 @@ function secSettings(k, L) {
   else { const own = !!c.areas, ar = c.areas || L.areas, free = areasOf(D).filter((a) => !ar.includes(a));
     what = g('Areas', `<div class="ipad"><div class="seg2"><button type="button" data-own="0" aria-pressed="${!own}">Same as the report</button><button type="button" data-own="1" aria-pressed="${own}">Choose</button></div>
       ${own ? `<div class="chips2">${ar.map((a) => `<span class="chip2">${esc(a)}${ar.length > 1 ? `<button type="button" data-arm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}</div>
-        ${ar.length < MAX_AREAS ? `<label class="addl">+ Add an area (up to ${MAX_AREAS})<select data-aadd><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}` : ''}</div>`, own ? '' : `Now: ${L.areas.map(esc).join(' and ')}`)
+        ${ar.length < MAX_AREAS ? `<label class="addl">+ Add a city (up to ${MAX_AREAS})<select data-aadd><option value="">Add a city</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}` : ''}</div>`, own ? '' : `Now: ${L.areas.map(esc).join(' and ')}`)
       + (USES_TYPES.includes(k) ? g('Home types', TYPE_KEYS.map((t) => { const on = !c.types || c.types.includes(t); return `<button type="button" class="ipr" data-ty="${t}" aria-pressed="${on}"><span class="ipn">${TYPE_NAME[t]}</span>${on ? '<span class="ipck" aria-hidden="true">✓</span>' : ''}</button>`; }).join('')) : ''); }
   const look = titled ? g('Title', `<label class="ipr"><input class="ipin" data-title value="${esc(c.title || '')}" placeholder="${esc(SEC[k].l)}" aria-label="Title"></label>${iptg('data-cf="sub"', 'Line under the title', c.sub !== false)}${k === 'market' ? iptg('data-cf="note"', 'One-line explanation', c.note !== false) : ''}${k === 'trend' ? iptg('data-cf="events"', 'What was happening (COVID-19, new taxes)', c.events !== false) : ''}`) : '';
   const size = PAIRABLE.includes(k) ? g('Size', `<div class="ipad"><div class="seg2"><button type="button" data-sz="half" aria-pressed="${sizeOf(k, c) === 'half'}">Half width</button><button type="button" data-sz="full" aria-pressed="${sizeOf(k, c) === 'full'}">Full width</button></div></div>`, 'Half width sits next to another half-width section.') : '';
@@ -504,12 +504,26 @@ let LASTM = 'list';
 // D10 Month settings: clients may look at past months, how far back, and links that open on one month.
 const MONTHL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const mLong = (k) => `${MONTHL[+k.slice(5) - 1]} ${k.slice(0, 4)}`;
-function monthsPanel(M) {
-  const first = MK[MK.length - 1], have = MK.length > 1 ? `Months available now: ${mLong(first)} to ${mLong(MK[0])}.` : 'Older months will show here once they are added.';
-  return `<div class="ipl">Past months</div><div class="ipg">${iptg('data-mt="on"', 'Clients can look at past months', M.on)}
-    ${M.on ? `<div class="ipad"><span class="ipn">How far back clients can go</span><div class="seg2">${[[12, 'Last 12 months'], [36, 'Last 3 years'], [0, 'Back to 2016']].map(([v, l]) => `<button type="button" data-mback="${v}" aria-pressed="${M.back === v}">${l}</button>`).join('')}</div></div>` : ''}
-    ${iptg('data-mt="links"', 'Send a client one month', M.links)}</div>
-    <p class="ipf">Adds a month button under the title. Clients always open on the newest month. ${have} "Send a client one month" adds "Opens on" to personal links, e.g. the month they bought their home.</p>`;
+// D11 What clients can do. "City" (Coquitlam, Burnaby North) and "neighbourhood" (Westwood Plateau) are never called "areas".
+const DI = {
+  city: '<path d="M3 21h18"/><path d="M5 21V8l6-3v16"/><path d="M11 21V3l8 4v14"/><path d="M8 11h.01M8 15h.01M15 10h.01M15 14h.01"/>',
+  hood: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
+  ask: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+};
+const dic = (k) => `<span class="ipi" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${DI[k]}</svg></span>`;
+// A switch row with an icon, a name and one short grey line.
+const iptg2 = (attr, ic, l, sub, on, off) => `<label class="ipr ip2${off ? ' ipoff' : ''}">${dic(ic)}<span class="ipn"><b>${l}</b><small>${sub}</small></span><input type="checkbox" ${attr}${on ? ' checked' : ''}${off ? ' disabled' : ''}><span class="sw2" aria-hidden="true"></span></label>`;
+function clientsPanel(L) {
+  const C = L.clients, hoods = !!D.hoods && Object.keys(D.hoods).length > 0;
+  return `<div class="ipl">What clients can do</div><div class="ipg">
+    ${iptg2('data-lt="clientAreas"', 'city', 'Add other cities', 'For example Burnaby next to Coquitlam', L.clientAreas)}
+    ${hoods ? iptg2('data-cl="pick"', 'hood', 'Pick their neighbourhood', 'For example Westwood Plateau in Coquitlam', C.pick) : ''}
+    ${hoods ? iptg2('data-cl="ask"', 'ask', 'Ask you about their neighbourhood', C.pick ? "Shows a button when they can't pick one" : 'A button in place of Neighbourhoods', C.ask, C.pick) : ''}
+    ${iptg2('data-mt="on"', 'cal', 'Look at past months', 'Up to 3 years back', L.months.on)}</div>
+    ${hoods && !C.pick && C.ask ? `<div class="ipl">When a client asks</div><div class="ipg"><div class="ipad"><div class="seg2"><button type="button" data-reply="send" aria-pressed="${C.reply === 'send'}">Send it for me</button><button type="button" data-reply="tell" aria-pressed="${C.reply === 'tell'}">Just tell me</button></div></div></div>
+    <p class="ipf">${C.reply === 'send' ? 'They get their own link with their neighbourhood right away. You get an email too.' : 'You get an email, and it waits for you in Clients.'}</p>` : ''}
+    ${L.areas.length > 1 ? `<div class="ipl">Report opens on</div><div class="ipg"><div class="ipad"><div class="seg2"><button type="button" data-vw="side" aria-pressed="${L.view === 'side'}">All cities together</button><button type="button" data-vw="one" aria-pressed="${L.view === 'one'}">The first city</button></div></div></div>` : ''}`;
 }
 function drawPanel() {
   const el = $('#dpanel'); if (!el) return; const L = cur(), pro = isPro(), keep = el.querySelector('.pbody')?.scrollTop || 0;
@@ -522,6 +536,7 @@ function drawPanel() {
       <label>Phone<div class="phonef"><span>+1</span><input type="tel" data-k="phone" value="${esc(localPhone(P.phone))}" placeholder="604-555-0100"></div></label>
       <label>I am a<select data-k="role"><option value="realtor"${P.role !== 'broker' ? ' selected' : ''}>REALTOR®</option><option value="broker"${P.role === 'broker' ? ' selected' : ''}>Mortgage broker</option></select></label></div>
       <div class="two">${['photo', 'logo'].map((k) => `<div class="upw"><label class="up"><span id="ph-${k}"></span><span>Your ${k}<br><b id="lb-${k}"></b></span><input type="file" accept="image/*" data-img="${k}"></label><button type="button" class="rm" data-rm="${k}" aria-label="Remove your ${k}" title="Remove" hidden>✕</button></div>`).join('')}</div>
+      ${isPro() ? tgl('data-lt="agentTop"', 'Show my name and photo at the top of the report', cur().agentTop) : ''}
       <button type="button" class="btn wide" data-p="list">Done</button>`;
   } else if (!pro) {
     body = `${head('Sections')}<div class="lockbox"><span>With Pro you choose your areas and sections, move them around, and save your own template.</span><button type="button" class="btn sm" id="up4">Upgrade to Pro</button></div>`;
@@ -535,9 +550,7 @@ function drawPanel() {
     body = `<h2 class="iph">Sections</h2><p class="ipsub">Tap a section to find it on your report. Tap ⚙ for its settings.</p>
       <div class="ipl">On your report</div><div class="ipg">${L.sections.map(row).join('')}</div>
       ${off.length ? `<div class="ipl" id="canadd">More sections</div><div class="ipg">${off.map(([k, l]) => `<div class="ipr" data-li="${k}">${sic(k)}<span class="ipn">${esc(l)}</span><button type="button" class="ipadd" data-addk="${k}">+ Add</button></div>`).join('')}</div>` : ''}
-      <div class="ipl">Whole report</div><div class="ipg">${L.areas.length > 1 ? `<div class="ipad"><span class="ipn">When clients open it, show</span><div class="seg2"><button type="button" data-vw="side" aria-pressed="${L.view === 'side'}">All areas</button><button type="button" data-vw="one" aria-pressed="${L.view === 'one'}">The first area</button></div></div>` : ''}
-      ${iptg('data-lt="agentTop"', 'My name and photo at the top', L.agentTop)}${iptg('data-lt="clientAreas"', 'Clients can add or remove areas', L.clientAreas)}</div>
-      ${monthsPanel(L.months)}`;
+      ${clientsPanel(L)}`;
   }
   if (pro && PS.m !== 'details') { const m = mode(), isDef = sameLayout(L, { ...DEFAULT_LAYOUT, areas: L.areas });
     foot = m === 'template' ? `<span class="st"><i class="ok"></i>Using your template. Changes save to it.</span>${isDef ? '' : '<button type="button" class="linkbtn" id="ltreset">Back to the default layout</button>'}`
@@ -565,7 +578,7 @@ function wirePanel() {
     if ('done' in d) { PS.open = false; drawPanel(); return panelTo(PS.k); }
     if (d.addk) return addSec(d.addk);
     if (d.sz) return setConf(k, { size: d.sz === sizeOf(k) ? undefined : d.sz });
-    if ('mback' in d) return setLayout({ months: { ...L.months, back: +d.mback } }, false);
+    if (d.reply) return setLayout({ clients: { ...L.clients, reply: d.reply } }, false);
     if (d.own) return setConf(k, { areas: d.own === '1' ? [...L.areas] : undefined });
     if (d.arm) return setConf(k, { areas: (L.conf[k]?.areas || L.areas).filter((a) => a !== d.arm) });
     if (d.ty) { const on = L.conf[k]?.types || [...TYPE_KEYS], next = on.includes(d.ty) ? on.filter((x) => x !== d.ty) : [...on, d.ty];
@@ -589,6 +602,7 @@ function wirePanel() {
     if (t.dataset.cf) return setConf(k, { [t.dataset.cf]: t.checked ? undefined : false });
     if (t.dataset.lt) return setLayout({ [t.dataset.lt]: t.checked });
     if (t.dataset.mt) return setLayout({ months: { ...L.months, [t.dataset.mt]: t.checked } }, false);
+    if (t.dataset.cl) return setLayout({ clients: { ...L.clients, [t.dataset.cl]: t.checked } });
     if (t.dataset.k === 'role') { P.role = t.value; touch('role'); return later(); }
     if (t.dataset.k === 'phone') t.value = localPhone(t.value);
     const im = t.dataset.img; if (!im || !t.files[0]) return;
@@ -700,7 +714,7 @@ async function personalLinks() {
       ${a.why ? `<div class="ca-why"><b>Why it matters:</b> ${esc(a.why)}</div>` : ''}
       <div class="ca-act"><a class="btn" href="mailto:?subject=${encodeURIComponent(`Your ${x.hood} market report`)}&body=${encodeURIComponent(note)}">✉ Send them a note</a><button type="button" class="btn ghost" data-plc="${esc(x.id)}">Copy their link</button></div>`; }
   function draw() {
-    const L = cur(), names = hoodNames(D, city), mOpt = L.months.links && MK.length > 1;
+    const L = cur(), names = hoodNames(D, city), mOpt = MK.length > 1;
     const x = open && data.items.find((i) => i.id === open);
     W.innerHTML = `<div class="plbox cabox" role="dialog" aria-modal="true" aria-labelledby="plt"><div class="plh"><div><h3 id="plt">Client activity</h3><p class="muted small">Each client gets their own link with their name and neighbourhood. It updates itself every month, so send it once. Then see who is actively looking.</p></div><button type="button" class="x" data-plx aria-label="Close">✕</button></div>
       ${x ? detail(x) : `<div class="plf${mOpt ? ' plf6' : ''}"><input type="text" id="pln" maxlength="60" placeholder="Client name, e.g. the Chen family">
@@ -752,7 +766,7 @@ async function openPreview(kind) {
       <div class="pvl" id="pvl">${img ? '<p class="muted">Making your image…</p>' : `<iframe title="PDF preview" src="/r/${P.slug}/print?area=${encodeURIComponent(A0)}&preview=${encodeURIComponent(JSON.stringify(current()))}"></iframe>`}</div>
       <div class="pvr"><div class="seg2 pvt">${[['post', 'Post'], ['story', 'Story'], ['pdf', 'PDF']].map(([k, l]) => `<button type="button" data-k2="${k}" aria-pressed="${K === k}">${l}</button>`).join('')}</div>
         <h3>${K === 'post' ? 'Instagram post' : K === 'story' ? 'Instagram story' : 'PDF report'}</h3>
-        <label class="lbl2">Area<select class="inp2" id="pvarea">${areasOf(D).map((a) => `<option${a === A0 ? ' selected' : ''}>${esc(a)}</option>`).join('')}</select></label>
+        <label class="lbl2">City<select class="inp2" id="pvarea">${areasOf(D).map((a) => `<option${a === A0 ? ' selected' : ''}>${esc(a)}</option>`).join('')}</select></label>
         ${img ? `<span class="lbl2">On the image</span>${IMG_PARTS.map(([k, l]) => tgl(`data-io="${k}"`, l, o[k])).join('')}` : '<p class="hint">A printable report for this area, with your name and photo.</p>'}
         ${K === 'post' ? `<span class="lbl2">Caption</span><textarea class="inp2 cap" id="pvcap" rows="4">${esc(calmCaption(D, A, A0, link))}</textarea>` : ''}
         ${K === 'story' ? `<div class="tipb">Stories don't have a caption. To let people open your full report, add a <b>link sticker</b> in Instagram. <button type="button" class="lk2" data-a="copylink">Copy my report link</button></div>` : ''}

@@ -459,6 +459,12 @@ body.oncreate>.nav{display:none}
 .ip .ipdone{align-self:center;border:0;background:none;color:#1d4fbf;font:inherit;font-weight:650;font-size:.92rem;padding:6px 16px;cursor:pointer}
 @keyframes srb{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.ip .ipx{animation:none}}
+.ip .ip2{min-height:60px;cursor:pointer}
+.ip .ip2 .ipn b{display:block;font-weight:500;font-size:.92rem;color:#1b2430}
+.ip .ip2 .ipn small{display:block;font-size:.78rem;color:#6b7380;margin-top:2px;line-height:1.35}
+.ip .ip2+.ip2::before{left:56px}
+.ip .ipoff{opacity:.45;cursor:default}
+.ip .ipad .seg2 button{padding:8px 6px}
 /* Neighbourhoods settings sit inside one white card */
 .ip .ipad .lbl2{color:#1b2430}
 .ip .ipad .grp3{display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:700;color:#6b7380;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 4px}

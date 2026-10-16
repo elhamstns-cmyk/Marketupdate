@@ -155,7 +155,7 @@ test('picking a neighbourhood and peeking at another works', { skip }, () => pag
   await p.selectOption('[data-hpick]', 'Burke Mountain');
   assert.ok(await p.$('.nb-hero'));
   await p.click('.nb-li[data-hpeek]:not(.nb-me)');
-  assert.match(await p.textContent('.nb-sheet'), /Compared with your area/);
+  assert.match(await p.textContent('.nb-sheet'), /Compared with your neighbourhood/);
 }));
 
 test('with several areas, Neighbourhoods shows a card for each and opens on the first city that has neighbourhoods', { skip }, () => page('/r/demo?areas=greater-vancouver,coquitlam,west-vancouver,north-vancouver', async (p) => {
@@ -179,23 +179,23 @@ test('Neighbourhoods follow the area tapped at the top, and your area stays in v
   await p.selectOption('[data-hpick]', 'Burke Mountain');
   await p.click('[data-focus="Port Moody"]');
   assert.match(await p.textContent('.cd-hoods .nb-cd[aria-pressed="true"]'), /Port Moody/);
-  assert.match(await p.textContent('.nb-hint'), /the area you picked at the top/);
+  assert.match(await p.textContent('.nb-hint'), /the city you picked at the top/);
   assert.match(await p.textContent('.nb-away'), /Burke Mountain/);
   // Peeking across cities still compares with your own area.
   await p.click('.nb-li[data-hpeek="Heritage Woods"]');
   assert.match(await p.textContent('.nb-sheet'), /Burke Mountain \(Coquitlam\)/);
 }));
 
-test('R2 says what the report shows: both areas, or one area only', { skip }, () => page('/r/demo?areas=coquitlam,port-moody', async (p) => {
+test('R2 says what the report shows: both cities, or one city only', { skip }, () => page('/r/demo?areas=coquitlam,port-moody', async (p) => {
   assert.match(await p.textContent('.abar'), /Show me:/);
   assert.doesNotMatch(await p.textContent('.abar'), /Side by side|One at a time/);
-  assert.match(await p.textContent('[data-all]'), /Both areas/);
+  assert.match(await p.textContent('[data-all]'), /Both cities/);
   assert.match(await p.textContent('.asay'), /compares Coquitlam and Port Moody/);
   await p.click('[data-focus="Coquitlam"]');
   assert.match(await p.textContent('.asay'), /about Coquitlam only/);
   assert.match(await p.textContent('.top h1'), /Coquitlam Market Report/);
   await p.click('[data-all]');
-  assert.match(await p.textContent('.top h1'), /2 areas/);
+  assert.match(await p.textContent('.top h1'), /2 cities/);
 }));
 
 test('On a phone, the area row scrolls sideways and never makes the page wider than the screen', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-north,north-vancouver', async (p) => {
@@ -302,3 +302,13 @@ test('past months: the month button opens the list, picking a month shows it wit
 test('with only one month published there is no month button', { skip }, () => page('/r/demo', async (p) => {
   assert.equal(await p.$('[data-mopen]'), null);
 }));
+
+test('S5: with "Pick their neighbourhood" off, clients see one Ask button and a short form', { skip }, () => page('/r/demo?areas=coquitlam&preview=' + encodeURIComponent(JSON.stringify({ show: { areas: ['Coquitlam'], clients: { pick: false, ask: true, reply: 'send' } } })), async (p) => {
+  assert.ok(await p.$('.nbask [data-ask]'), 'the Ask card shows');
+  assert.equal(await p.$('.nb-ask'), null, 'no neighbourhood picker');
+  await p.click('[data-ask]'); await p.click('.nbask-go');
+  assert.match(await p.textContent('.nbask-err'), /choose your neighbourhood/);
+  await p.selectOption('.nbask-p select', { index: 1 }); await p.fill('.nbask-p [name="name"]', 'Sara Ahmadi'); await p.fill('.nbask-p [name="email"]', 'sara@example.com');
+  await p.click('.nbask-go'); await p.waitForTimeout(500);
+  assert.match(await p.textContent('.nbask-ok'), /on its way/);
+}, { width: 390 }));

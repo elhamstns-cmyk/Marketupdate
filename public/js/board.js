@@ -2,7 +2,7 @@
 // mountReport(root, D, A, opts) draws it with the agent's branding (A) and layout (A.show).
 import { get, money, esc, slug, areasOf, themeVars, palette, mix, lum, phoneFmt, roleLabel, askCopy, first, sourceLine, market, monthKey, TN } from './report.js';
 import { salesGroup, salesByArea, soldStory, monthLong, typesStoryOne, typesStoryAreas, dollarChange, NUM_PERIODS, periodMonth, numbersChange, typeChange } from './charts.js';
-import { makeHoods } from './hoods.js';
+import { makeHoods, hoodCities, hoodNames } from './hoods.js';
 import { EVENTS, EVENT_ICON } from './events.js';
 
 /* ---------- sections and layout ---------- */
@@ -118,7 +118,7 @@ export function mountReport(root, D, A, opts = {}) {
     const name = (r) => `<span class="kn-an">${dot(colour(r.a))}${esc(r.a)}</span>`;
     const val = (r, f) => { const [v, ch] = f(r); return `<span class="kn-ln"><b>${v}</b>${ch}</span>`; };
     const grid = `<div class="kn-g"><div class="kn-gs"></div><div class="kn-gs"></div><div class="kn-gh">Sold in ${mon}</div><div class="kn-gs"></div>
-      <div class="kn-th kn-ta"><span class="kn-ts">Area</span></div>${cols.map(([ic, h, s2]) => ttl(ic, h, s2)).join('')}
+      <div class="kn-th kn-ta"><span class="kn-ts">City</span></div>${cols.map(([ic, h, s2]) => ttl(ic, h, s2)).join('')}
       ${R1.map((r) => `<div class="kn-c${r.gv ? ' kn-gv' : ''}">${name(r)}</div>${cols.map((c) => `<div class="kn-c kn-sp${r.gv ? ' kn-gv' : ''}">${val(r, c[3])}</div>`).join('')}`).join('')}</div>`;
     // On a phone each column becomes its own block, title on top.
     const blocks = cols.map(([ic, h, s2, f]) => `<div class="kn-b">${ttl(ic, h, ic === 'sold' || ic === 'dom' ? `${s2}, ${mon}` : s2)}${R1.map((r) => { const [v, ch] = f(r);
@@ -152,13 +152,54 @@ export function mountReport(root, D, A, opts = {}) {
     if (!tabs.some(([k]) => k === S.gType)) S.gType = tabs[0][0];
     return card('growth', 'Long-term price growth', 'How much the benchmark price changed over the years', `<div class="gt">${tabs.length > 1 ? tabs.map(([k, l]) => `<button type="button" class="tab" data-gt="${k}" aria-pressed="${S.gType === k}">${house(k, 22)}${l}</button>`).join('') : ''}</div><div class="gb" data-chart="growth"></div>`,
     areasFor('growth').length === 1 ? '' : `<div class="seg" role="group" aria-label="Years">${[3, 5, 10].map((y, i) => `<button type="button" data-gy="${i}" aria-pressed="${S.gYears === i}">${y} years</button>`).join('')}</div>`); };
-  R.hoods = () => card('hoods', HO ? esc(HO.title()) : 'Neighbourhoods', 'Benchmark prices by neighbourhood, and how they changed', '<div data-chart="hoods"></div>');
-  R.summary = () => { const sh = areasFor('summary'); return card('summary', 'Summary', sh.length > 1 ? `Across your ${sh.length} areas` : esc(sh[0]), `<ol class="sum">${summaryPoints(sh).map((t, i) => `<li><em>${i + 1}</em><span>${t}</span></li>`).join('')}</ol>`); };
+  // S5 Ask about my neighbourhood: when the agent turned off "Pick their neighbourhood", clients see one invitation instead.
+  // A personal link still shows the client's own neighbourhood.
+  const askMode = () => !L.clients.pick && !(opts.personal && opts.personal.hood);
+  const HOUSE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>';
+  const askCard = () => `<section class="cd cd-hoods nbask" data-sec="hoods"><span class="nbask-ic">${HOUSE}</span><h3>What are homes worth in your neighbourhood?</h3>
+    <p>Get the benchmark price for your own neighbourhood, and how it changed over 1, 5 and 10 years.</p><button type="button" class="nbask-b" data-ask>Ask about my neighbourhood</button>
+    ${A.name ? `<div class="nbask-ag">${A.photo ? `<img src="${esc(A.photo)}" alt="">` : ''}<span>${esc([A.name, A.brokerage].filter(Boolean).join(' · '))}</span></div>` : ''}</section>`;
+  // The short form, as a sheet from the bottom (outside .bd, so its styles use fixed colours).
+  function openAsk() {
+    if (ED || opts.embedded) return toast('Clients tap this to ask about their neighbourhood. You can try it on your report link.');
+    document.querySelector('.nbask-sheet')?.remove();
+    const firstName = (A.name || '').trim().split(/\s+/)[0] || 'Your agent';
+    const cities = [...new Set([...S.areas, ...hoodCities(D)])].filter((c) => D.hoods?.[c] && hoodNames(D, c).length);
+    const opts2 = cities.map((c) => `<optgroup label="${esc(c)}">${hoodNames(D, c).map((n) => `<option value="${esc(c)}|${esc(n)}">${esc(n)}, ${esc(c)}</option>`).join('')}</optgroup>`).join('');
+    const w = document.createElement('div'); w.className = 'nbask-sheet'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-label', 'Ask about my neighbourhood');
+    w.innerHTML = `<div class="nbask-dim" data-x></div><form class="nbask-p" novalidate><div class="nbask-grab"></div><button type="button" class="nbask-x" data-x aria-label="Close">✕</button>
+      <h3>Your neighbourhood</h3><p class="nbask-s">${esc(firstName)} will send you its numbers.</p>
+      <label>Your neighbourhood<select name="hood" required><option value="">Choose your neighbourhood</option>${opts2}</select></label>
+      <label>Your name<input name="name" autocomplete="name" maxlength="60" required></label>
+      <label>Email<input name="email" type="email" autocomplete="email" maxlength="120" placeholder="you@email.com" required></label>
+      <input name="website" class="nbask-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <p class="nbask-err" role="alert"></p><button type="submit" class="nbask-go">Send it to me</button>
+      <p class="nbask-fine">Only ${esc(firstName)} sees this. ${esc(firstName)} may contact you about it. You can ask them to stop any time.</p></form>`;
+    document.body.appendChild(w);
+    const f = w.querySelector('form'), err = w.querySelector('.nbask-err'), close = () => w.remove();
+    w.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) close(); });
+    document.addEventListener('keydown', function esc2(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc2); } });
+    setTimeout(() => f.hood.focus(), 50);
+    f.addEventListener('input', () => { err.textContent = ''; }); f.addEventListener('change', () => { err.textContent = ''; });
+    f.onsubmit = async (e) => { e.preventDefault(); err.textContent = '';
+      const [city, hood] = (f.hood.value || '|').split('|'), name = f.name.value.trim(), email = f.email.value.trim();
+      if (!hood) return (err.textContent = 'Please choose your neighbourhood.');
+      if (!name) return (err.textContent = 'Please add your name.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return (err.textContent = 'Please check your email address.');
+      const go = f.querySelector('.nbask-go'); go.disabled = true; go.textContent = 'Sending…';
+      try { const r = await fetch('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: A.slug, city, hood, name, email, website: f.website.value }) });
+        const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) throw new Error(j.error || 'Something went wrong. Please try again.');
+        f.innerHTML = j.mode === 'send' ? `<div class="nbask-ok"><span class="nbask-tick">✓</span><h3>It's on its way</h3><p>Check your email in a minute for your ${esc(hood)} numbers. They update every month.</p>${j.url ? `<a class="nbask-open" href="${esc(j.url)}">Open it now</a>` : ''}<button type="button" class="nbask-done" data-x>Close</button></div>`
+          : `<div class="nbask-ok"><span class="nbask-tick">✓</span><h3>Thanks, ${esc(name.split(/\s+/)[0])}</h3><p>${esc(firstName)} will send you your ${esc(hood)} numbers soon.</p><button type="button" class="nbask-done" data-x>Close</button></div>`;
+      } catch (x) { err.textContent = x.message; go.disabled = false; go.textContent = 'Send it to me'; } };
+  }
+  R.hoods = () => askMode() ? askCard() : card('hoods', HO ? esc(HO.title()) : 'Neighbourhoods', 'Benchmark prices by neighbourhood, and how they changed', '<div data-chart="hoods"></div>');
+  R.summary = () => { const sh = areasFor('summary'); return card('summary', 'Summary', sh.length > 1 ? `Across your ${sh.length} cities` : esc(sh[0]), `<ol class="sum">${summaryPoints(sh).map((t, i) => `<li><em>${i + 1}</em><span>${t}</span></li>`).join('')}</ol>`); };
   R.sold = () => { const sh = areasFor('sold'); if (!sh.includes(S.soldArea)) S.soldArea = sh[0];
     // Several areas: every area at once (bars or lines), drawn by C.soldm.
     if (sh.length > 1) return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, '<div data-chart="soldm"></div>');
     return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, `${CF('sold').areas && sh.length > 1 ? `<div class="mini">${sh.map((a) => `<button type="button" data-sa="${esc(a)}" aria-pressed="${a === S.soldArea}">${dot(colour(a))}${esc(a)}</button>`).join('')}</div>` : ''}<div data-chart="sold"></div>`); };
-  R.compare = () => card('compare', 'How areas compare', `Benchmark price in every area, with the change from ${lastYear}.${canEdit ? ' Tap an area to add it to the report.' : ''}`, `<div class="rank" data-chart="rank"></div>`);
+  R.compare = () => card('compare', 'How cities compare', `Benchmark price in every city, with the change from ${lastYear}.${canEdit ? ' Tap a city to add it to the report.' : ''}`, `<div class="rank" data-chart="rank"></div>`);
   R.contact = () => `<section class="cd cd-contact" data-sec="contact"><div class="crow">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div class="cx"><h3>Questions about your area?</h3><p class="sub">${esc([A.name, roleLabel(A), A.brokerage, A.phone].filter(Boolean).join(' · '))}</p></div><button type="button" class="btn" data-id="ctog">Contact ${F}</button></div>
     <div class="cbox" data-id="cbox" hidden><div class="cgrid"><label class="fl">${ask.lab}<input type="text" data-id="where" placeholder="${ask.ph}"></label>
     <div><span class="fl">I am</span><div class="chips" data-id="intent" role="group" aria-label="I am">${ask.chips.map((c) => `<button type="button" aria-pressed="false">${esc(c)}</button>`).join('')}</div></div></div>
@@ -174,8 +215,8 @@ export function mountReport(root, D, A, opts = {}) {
       return out; }
     const pr = sh.filter((a) => o[a].price && o[a].yoy != null), dn = pr.filter((a) => o[a].yoy < 0), up = pr.filter((a) => o[a].yoy > 0);
     if (pr.length) { const lo = [...pr].sort((a, b) => o[a].yoy - o[b].yoy)[0], hi = [...pr].sort((a, b) => o[b].yoy - o[a].yoy)[0];
-      out.push(dn.length === pr.length ? `Prices are down in every area. <b>${esc(lo)} fell the most</b>, ${Math.abs(o[lo].yoy).toFixed(1)}% in a year.`
-        : up.length === pr.length ? `Prices are up in every area. <b>${esc(hi)} rose the most</b>, ${o[hi].yoy.toFixed(1)}% in a year.`
+      out.push(dn.length === pr.length ? `Prices are down in every city. <b>${esc(lo)} fell the most</b>, ${Math.abs(o[lo].yoy).toFixed(1)}% in a year.`
+        : up.length === pr.length ? `Prices are up in every city. <b>${esc(hi)} rose the most</b>, ${o[hi].yoy.toFixed(1)}% in a year.`
         : `Prices rose in ${up.map(esc).join(', ')} and fell in ${dn.map(esc).join(', ')} over the past year.`);
       const ex = [...pr].sort((a, b) => o[b].price - o[a].price);
       out.push(`<b>${esc(ex[0])} is the most expensive</b> at ${money(o[ex[0]].price)}. ${esc(ex[ex.length - 1])} is the most affordable at ${money(o[ex[ex.length - 1]].price)}.`); }
@@ -210,7 +251,7 @@ export function mountReport(root, D, A, opts = {}) {
     const since = `Change since<span class="kn-sel ty-sel">${sinceM}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
       <select data-tper aria-label="Show the price change since">${NUM_PERIODS.map(([k, l]) => `<option value="${k}"${k === S.tPer ? ' selected' : ''}>${periodMonth(endKey, k)} (${l === 'last month' ? 'last month' : l + ' ago'})</option>`).join('')}</select></span>`;
     el.innerHTML = `${st.lead || st.rest ? `<p class="ty-story"><b>${esc(st.lead)}</b>${esc(st.rest)}</p>` : ''}
-      <div class="ty-h"><span><span class="ty-l">${one ? 'Home type' : 'Area, highest price first'}</span><span class="ty-s">${one ? 'Home type' : 'Area'} · benchmark price today</span></span><span class="ty-l">Benchmark price today</span><span class="ty-ch">${since}</span></div>
+      <div class="ty-h"><span><span class="ty-l">${one ? 'Home type' : 'City, highest price first'}</span><span class="ty-s">${one ? 'Home type' : 'City'} · benchmark price today</span></span><span class="ty-l">Benchmark price today</span><span class="ty-ch">${since}</span></div>
       <div class="ty-list">${rows.map(row).join('')}</div>
       <p class="ty-key"><span>Longer bar = higher price</span><span><b class="ch upv"><i>▲</i>green</b> = higher than ${when}</span><span><b class="ch dn"><i>▼</i>red</b> = lower than ${when}</span></p>`; };
 
@@ -226,7 +267,7 @@ export function mountReport(root, D, A, opts = {}) {
       for (const [k, v] of Object.entries(D.history?.price?.composite?.[a] || {})) { const i = mIdx(k); if (v && i > last) out.set(i, v); }
       return [...out].filter(([i]) => i <= endI).sort((x, y) => x[0] - y[0]); };
     const SER = Object.fromEntries(on.map((a) => [a, ser(a)])), lines = on.filter((a) => SER[a].length > 1), miss = on.filter((a) => !lines.includes(a));
-    if (!lines.length) { el.innerHTML = '<p class="na">Not enough history for this area yet.</p>'; return; }
+    if (!lines.length) { el.innerHTML = '<p class="na">Not enough history for this city yet.</p>'; return; }
     const START = Math.min(...lines.map((a) => SER[a][0][0])), END = endI, evOn = CF('trend').events !== false;
     if (!S.tw) S.tw = [END - 12, END];
     const clamp = (a, b) => { const sp = Math.max(12, Math.min(END - START, b - a)); a = Math.max(START, Math.min(a, END - sp)); return [a, a + sp]; };
@@ -235,7 +276,7 @@ export function mountReport(root, D, A, opts = {}) {
       for (let j = 1; j < s.length; j++) if (s[j][0] >= i) { const [a, va] = s[j - 1], [b, vb] = s[j]; return va + ((i - a) / (b - a)) * (vb - va); } };
     const near = (s, i, dir) => (dir < 0 ? [...s].reverse().find((p) => p[0] <= i) : s.find((p) => p[0] >= i)) || null;
     const lab = (i) => `${MON[i % 12]} ${Math.floor(i / 12)}`, LAB = (i) => `${MONTHS[i % 12]} ${Math.floor(i / 12)}`;
-    const many = pool.length > 1, allOn = many && on.length === pool.length && pool.every((a) => on.includes(a)), allName = pool.length === 2 ? 'Both areas' : `All ${pool.length} areas`;
+    const many = pool.length > 1, allOn = many && on.length === pool.length && pool.every((a) => on.includes(a)), allName = pool.length === 2 ? 'Both cities' : `All ${pool.length} cities`;
     el.innerHTML = `${lines.length > 1 ? `<div class="leg">${lines.map((a) => `<span><i style="background:${colour(a)}"></i>${esc(a)}</span>`).join('')}</div>` : ''}
       <div class="tl-ch"><div class="tl-zm"><button type="button" class="tl-zb" data-tz="in" aria-label="Zoom in, closer to today">+</button><button type="button" class="tl-zb" data-tz="out" aria-label="Zoom out, further back">−</button></div><svg class="tl-svg"></svg><div class="ctip"></div></div>
       <div class="tl-ov"><svg class="tl-ovs"></svg><div class="tl-ovl"><span>${Math.floor(START / 12)}</span><span>Drag the blue window to go back in time</span><span>Today</span></div></div>
@@ -348,9 +389,9 @@ export function mountReport(root, D, A, opts = {}) {
     const rows = keys.map((k) => [k, typesFor('sold').map(([t]) => t).reduce((n, t) => (n == null || D.history?.sales?.[t]?.[g]?.[k] == null ? null : n + D.history.sales[t][g][k]), 0)]);
     let i0 = rows.length - 1; while (i0 >= 0 && rows[i0][1] != null) i0--; const rs = rows.slice(i0 + 1);
     const sub = root.querySelector('[data-id="soldsub"]');
-    if (rs.length < 2) { el.innerHTML = '<p class="na">Monthly sales are not published for this area.</p>'; if (sub) sub.textContent = a; return; }
+    if (rs.length < 2) { el.innerHTML = '<p class="na">Monthly sales are not published for this city.</p>'; if (sub) sub.textContent = a; return; }
     const name = g === 'Grand Totals' ? 'Greater Vancouver' : g, mx = Math.max(...rs.map((r) => r[1])) * 1.16;
-    if (sub) sub.textContent = `${name === a ? a : `${name} (whole area)`}${areasFor('sold').length > 1 && !CF('sold').areas ? ' · tap an area above to see its own' : ''}${CF('sold').types ? ' · ' + typesFor('sold').map(([, l]) => l.toLowerCase() + 's').join(' and ') : ''}`;
+    if (sub) sub.textContent = `${name === a ? a : `${name} (whole city)`}${areasFor('sold').length > 1 && !CF('sold').areas ? ' · tap a city above to see its own' : ''}${CF('sold').types ? ' · ' + typesFor('sold').map(([, l]) => l.toLowerCase() + 's').join(' and ') : ''}`;
     el.innerHTML = `<div class="bars">${rs.map(([k, v], i) => `<div class="bc${i === rs.length - 1 ? ' now' : ''}"><div class="bp"><div class="bb" style="height:${(v / mx) * 100}%"></div><span class="bn" style="bottom:calc(${(v / mx) * 100}% + 4px)">${N(v)}</span></div><span class="bm">${mName(k)}</span></div>`).join('')}</div><p class="yr">${mName(rs[0][0])} ${rs[0][0].slice(0, 4)} to ${mName(endKey)} ${endKey.slice(0, 4)}</p>`;
     const box = el.querySelector('.bars'), bcs = [...box.children];
     bcs.forEach((b) => { const on = () => { bcs.forEach((x) => x.classList.toggle('h', x === b)); box.classList.add('hov'); };
@@ -450,7 +491,7 @@ export function mountReport(root, D, A, opts = {}) {
     const head = `<div class="rr rh${canEdit ? ' ed' : ''}" aria-hidden="true"><span>${ic('pin')}Area</span><span>${ic('home')}Benchmark price <em>· longer bar = higher price</em></span><span class="r">${ic('tag')}Price</span><span class="r">${ic('ud')}In 1 year</span>${canEdit ? '<span></span>' : ''}</div>`;
     el.innerHTML = head + list.map((r) => { const on = S.areas.includes(r.a);
       return `<${tag} class="rr${on ? ' on' : ''}${canEdit ? ' ed' : ''}${S.flash === r.a ? ' flash' : ''}" data-add="${esc(r.a)}"${canEdit ? ` aria-pressed="${on}" title="${on ? 'On your report. Tap to remove.' : 'Tap to add to the report'}"` : ''} style="${on ? `--ac2:${colour(r.a)}` : ''}"><span class="ma">${on ? dot(colour(r.a)) : '<i class="dt off"></i>'}${esc(r.a)}</span><span class="rb"><i style="width:${((r.price / max) * 100).toFixed(1)}%${on ? `;background:${colour(r.a)}` : ''}"></i></span><b class="n">${money(r.price)}</b>${arrow(r.yoy)}${canEdit ? `<span class="tk">${on ? '✓' : '+'}</span>` : ''}</${end}>`; }).join('')
-      + (rows.length > list.length || S.rankAll ? `<button type="button" class="more" data-more>${S.rankAll ? 'Show fewer' : `Show all ${rows.length} areas`}</button>` : '');
+      + (rows.length > list.length || S.rankAll ? `<button type="button" class="more" data-more>${S.rankAll ? 'Show fewer' : `Show all ${rows.length} cities`}</button>` : '');
     S.flash = null;
   };
   // A short message at the bottom of the screen, with an Undo.
@@ -469,15 +510,15 @@ export function mountReport(root, D, A, opts = {}) {
   const ALLIC = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg>';
   const EYE = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   const PIN = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
-  const allLabel = () => (S.areas.length === 2 ? 'Both areas' : `All ${S.areas.length} areas`);
+  const allLabel = () => (S.areas.length === 2 ? 'Both cities' : `All ${S.areas.length} cities`);
   function areaBar() {
     if (!canEdit && S.areas.length < 2) return '';
     const free = ALL.filter((a) => !S.areas.includes(a)), many = S.areas.length > 1, one = S.view === 'one' && many;
     const tabs = many ? `<button type="button" class="chip tabby aall${one ? '' : ' on'}" data-all aria-pressed="${!one}">${ALLIC}${allLabel()}</button>` : '';
     const say = !many ? '' : one ? `<p class="asay">${PIN}<span>Every section below is <b>about ${esc(S.focus)} only</b>. Tap <b>${allLabel()}</b> to compare.</span></p>`
-      : `<p class="asay">${EYE}<span>Every section below <b>compares ${S.areas.length === 2 ? `${esc(S.areas[0])} and ${esc(S.areas[1])}` : `all ${S.areas.length} areas`}</b>.</span></p>`;
+      : `<p class="asay">${EYE}<span>Every section below <b>compares ${S.areas.length === 2 ? `${esc(S.areas[0])} and ${esc(S.areas[1])}` : `all ${S.areas.length} cities`}</b>.</span></p>`;
     return `<div class="abar"><span class="al">Show me:</span><div class="chs">${tabs}${S.areas.map((a) => `<span class="chip${many ? ' tabby' : ''}${one && a === S.focus ? ' on' : ''}"${many ? ` data-focus="${esc(a)}" role="button" tabindex="0" aria-pressed="${one && a === S.focus}"` : ''}>${dot(colour(a))}${esc(a)}${canEdit && many ? `<button type="button" class="x" data-rm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}
-      ${canEdit && S.areas.length < MAX_AREAS && free.length ? `<label class="add">+ Add area<select data-id="add" aria-label="Add an area"><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}</div>${say}</div>`;
+      ${canEdit && S.areas.length < MAX_AREAS && free.length ? `<label class="add">+ Add city<select data-id="add" aria-label="Add a city"><option value="">Add a city</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}</div>${say}</div>`;
   }
   const NAME = Object.fromEntries(SECTIONS.map(([k, l]) => [k, l]));
   // Agent view: click a section to edit it (outlined, with an "Editing" tag); "+ Add a section" at the end.
@@ -534,8 +575,8 @@ export function mountReport(root, D, A, opts = {}) {
   function draw() {
     // Neighbourhoods follow the areas at the top, and the area tapped there when one area is picked ("Show me: <area>").
     HO?.sync(S.areas, S.view === 'one' && S.areas.length > 1 ? S.focus : null);
-    const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1).filter((k) => k !== 'hoods' || HO);
-    const head = sh.length === 1 ? `${esc(sh[0])} Market Report` : `Market Report: ${sh.length} areas`;
+    const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1).filter((k) => k !== 'hoods' || (HO && (!askMode() || L.clients.ask)));
+    const head = sh.length === 1 ? `${esc(sh[0])} Market Report` : `Market Report: ${sh.length} cities`;
     root.innerHTML = `<div class="bw"><header class="top"><div><h1>${head}</h1>${MO.list.length > 1 ? `<div class="mo-row"><button type="button" class="mo-btn" data-mopen aria-haspopup="dialog" aria-expanded="${!!S.moOpen}">${esc(D.month)}<i aria-hidden="true">▾</i></button><span class="sub">Source: Greater Vancouver REALTORS®</span>${S.moOpen ? monthPop() : ''}</div>` : `<p class="sub">${esc(D.month)} · Source: Greater Vancouver REALTORS®</p>`}</div>
       ${L.agentTop && A.name ? `<div class="agent">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><b>${esc(A.name)}</b><span>${esc([roleLabel(A), A.brokerage].filter(Boolean).join(' · '))}</span>${A.phone ? `<span>${esc(A.phone)}</span>` : ''}</div>${A.logo ? `<img class="lg" src="${esc(A.logo)}" alt="">` : ''}</div>` : ''}</header>
       ${oldLine()}${areaBar()}${rows(secs).map((r) => (r.length === 2 ? `<div class="pair" style="grid-template-columns:${PAIR[r[0]]}fr ${PAIR[r[1]]}fr">${sec(r[0])}${sec(r[1])}</div>` : sec(r[0]))).join('')}${ED ? addBox() : ''}
@@ -554,6 +595,7 @@ export function mountReport(root, D, A, opts = {}) {
     if (q('where')) { q('where').addEventListener('input', msg); msg(); }
   }
   root.onclick = (e) => {
+    if (e.target.closest('[data-ask]')) return openAsk();
     const t = e.target, b = (s) => t.closest(s);
     if (ED && b('[data-addsec]')) return opts.onAdd?.();
     if (ED && b('[data-drag]')) return;
@@ -572,9 +614,9 @@ export function mountReport(root, D, A, opts = {}) {
     if (b('[data-hide]')) { saveLayout({ sections: L.sections.filter((k) => k !== b('[data-hide]').dataset.hide) }); return draw(); }
     if (b('[data-show]')) { saveLayout({ sections: [...L.sections, b('[data-show]').dataset.show] }); draw(); return root.querySelector('.addsec')?.previousElementSibling?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     if (b('[data-add]') && canEdit) { const a = b('[data-add]').dataset.add, before = [...S.areas], undo = () => keepPlace('.cd-compare', () => setAreas(before));
-      if (S.areas.includes(a)) { if (S.areas.length < 2) return toast('Your report needs at least one area.');
+      if (S.areas.includes(a)) { if (S.areas.length < 2) return toast('Your report needs at least one city.');
         keepPlace('.cd-compare', () => setAreas(S.areas.filter((x) => x !== a))); return toast(`<b>${esc(a)}</b> removed from the report`, undo); }
-      if (S.areas.length >= MAX_AREAS) return toast(`You can compare up to ${MAX_AREAS} areas. Remove one first.`);
+      if (S.areas.length >= MAX_AREAS) return toast(`You can compare up to ${MAX_AREAS} cities. Remove one first.`);
       S.flash = a; keepPlace('.cd-compare', () => setAreas([...S.areas, a])); return toast(`✓ <b>${esc(a)}</b> added to the report`, undo); }
     if (b('[data-more]')) { S.rankAll = !S.rankAll; return C.rank(root.querySelector('[data-chart="rank"]')); }
     if (b('[data-tt]')) { S.tType = b('[data-tt]').dataset.tt; root.querySelectorAll('[data-tt]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.tt === S.tType)); return C.types(root.querySelector('[data-chart="types"]')); }

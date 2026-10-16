@@ -116,7 +116,7 @@ export function makeHoods(ctx) {
     const dot = `<i class="nb-cdot" style="background:${ctx.colour ? ctx.colour(c) : 'var(--ac)'}"></i>`;
     if (!H[c]) return `<button type="button" class="nb-cd nb-no" data-hno="${esc(c)}" aria-pressed="${S.note === c}"><b>${dot}${esc(c)}</b><span>ⓘ No neighbourhoods</span><span class="nb-cw">${c === 'Greater Vancouver' ? 'Whole region' : 'Whole area'}</span></button>`;
     const v = H[c][CITY]?.[S.type]?.[I[S.per]], mine = S.home && S.homeCity === c;
-    return `<button type="button" class="nb-cd" data-hcard="${esc(c)}" aria-pressed="${c === S.city}"><b>${dot}<span>${esc(c)}${mine ? ' <em class="nb-star" title="Your area is here">★</em>' : ''}</span></b>
+    return `<button type="button" class="nb-cd" data-hcard="${esc(c)}" aria-pressed="${c === S.city}"><b>${dot}<span>${esc(c)}${mine ? ' <em class="nb-star" title="Your neighbourhood is in this city">★</em>' : ''}</span></b>
       <span>${(() => { const k = hoodNames(D, c).filter((n) => row(n, c)).length; return `${k} neighbourhood${k === 1 ? '' : 's'}`; })()}</span><strong>${pc(v)}</strong>${bestIn(c)}</button>`;
   }
   function note() {
@@ -127,7 +127,7 @@ export function makeHoods(ctx) {
   function cards() {
     const cs = cardCities();
     if (cs.length < 2) return '';
-    const hint = S.fromTop ? `Showing ${esc(S.city)}, the area you picked at the top.` : `Showing ${esc(S.city)}. Tap another city to switch.`;
+    const hint = S.fromTop ? `Showing ${esc(S.city)}, the city you picked at the top.` : `Showing ${esc(S.city)}. Tap another city to switch.`;
     return `<div class="nb-cards" role="group" aria-label="Cities">${cs.map(cityCard).join('')}</div><p class="nb-hint">${hint} <span>${esc(tname()[0].toUpperCase() + tname().slice(1))}, change ${WHEN[S.per]}.</span></p>${note()}`;
   }
   // No area at the top has neighbourhoods (for example Greater Vancouver alone): the client chooses a city.
@@ -142,13 +142,13 @@ export function makeHoods(ctx) {
   /* ----- the client's own neighbourhood ----- */
   function pin() {
     if (!here()) return '';
-    return `<div class="nb-pin"><span class="nb-dot"></span><span>Your area: <b>${esc(S.home)}</b></span><button type="button" class="nb-lk" data-hchange>Change</button></div>`;
+    return `<div class="nb-pin"><span class="nb-dot"></span><span>Your neighbourhood: <b>${esc(S.home)}</b></span><button type="button" class="nb-lk" data-hchange>Change</button></div>`;
   }
   // Their own area is in another city: a slim bar keeps it in view. Tapping it goes back to their city.
   function away() {
     if (!S.home || here()) return '';
     const x = homeRow();
-    return `<button type="button" class="nb-away" data-hcard="${esc(S.homeCity)}"><span class="nb-sq">★</span><span class="nb-aw"><b>${esc(S.home)}</b>Your area · ${esc(S.homeCity)}</span>
+    return `<button type="button" class="nb-away" data-hcard="${esc(S.homeCity)}"><span class="nb-sq">★</span><span class="nb-aw"><b>${esc(S.home)}</b>Your neighbourhood · ${esc(S.homeCity)}</span>
       <span class="nb-ar">${x ? `<b>${short(x[I.p])}</b>${pc(x[I[S.per]])}` : ''}</span></button>`;
   }
   // "I'm just looking around" shrinks the picker to this slim bar, so they can still pick their own later.
@@ -213,7 +213,7 @@ export function makeHoods(ctx) {
     const g10 = win('y10', 'Grew more'), g1 = win('y1', 'Held up better');
     const col = (sel, x, w, cls) => `<div class="nb-cc ${cls}">${sel}<div class="nb-cp">${money(x[I.p])}</div>${PERIODS.map(([k, l]) => `<div class="nb-cr"><span>${l}</span><b>${pc(x[I[k]])}${k === 'y10' && w[0] ? `<em>${w[0]}</em>` : ''}${k === 'y1' && w[1] ? `<em>${w[1]}</em>` : ''}</b></div>`).join('')}</div>`;
     const diff = xb[I.p] - xa[I.p], bn = nameIn(b.c, b.h) + (b.h !== CITY && b.c !== S.homeCity ? ` (${b.c})` : '');
-    return `<div class="nb-blk" data-hcmpbox><h4>Your area vs ${esc(bn)}</h4><p class="sub">Pick any neighbourhood on either side, in any of these cities.</p>
+    return `<div class="nb-blk" data-hcmpbox><h4>Your neighbourhood vs ${esc(bn)}</h4><p class="sub">Pick any neighbourhood on either side, in any of these cities.</p>
       <div class="nb-cmp">${col(selA, xa, [g10[0], g1[0]], 'nb-me')}<span class="nb-vs">vs</span>${col(selB, xb, [g10[1], g1[1]], '')}</div>
       <p class="nb-line">The ${esc(tsing())} benchmark price in ${esc(bn)} is about <b>${money(round100(Math.abs(diff)))} ${diff < 0 ? 'less' : 'more'}</b> than in ${esc(S.home)}.</p></div>`;
   }
@@ -251,13 +251,13 @@ export function makeHoods(ctx) {
     const h = homeRow(), diff = h ? x[I.p] - h[I.p] : null, homeName = S.home + (S.homeCity !== c ? ` (${S.homeCity})` : '');
     let line = '';
     if (h && !mine) { const better1 = x[I.y1] != null && h[I.y1] != null ? x[I.y1] > h[I.y1] : null, more10 = x[I.y10] != null && h[I.y10] != null ? x[I.y10] > h[I.y10] : null;
-      line = `Compared with <b>your area</b>: about <b>${money(round100(Math.abs(diff)))} ${diff < 0 ? 'less' : 'more'}</b> than ${esc(homeName)}.${better1 == null ? '' : ` It ${better1 ? 'held its price better' : 'dropped more'} this year`}${more10 == null ? '.' : `${better1 == null ? ' It' : ', and'} grew ${more10 ? 'more' : 'less'} over 10 years.`}`; }
+      line = `Compared with <b>your neighbourhood</b>: about <b>${money(round100(Math.abs(diff)))} ${diff < 0 ? 'less' : 'more'}</b> than ${esc(homeName)}.${better1 == null ? '' : ` It ${better1 ? 'held its price better' : 'dropped more'} this year`}${more10 == null ? '.' : `${better1 == null ? ' It' : ', and'} grew ${more10 ? 'more' : 'less'} over 10 years.`}`; }
     const w = document.createElement('div'); w.className = 'nb-sheet bd'; w.style.cssText = ctx.vars || '';
     w.innerHTML = `<div class="nb-shade" data-hclose></div><div class="nb-card" role="dialog" aria-modal="true" aria-label="${esc(n)}"><button type="button" class="nb-grab" data-hclose aria-label="Close"></button>
-      <div class="nb-k">${mine ? 'Your area' : 'Taking a look'} · ${esc(c)} · ${esc(tlab())}</div><h3>${esc(n)}</h3><div class="nb-pv">${money(x[I.p])}</div>
+      <div class="nb-k">${mine ? 'Your neighbourhood' : 'Taking a look'} · ${esc(c)} · ${esc(tlab())}</div><h3>${esc(n)}</h3><div class="nb-pv">${money(x[I.p])}</div>
       ${PERIODS.map(([k, l]) => `<div class="nb-cr"><span>${l}</span>${pc(x[I[k]])}</div>`).join('')}
       ${line ? `<p class="nb-vsl">${line}</p>` : ''}
-      <div class="nb-btns">${h && !mine ? `<button type="button" class="nb-b p" data-hcmpwith="${esc(n)}">Compare with my area</button>` : ''}${!mine ? `<button type="button" class="nb-b${h ? '' : ' p'}" data-hhome="${esc(n)}">Make this my area</button>` : ''}<button type="button" class="nb-b" data-hclose>Close</button></div></div>`;
+      <div class="nb-btns">${h && !mine ? `<button type="button" class="nb-b p" data-hcmpwith="${esc(n)}">Compare with my neighbourhood</button>` : ''}${!mine ? `<button type="button" class="nb-b${h ? '' : ' p'}" data-hhome="${esc(n)}">Make this my neighbourhood</button>` : ''}<button type="button" class="nb-b" data-hclose>Close</button></div></div>`;
     document.body.appendChild(w); requestAnimationFrame(() => w.classList.add('in'));
     const close = () => { w.classList.remove('in'); S.peek = null; document.removeEventListener('keydown', esc1); setTimeout(() => w.remove(), 200); };
     const esc1 = (e) => e.key === 'Escape' && close(); document.addEventListener('keydown', esc1);

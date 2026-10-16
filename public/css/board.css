@@ -488,3 +488,34 @@ button.nb-li:hover{background:#f6f7fa}
   .bd .tl-show{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.bd .tl-show::-webkit-scrollbar{display:none}.bd .tl-show .chip{flex:none}
 }
 .bd .tl-show svg{width:15px;height:15px;display:inline-block;flex:none}.bd .tl-ic svg{width:18px;height:18px;display:block}
+
+/* S5 Ask about my neighbourhood: one blue invitation when clients can't pick their neighbourhood */
+.bd .nbask{background:linear-gradient(135deg,#1d4fbf,#2f6fe0);color:#fff;padding:24px}
+.bd .nbask h3{color:#fff;font-size:20px;line-height:1.3;margin:12px 0 6px;max-width:30ch}
+.bd .nbask p{margin:0 0 18px;font-size:15px;line-height:1.5;color:#fff;opacity:.93;max-width:52ch}
+.bd .nbask-ic{width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.18);display:grid;place-items:center;color:#fff}
+.bd .nbask-b{border:0;border-radius:12px;background:#fff;color:#1d4fbf;font:700 16px var(--bf);padding:14px 22px;cursor:pointer;width:100%;max-width:360px}
+.bd .nbask-b:hover{background:#eef3fc}
+.bd .nbask-ag{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:13px;color:#fff;opacity:.92}
+.bd .nbask-ag img{width:30px;height:30px;border-radius:50%;object-fit:cover}
+.nbask-sheet{position:fixed;inset:0;z-index:95;font-family:Inter,system-ui,sans-serif;color:#1b2430}
+.nbask-sheet *{box-sizing:border-box}
+.nbask-sheet .nbask-p{padding:10px 22px 24px;margin:0}
+.nbask-dim{position:absolute;inset:0;background:rgba(15,25,45,.4);animation:nbfade .2s}
+.nbask-p{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(480px,100%);background:#fff;border-radius:20px 20px 0 0;padding:10px 22px 22px;animation:nbup .25s ease-out;max-height:92vh;overflow:auto}
+@media (min-width:700px){.nbask-p{bottom:auto;top:50%;transform:translate(-50%,-50%);border-radius:20px;animation:nbfade .2s}}
+@keyframes nbup{from{transform:translate(-50%,40px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+@keyframes nbfade{from{opacity:0}to{opacity:1}}
+.nbask-grab{width:38px;height:5px;border-radius:3px;background:#d5dbe5;margin:0 auto 12px}
+.nbask-x{position:absolute;top:12px;right:14px;border:0;background:none;font-size:17px;color:#8a919c;cursor:pointer;width:32px;height:32px;border-radius:50%}
+.nbask-p h3{margin:0 0 4px;font-size:19px}.nbask-s{color:#55606e;font-size:14px;margin:0 0 12px}
+.nbask-p label{display:block;font-size:13.5px;font-weight:600;margin:12px 0 0}
+.nbask-p select,.nbask-p input{display:block;width:100%;margin-top:6px;border:1px solid #d5dbe5;border-radius:10px;padding:12px;font:16px Inter,system-ui,sans-serif;color:#1b2430;background:#fff}
+.nbask-p .nbask-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.nbask-err{color:#d6452f;font-size:13.5px;margin:10px 0 0;min-height:0}
+.nbask-go{margin-top:14px;width:100%;border:0;border-radius:12px;background:#1d4fbf;color:#fff;font:700 16px Inter,system-ui,sans-serif;padding:14px;cursor:pointer}.nbask-go:disabled{opacity:.6}
+.nbask-fine{font-size:12px;color:#6b7380;margin:10px 0 0;line-height:1.45}
+.nbask-ok{text-align:center;padding:18px 6px 4px}.nbask-ok h3{margin:0 0 8px}.nbask-ok p{color:#55606e;font-size:14.5px;line-height:1.5;margin:0 0 16px}
+.nbask-tick{width:54px;height:54px;border-radius:50%;background:#e8f5ee;color:#1a8f4e;display:grid;place-items:center;margin:0 auto 12px;font-size:26px}
+.nbask-open{display:block;border-radius:12px;background:#1d4fbf;color:#fff;font-weight:700;text-decoration:none;padding:13px;margin-bottom:8px}
+.nbask-done{border:0;background:none;color:#1d4fbf;font:600 15px Inter,system-ui,sans-serif;padding:10px;cursor:pointer}
