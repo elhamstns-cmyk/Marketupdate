@@ -57,11 +57,12 @@ test('Key numbers with several areas: titles on top of each column, one menu for
   const titles = await p.$$eval(`${S} .kn-tt`, (x) => x.map((e) => e.textContent.trim()));
   assert.deepEqual(titles, ['Benchmark price', 'Homes sold', 'Days on market', 'Homes for sale']);
   assert.match(await p.textContent(`${S} .kn-gh`), /Sold in September/i);
-  // Greater Vancouver comes first and shows numbers only; the cities have houses and bars.
+  // Greater Vancouver comes first.
   const names = await p.$$eval(`${S} .kn-an`, (x) => x.map((e) => e.textContent.trim()));
   assert.equal(names[0], 'Greater Vancouver');
-  assert.equal(await p.$$eval(`${S} .kn-gv .kn-hs, ${S} .kn-gv .kn-bar`, (x) => x.length), 0);
-  assert.ok(await p.$$eval(`${S} .kn-hs svg`, (x) => x.length) > 5, 'little houses are drawn');
+  // Numbers and changes only: no bars or little houses.
+  assert.equal(await p.$$eval(`${S} svg:not(.kn-i):not(.kn-tt svg)`, (x) => x.filter((e) => !e.closest('.kn-tt')).length), 0);
+  assert.equal(await p.$$eval(`${S} .kn-ln b`, (x) => x.length), 12);
   await p.selectOption('[data-sec="numbers"] select[data-nper]', 'm1');
   assert.match(await p.textContent('[data-sec="numbers"] .kn-since'), /Aug 2026/);
   await p.selectOption('[data-sec="numbers"] select[data-nper]', 'y5');
