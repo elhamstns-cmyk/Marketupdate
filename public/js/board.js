@@ -91,20 +91,43 @@ export function mountReport(root, D, A, opts = {}) {
         ${k('price', 'Benchmark price', o.price ? money(o.price) : '—', line(c.price, true), 'The price of a standard home here (MLS® HPI)', 'kn-p')}
         <div class="kn-pr"><span class="kn-tag">Sold in ${mon}</span>
           ${k('sold', 'Homes sold', o.sales != null ? N(o.sales) : '—', line(c.sales), `Sales that closed in ${mon}`)}
-          ${k('dom', 'Average days to sell', o.dom != null ? `${o.dom} days` : '—', o.dom == null ? none('not published') : c.dom == null ? `${miss()} ${pick('')}` : `${days(c.dom)} ${pick('since ')}`, 'How long those homes were listed before they sold')}</div>
+          ${k('dom', 'Average days on market', o.dom != null ? `${o.dom} days` : '—', o.dom == null ? none('not published') : c.dom == null ? `${miss()} ${pick('')}` : `${days(c.dom)} ${pick('since ')}`, 'How long those homes were listed before they sold')}</div>
         ${k('sale', 'Homes for sale', o.active != null ? N(o.active) : '—', line(c.active), `Listed at the end of ${mon}`, 'kn-f')}
       </div></section>`;
     }
-    const cell = (v) => (v == null ? none(old ? 'No number yet' : 'not published') : arrow(v));
-    const t = (ic, h, sub, cols, row, foot = '') => card('numbers', `<span class="kn-t">${knIc(ic)}${h}</span>`, sub,
-      `<table class="tb kn-tb"><thead><tr><th>Area</th>${cols.map((x) => `<th>${x}</th>`).join('')}</tr></thead><tbody>${sh.map((a) => `<tr><td><span class="ma">${dot(colour(a))}${esc(a)}</span></td>${row(all(a), chOf(a))}</tr>`).join('')}</tbody></table>${foot}`, '', true);
-    return `<div class="trio" data-sec="numbers">${[
-      t('price', 'Benchmark price', `The price of a standard home in ${mon}`, ['Price', `Change ${pick('since ')}`], (o, c) => `<td class="n">${o.price ? money(o.price) : '—'}</td><td>${c.price == null ? none('not published') : arrow(c.price)}</td>`),
-      t('sold', 'Homes sold', `Sold in ${mon}, and how long they took to sell`, ['Sold', 'Days to sell', `Change ${pick('since ')}`],
-        (o, c) => `<td class="n">${o.sales != null ? N(o.sales) : '—'}</td><td>${o.dom != null ? `${o.dom}${c.dom ? ` ${days(c.dom).replace(/ days?<\/span>$/, '</span>')}` : ''}` : none('—')}</td><td>${cell(c.sales)}</td>`,
-        `<p class="kn-foot">Days to sell: the small number is the change in days since ${since}.</p>`),
-      t('sale', 'Homes for sale', `Listed at the end of ${mon}`, ['For sale', `Change ${pick('since ')}`], (o, c) => `<td class="n">${o.active != null ? N(o.active) : '—'}</td><td>${cell(c.active)}</td>`),
-    ].join('')}</div>`;
+    // Several areas: one panel, a title on top of each column, one row per area with a small bar or little houses.
+    const pill = (v, tail = '%') => (v == null ? `<span class="kn-pl kn-na">${old ? 'No number yet' : 'not published'}</span>`
+      : `<span class="kn-pl ${v < 0 ? 'kn-dn' : v > 0 ? 'kn-up' : ''}"><i>${v < 0 ? '▼' : v > 0 ? '▲' : '●'}</i>${tail === '%' ? Math.abs(v).toFixed(1) + '%' : `${Math.abs(v)} day${Math.abs(v) === 1 ? '' : 's'}`}</span>`);
+    const GV = 'Greater Vancouver', rows = [...sh.filter((a) => a === GV), ...sh.filter((a) => a !== GV)];
+    const R1 = rows.map((a) => ({ a, gv: a === GV, o: all(a), c: chOf(a) })), cities = R1.filter((r) => !r.gv);
+    const max = (k) => Math.max(1, ...cities.map((r) => r.o[k] || 0));
+    // One house stands for 10, 20, 50 or 100 homes sold (100 to 1,000 for sale), so the longest row stays short.
+    const unit = (m, steps) => steps.find((x) => m / x <= 16) || steps[steps.length - 1];
+    const perS = unit(max('sales'), [10, 20, 50, 100, 200]), perA = unit(max('active'), [100, 200, 500, 1000, 2000]);
+    const H = 'M3 10.5 12 3l9 7.5V21H3z', home = (f) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${H}" fill="#dfe8f8"/>${f > 0 ? `<svg width="${(f * 24).toFixed(1)}" height="24" viewBox="0 0 ${(f * 24).toFixed(1)} 24"><path d="${H}" fill="#4f86e8"/></svg>` : ''}</svg>`;
+    const homes = (n, k) => { if (n == null) return ''; const full = Math.floor(n / k), part = (n % k) / k; return `<span class="kn-hs">${home(1).repeat(full)}${part > 0.05 ? home(part) : ''}</span>`; };
+    const bar = (v, m) => `<span class="kn-bar">${v ? `<span style="width:${Math.min(100, (v / m) * 100).toFixed(0)}%"></span>` : ''}</span>`;
+    const mP = max('price') * 1.12, mD = Math.max(60, max('dom') * 1.2);
+    const cols = [
+      ['price', 'Benchmark price', 'Price of a standard home', (r) => [bar(r.o.price, mP), r.o.price ? money(r.o.price) : '—', r.c.price == null ? `<span class="kn-pl kn-na">not published</span>` : pill(r.c.price)]],
+      ['sold', 'Homes sold', 'How many sold', (r) => [homes(r.o.sales, perS), r.o.sales != null ? N(r.o.sales) : '—', pill(r.c.sales)]],
+      ['dom', 'Days on market', 'Average, for homes sold', (r) => [bar(r.o.dom, mD), r.o.dom != null ? `${r.o.dom} days` : '—', r.o.dom == null ? `<span class="kn-pl kn-na">not published</span>` : pill(r.c.dom, 'd')]],
+      ['sale', 'Homes for sale', `At the end of ${mon}`, (r) => [homes(r.o.active, perA), r.o.active != null ? N(r.o.active) : '—', pill(r.c.active)]],
+    ];
+    const ttl = (ic, h, s2) => `<div class="kn-th"><span class="kn-tt">${knIc(ic)}${h}</span><span class="kn-ts">${s2}</span></div>`;
+    const name = (r) => `<span class="kn-an">${dot(colour(r.a))}${esc(r.a)}</span>`;
+    // Greater Vancouver is the whole region (about 20 times a city), so it shows numbers only.
+    const val = (r, f) => { const [vis, v, ch] = f(r); return `${r.gv ? '' : vis}<span class="kn-ln"><b>${v}</b>${ch}</span>`; };
+    const grid = `<div class="kn-g"><div class="kn-gs"></div><div class="kn-gs"></div><div class="kn-gh">Sold in ${mon}</div><div class="kn-gs"></div>
+      <div class="kn-th kn-ta"><span class="kn-ts">Area</span></div>${cols.map(([ic, h, s2]) => ttl(ic, h, s2)).join('')}
+      ${R1.map((r) => `<div class="kn-c${r.gv ? ' kn-gv' : ''}">${name(r)}</div>${cols.map((c) => `<div class="kn-c kn-sp${r.gv ? ' kn-gv' : ''}">${val(r, c[3])}</div>`).join('')}`).join('')}</div>`;
+    // On a phone each column becomes its own block, title on top.
+    const blocks = cols.map(([ic, h, s2, f]) => `<div class="kn-b">${ttl(ic, h, ic === 'sold' || ic === 'dom' ? `${s2}, ${mon}` : s2)}${R1.map((r) => { const [vis, v, ch] = f(r);
+      return `<div class="kn-br${r.gv ? ' kn-gv' : ''}">${name(r)}<span class="kn-ln"><b>${v}</b>${ch}</span>${r.gv ? '' : `<span class="kn-bv">${vis}</span>`}</div>`; }).join('')}</div>`).join('');
+    const key = `<p class="kn-key"><span>${home(1)} = ${perS} homes sold</span><span>${home(1)} = ${N(perA)} homes for sale</span>${R1.some((r) => r.gv) ? '<span>Greater Vancouver is the whole region, so it shows numbers only.</span>' : ''}</p>`;
+    const h = CF('numbers').title ? esc(CF('numbers').title) : 'Key numbers';
+    return `<section class="kn kn-m" data-sec="numbers"><div class="kn-mh"><h3 class="kn-h">${knIc('all')}${h}</h3><span class="kn-since">Every change is since ${pick('')}</span></div>
+      <div class="kn-pan">${grid}<div class="kn-bs">${blocks}</div>${key}</div></section>`;
   };
   R.trend = () => { const sh = areasFor('trend'), one = sh.length === 1;
     return card('trend', 'Benchmark price over 12 months', one ? `${esc(sh[0])}, MLS® HPI benchmark price` : `Change since ${mName(addM(endKey, -11))} ${addM(endKey, -11).slice(0, 4)}, so areas with very different prices are easy to compare`,

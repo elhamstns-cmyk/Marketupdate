@@ -40,10 +40,10 @@ test('the public report draws every default section, including Neighbourhoods', 
   assert.ok(await p.$('.nb-ask'), 'the neighbourhood picker shows');
 }));
 
-test('Key numbers: the "since" menu changes every change, and days to sell sits with homes sold', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
+test('Key numbers: the "since" menu changes every change, and days on market sits with homes sold', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
   const kc = () => p.$$eval('[data-sec="numbers"] .kc', (x) => x.map((e) => e.textContent.replace(/\s+/g, ' ').trim()));
   assert.match((await kc())[0], /since Sep 2025/);
-  assert.ok(await p.$('[data-sec="numbers"] .kn-pr .kpi:nth-of-type(2) .kl >> text=Average days to sell'), 'days to sell is next to homes sold');
+  assert.ok(await p.$('[data-sec="numbers"] .kn-pr .kpi:nth-of-type(2) .kl >> text=Average days on market'), 'days on market is next to homes sold');
   await p.selectOption('[data-sec="numbers"] select[data-nper] >> nth=1', 'm1');
   for (const t of await kc()) assert.match(t, /Aug 2026/);
   await p.selectOption('[data-sec="numbers"] select[data-nper] >> nth=0', 'y10');
@@ -52,11 +52,28 @@ test('Key numbers: the "since" menu changes every change, and days to sell sits 
   assert.match(t10[1], /No number yet for Sep 2016/);
 }));
 
-test('Key numbers with several areas: all three column titles follow the menu', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-south', async (p) => {
-  await p.selectOption('[data-sec="numbers"] select[data-nper] >> nth=0', 'y3');
-  const th = await p.$$eval('[data-sec="numbers"] th .kn-sel', (x) => x.map((e) => e.textContent.trim()));
-  assert.equal(th.length, 3, 'price, homes sold and homes for sale each have the menu'); for (const t of th) assert.match(t, /^since Sep 2023/);
+test('Key numbers with several areas: titles on top of each column, one menu for every change', { skip }, () => page('/r/demo?areas=greater-vancouver,maple-ridge,coquitlam', async (p) => {
+  const S = '[data-sec="numbers"] .kn-g';
+  const titles = await p.$$eval(`${S} .kn-tt`, (x) => x.map((e) => e.textContent.trim()));
+  assert.deepEqual(titles, ['Benchmark price', 'Homes sold', 'Days on market', 'Homes for sale']);
+  assert.match(await p.textContent(`${S} .kn-gh`), /Sold in September/i);
+  // Greater Vancouver comes first and shows numbers only; the cities have houses and bars.
+  const names = await p.$$eval(`${S} .kn-an`, (x) => x.map((e) => e.textContent.trim()));
+  assert.equal(names[0], 'Greater Vancouver');
+  assert.equal(await p.$$eval(`${S} .kn-gv .kn-hs, ${S} .kn-gv .kn-bar`, (x) => x.length), 0);
+  assert.ok(await p.$$eval(`${S} .kn-hs svg`, (x) => x.length) > 5, 'little houses are drawn');
+  await p.selectOption('[data-sec="numbers"] select[data-nper]', 'm1');
+  assert.match(await p.textContent('[data-sec="numbers"] .kn-since'), /Aug 2026/);
+  await p.selectOption('[data-sec="numbers"] select[data-nper]', 'y5');
+  assert.match(await p.textContent(S), /No number yet/);
 }));
+
+test('Key numbers with several areas on a phone: one block per number, nothing off the screen', { skip }, () => page('/r/demo?areas=greater-vancouver,maple-ridge,coquitlam', async (p) => {
+  assert.equal(await p.$eval('[data-sec="numbers"] .kn-g', (e) => getComputedStyle(e).display), 'none');
+  assert.equal(await p.$$eval('[data-sec="numbers"] .kn-b', (x) => x.length), 4);
+  const over = await p.$$eval('[data-sec="numbers"] .kn-b *', (x) => x.filter((e) => e.getBoundingClientRect().right > innerWidth + 1).length);
+  assert.equal(over, 0);
+}, { width: 390 }));
 
 test('adding a city adds a line to the 12-month chart', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-north', async (p) => {
   const legend = await p.$$eval('.cd-trend .leg span', (x) => x.map((e) => e.textContent));
