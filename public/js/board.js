@@ -426,12 +426,13 @@ export function mountReport(root, D, A, opts = {}) {
       <div class="sd-top"><div class="sd-leg">${cities.map((x) => `<span>${dot(x.c)}${esc(x.name)}</span>`).join('')}</div>
       <div class="seg" role="group" aria-label="Chart type"><button type="button" data-sv="bars" aria-pressed="${S.soldView === 'bars'}">Bars</button><button type="button" data-sv="lines" aria-pressed="${S.soldView === 'lines'}">Lines</button></div></div>
       <div class="sd-plot"></div><div class="ctip"></div>
-      <div class="sd-chg">${cities.map((x) => `<span>${dot(x.c)}<b>${x.now != null ? N(x.now) : '—'}</b> ${chg(x)}</span>`).join('')}<span class="sd-fl">vs ${ly}</span></div>
       ${(() => { const sh2 = cities.filter((x) => x.areas.length === 1 && !x.g.startsWith(x.name)); return sh2.length ? `<p class="yr">${sh2.map((x) => `${esc(x.name)} counts all of ${esc(label(x.g))}`).join('. ')}, as GVR reports it.</p>` : ''; })()}`;
     const plot = el.querySelector('.sd-plot'), tip = el.querySelector('.ctip'), W = plot.clientWidth || 600, H = narrow ? 200 : 220;
     const mx = Math.max(...cities.flatMap((x) => x.v.slice(from))) || 1;
-    // The tooltip: the month and every city's number, for the month tapped or hovered.
-    const show = (j, xPx) => { tip.innerHTML = `<b>${monthLong(ks[j])}</b>${cities.map((x) => `<span>${dot(x.c)}${esc(x.name)} ${N(x.v[from + j])} sold</span>`).join('')}`;
+    // The hover card: the month, then each city's homes sold and the change from the same month a year earlier.
+    const vs = (x, i) => { const p = x.lp[i]; return p == null ? '<em>no number a year ago</em>' : p === 0 ? '<em>same as a year ago</em>' : `<em class="${p < 0 ? 'tdn' : 'tup'}">${p < 0 ? '▼' : '▲'} ${Math.abs(p)}%</em>`; };
+    const show = (j, xPx) => { const i = from + j, k = ks[j];
+      tip.innerHTML = `<b>${monthLong(k)}</b>${cities.map((x) => `<span class="sd-tr">${dot(x.c)}<span>${esc(x.name)}</span><strong>${N(x.v[i])} sold</strong>${vs(x, i)}</span>`).join('')}<small>Change vs ${mName(addM(k, -12))} ${+k.slice(0, 4) - 1}</small>`;
       tip.style.top = plot.offsetTop + 'px'; tip.style.left = Math.max(0, Math.min(xPx > W / 2 ? xPx - tip.offsetWidth - 12 : xPx + 12, W - tip.offsetWidth)) + 'px'; tip.style.opacity = 1; };
     if (S.soldView === 'lines') {
       const step = niceStep(mx, 3), top = Math.ceil(mx / step) * step, l = 34, r = 48, t = 10, b = 24, X = (j) => l + (j * (W - l - r)) / Math.max(1, last), Y = (v) => t + (1 - v / top) * (H - t - b);

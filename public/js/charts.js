@@ -33,8 +33,10 @@ export function salesByArea(H, areas, types, end) {
   const all = Array.from({ length: 12 }, (_, i) => addM(end, i - 11));
   let i = all.length - 1; while (i >= 0 && areas.every((a) => sum(a.g, all[i]) != null)) i--;
   const keys = all.slice(i + 1);
-  const list = areas.map((a) => { const v = keys.map((k) => sum(a.g, k)), now = sum(a.g, end), ly = sum(a.g, addM(end, -12));
-    return { ...a, v, now, ly, pct: now != null && ly ? Math.round(((now - ly) / ly) * 100) : null }; });
+  // lv: the same month a year earlier for each shown month (null when GVR has no number), for the hover card.
+  const pc = (n, o) => (n != null && o ? Math.round(((n - o) / o) * 100) : null);
+  const list = areas.map((a) => { const v = keys.map((k) => sum(a.g, k)), lv = keys.map((k) => sum(a.g, addM(k, -12))), now = sum(a.g, end), ly = sum(a.g, addM(end, -12));
+    return { ...a, v, lv, lp: v.map((n, j) => pc(n, lv[j])), now, ly, pct: pc(now, ly) }; });
   return { keys, list };
 }
 const FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

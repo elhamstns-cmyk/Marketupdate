@@ -92,7 +92,10 @@ test('Homes sold with several areas: every city side by side, Greater Vancouver 
   assert.match(await p.textContent('.cd-sold .sd-gv'), /Greater Vancouver/);
   assert.match(await p.textContent('.cd-sold .sd-take'), /than last/);
   assert.equal(await p.$$eval('.cd-sold .sd-m', (x) => x[0].children.length), 3, 'one bar per city each month');
-  assert.equal(await p.$$eval('.cd-sold .sd-chg > span', (x) => x.length), 4, 'each city and "vs …"');
+  assert.equal(await p.$('.cd-sold .sd-chg'), null, 'no change row under the chart (it is in the hover card)');
+  await p.hover('.cd-sold .sd-m.now');
+  assert.equal(await p.$$eval('.cd-sold .ctip .sd-tr', (x) => x.length), 3, 'hover card: one line per city');
+  assert.match(await p.textContent('.cd-sold .ctip'), /sold[\s\S]*Change vs Sep 2025/);
   await p.click('.cd-sold [data-sv="lines"]');
   assert.equal(await p.$$eval('.cd-sold svg polyline', (x) => x.length), 3, 'one line per city');
 }));

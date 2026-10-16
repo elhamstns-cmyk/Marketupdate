@@ -20,6 +20,14 @@ test('each area gets its months, this month, the same month last year and the ch
   assert.deepEqual(list.map((x) => [x.now, x.ly, x.pct]), [[1709, 1862, -8], [141, 165, -15], [207, 267, -22], [46, 46, 0]]);
 });
 
+test('each shown month also gets the same month a year earlier and its change, for the hover card', () => {
+  const { keys, list } = salesByArea(H, AREAS, ['condo'], '2026-09');
+  const c = list[1], j = keys.indexOf('2026-09');
+  assert.equal(c.lv[j], 165); assert.equal(c.lp[j], -15);
+  assert.equal(c.lv[keys.indexOf('2026-01')], null, 'no number a year before the history starts');
+  assert.equal(c.lp[keys.indexOf('2026-01')], null);
+});
+
 test('months with a missing number are left out, keeping the run that ends this month', () => {
   const H2 = structuredClone(H); delete H2.sales.condo.Coquitlam['2025-12'];
   const { keys } = salesByArea(H2, AREAS, ['condo'], '2026-09');

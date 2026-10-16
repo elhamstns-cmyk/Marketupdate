@@ -105,6 +105,9 @@
 .bd .gl{stroke:var(--ln)}.bd .ax{font-size:10.5px;fill:var(--mut);opacity:.75}.bd .hx{stroke:var(--mut);stroke-dasharray:3 3}
 .bd .ctip{position:absolute;top:8px;pointer-events:none;opacity:0;transition:opacity .12s;background:var(--ink);color:var(--card);border-radius:8px;padding:7px 10px;font-size:12px;display:grid;gap:2px;white-space:nowrap;z-index:2;box-shadow:0 8px 24px rgba(0,0,0,.16)}
 .bd .ctip .dt{width:7px;height:7px;margin-right:6px}
+.bd .ctip .sd-tr{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:0 8px}.bd .ctip .sd-tr .dt{margin-right:-2px}
+.bd .ctip .sd-tr strong{font-weight:650;text-align:right}.bd .ctip .sd-tr em{font-style:normal;font-weight:650;min-width:44px;text-align:right}
+.bd .ctip em.tdn{color:#ff8a78}.bd .ctip em.tup{color:#5fd393}.bd .ctip small{opacity:.7;font-size:11px;margin-top:2px}
 
 /* market meters */
 .bd .mrow{display:grid;grid-template-columns:minmax(110px,150px) 1fr 70px;align-items:center;gap:14px;padding:9px 8px;margin:0 -8px;border-radius:9px;cursor:default;outline:0}
