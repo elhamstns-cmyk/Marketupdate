@@ -393,6 +393,7 @@ button.nb-li:hover{background:#f6f7fa}
 .bd .ty-h{font-size:12.5px;font-weight:600;color:var(--ink);padding-bottom:8px;border-bottom:1px solid var(--ln)}
 .bd .ty-h .ty-ch{text-align:right;line-height:1.3}.bd .ty-l{display:inline}.bd .ty-s{display:none}
 .bd .ty-ch .ty-l{display:block}
+.bd .ty-ch{display:flex;flex-direction:column;align-items:flex-end;gap:2px}.bd .ty-sel{font-size:13px}
 .bd .ty-list{display:grid}
 .bd .ty-r{padding:10px 0;border-bottom:1px solid var(--ln)}.bd .ty-r:last-child{border-bottom:0}
 .bd .ty-r.ty-gv{border-top:1px dashed var(--ln);border-bottom:0;margin-top:2px}

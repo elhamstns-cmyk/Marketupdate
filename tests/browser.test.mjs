@@ -79,7 +79,7 @@ test('Prices by home type, one city: a row per home type, a change column title 
   assert.equal(await p.$$eval('.cd-types .ty-r', (x) => x.length), 3);
   assert.equal(await p.$('.cd-types [data-tt]'), null, 'no home-type tabs for one city');
   assert.match(await p.textContent('.cd-types .ty-h'), /Change since/);
-  assert.match(await p.textContent('.cd-types .ty-story'), /less than a year ago/);
+  assert.match(await p.textContent('.cd-types .ty-story'), /less than in Sep 2025/);
   assert.ok(await p.$('.cd-types .ty-key'));
 }));
 
@@ -90,6 +90,17 @@ test('Prices by home type, several areas: tap a home type, cities by price, Grea
   assert.deepEqual(await names(), ['Port Moody', 'Burnaby North', 'Coquitlam', 'Greater Vancouver']);
   assert.match(await p.textContent('.cd-types .ty-story'), /condos/);
   assert.equal(await p.getAttribute('.cd-types [data-tt="condo"]', 'aria-pressed'), 'true');
+}));
+
+test('Prices by home type: the "Change since" menu changes every change, the sentence and the key', { skip }, () => page('/r/demo?areas=greater-vancouver,coquitlam,port-moody,burnaby-north', async (p) => {
+  assert.match(await p.textContent('.cd-types .ty-ch'), /Sep 2025/);
+  await p.selectOption('.cd-types [data-tper]', 'y10');
+  assert.match(await p.textContent('.cd-types .ty-ch'), /Sep 2016/);
+  assert.match(await p.textContent('.cd-types .ty-story'), /higher than in Sep 2016/);
+  assert.match(await p.textContent('.cd-types .ty-key'), /Sep 2016/);
+  assert.equal(await p.$$eval('.cd-types .ty-c.upv', (x) => x.length), 4, 'every area is up over 10 years');
+  await p.click('.cd-types [data-tt="condo"]');
+  assert.match(await p.textContent('.cd-types .ty-ch'), /Sep 2016/, 'the time stays when switching home type');
 }));
 
 test('a personal link opens on the client\'s neighbourhood', { skip }, () => page('/r/demo?p=x', async (p) => {

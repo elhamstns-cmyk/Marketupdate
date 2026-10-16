@@ -1,7 +1,7 @@
 // The interactive market report: a page of cards (sections) the agent chooses and orders.
 // mountReport(root, D, A, opts) draws it with the agent's branding (A) and layout (A.show).
 import { get, money, esc, slug, areasOf, themeVars, palette, mix, lum, phoneFmt, roleLabel, askCopy, first, sourceLine, market, monthKey, TN } from './report.js';
-import { salesGroup, salesByArea, soldStory, monthLong, typesStoryOne, typesStoryAreas, dollarChange, NUM_PERIODS, periodMonth, numbersChange } from './charts.js';
+import { salesGroup, salesByArea, soldStory, monthLong, typesStoryOne, typesStoryAreas, dollarChange, NUM_PERIODS, periodMonth, numbersChange, typeChange } from './charts.js';
 import { makeHoods } from './hoods.js';
 
 /* ---------- sections and layout ---------- */
@@ -54,7 +54,7 @@ export function mountReport(root, D, A, opts = {}) {
   let start = L.areas;
   if (opts.areas?.length) { const x = opts.areas.filter((a) => ALL.includes(a)); if (x.length) start = x.slice(0, MAX_AREAS); }
   else if (opts.area && ALL.includes(opts.area) && opts.area !== 'Greater Vancouver') start = L.areas.includes(opts.area) ? L.areas : [opts.area];
-  const S = { areas: [...start], focus: opts.area && start.includes(opts.area) ? opts.area : start[0], view: L.view, soldArea: null, soldView: 'bars', gType: 'composite', gYears: 2, tType: null, intent: null, nPer: 'y1' };
+  const S = { areas: [...start], focus: opts.area && start.includes(opts.area) ? opts.area : start[0], view: L.view, soldArea: null, soldView: 'bars', gType: 'composite', gYears: 2, tType: null, tPer: 'y1', intent: null, nPer: 'y1' };
   const canEdit = (ED || L.clientAreas) && ALL.length > 1;
   const XTRA = [], colour = (a) => { let i = S.areas.indexOf(a); if (i < 0) { if (!XTRA.includes(a)) XTRA.push(a); i = S.areas.length + XTRA.indexOf(a); } return COL[i % COL.length]; };
   const CF = (k) => L.conf[k] || {};
@@ -168,13 +168,16 @@ export function mountReport(root, D, A, opts = {}) {
   /* ----- charts, drawn after the cards are on the page ----- */
   const C = {};
   C.hoods = (el) => HO && HO.mount(el);
-  const pick = (o) => ({ price: o.price || null, yoy: o.yoy ?? null });
+  // S4 rows: today's price and the change over the time picked under "Change since" (S.tPer).
+  const pick = (a, t) => { const o = get(D, a, t), prev = o.prev || D.history?.price?.[t]?.[a]?.[addM(endKey, -1)] || null;
+    return { price: o.price || null, yoy: typeChange({ price: o.price, yoy: o.yoy, prev }, S.tPer, D.growth?.[t]?.[a]) }; };
   C.types = (el) => {
     const sh = areasFor('types'), TR = typesFor('types'), one = sh.length === 1, region = 'Greater Vancouver';
     // One row per home type (one area), or one row per area for the chosen home type.
-    let rows = one ? TR.map(([t, l]) => ({ ...pick(get(D, sh[0], t)), type: t, label: l, icon: house(t, 22) }))
-      : sh.map((a) => ({ ...pick(get(D, a, S.tType)), name: a, label: esc(a), icon: dot(colour(a)), gv: a === region && sh.length > 1 }));
-    const st = one ? typesStoryOne(rows) : typesStoryAreas(rows, S.tType, region);
+    let rows = one ? TR.map(([t, l]) => ({ ...pick(sh[0], t), type: t, label: l, icon: house(t, 22) }))
+      : sh.map((a) => ({ ...pick(a, S.tType), name: a, label: esc(a), icon: dot(colour(a)), gv: a === region && sh.length > 1 }));
+    const sinceM = periodMonth(endKey, S.tPer), when = `in ${sinceM}`;
+    const st = one ? typesStoryOne(rows, when) : typesStoryAreas(rows, S.tType, region, when, `since ${sinceM}`);
     if (!one) rows = [...rows.filter((x) => !x.gv && x.price).sort((a, b) => b.price - a.price), ...rows.filter((x) => !x.gv && !x.price), ...rows.filter((x) => x.gv)];
     const max = Math.max(...rows.map((x) => x.price || 0)) || 1;
     const chg = (x) => { if (!x.price) return '<span class="ty-c"></span>'; if (x.yoy == null) return '<span class="ty-c"><span class="na">no change published</span></span>';
@@ -182,11 +185,13 @@ export function mountReport(root, D, A, opts = {}) {
       return `<span class="ty-c ${cls}"><b><i>${x.yoy < 0 ? '▼' : x.yoy > 0 ? '▲' : '●'}</i>${Math.abs(x.yoy).toFixed(1)}%</b><span>${d ? `${money(Math.abs(d))} ${d < 0 ? 'less' : 'more'}` : 'about the same'}</span></span>`; };
     const row = (x) => `<div class="ty-r${x.gv ? ' ty-gv' : ''}"><span class="ty-n">${one ? `<span class="ty-i">${x.icon}</span>` : x.icon}${x.label}</span>
       <span class="ty-b">${x.price ? `<i style="width:${Math.max(8, (x.price / max) * 100).toFixed(1)}%"><b>${money(x.price)}</b></i>` : '<span class="na">Not enough sales to publish a price</span>'}</span>${chg(x)}</div>`;
-    const since = `Change since <span class="ty-l">${esc(lastYear)}</span><span class="ty-s">${esc(lastYear.slice(0, 3) + lastYear.slice(-5))}</span>`;
+    // The blue "Sep 2025 ⌄" words are a menu, the same as in Key numbers: picking another time changes every change in S4.
+    const since = `Change since<span class="kn-sel ty-sel">${sinceM}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      <select data-tper aria-label="Show the price change since">${NUM_PERIODS.map(([k, l]) => `<option value="${k}"${k === S.tPer ? ' selected' : ''}>${periodMonth(endKey, k)} (${l === 'last month' ? 'last month' : l + ' ago'})</option>`).join('')}</select></span>`;
     el.innerHTML = `${st.lead || st.rest ? `<p class="ty-story"><b>${esc(st.lead)}</b>${esc(st.rest)}</p>` : ''}
       <div class="ty-h"><span><span class="ty-l">${one ? 'Home type' : 'Area, highest price first'}</span><span class="ty-s">${one ? 'Home type' : 'Area'} · benchmark price today</span></span><span class="ty-l">Benchmark price today</span><span class="ty-ch">${since}</span></div>
       <div class="ty-list">${rows.map(row).join('')}</div>
-      <p class="ty-key"><span>Longer bar = higher price</span><span><b class="ch upv"><i>▲</i>green</b> = higher than a year ago</span><span><b class="ch dn"><i>▼</i>red</b> = lower than a year ago</span></p>`; };
+      <p class="ty-key"><span>Longer bar = higher price</span><span><b class="ch upv"><i>▲</i>green</b> = higher than ${when}</span><span><b class="ch dn"><i>▼</i>red</b> = lower than ${when}</span></p>`; };
 
   C.trend = (el) => {
     const sh = areasFor('trend'), one = sh.length === 1, keys = Array.from({ length: 12 }, (_, i) => addM(endKey, i - 11));
@@ -436,6 +441,7 @@ export function mountReport(root, D, A, opts = {}) {
     if (b('[data-id="copy"]')) { navigator.clipboard?.writeText(text()).then(() => { q('copy').textContent = 'Copied'; setTimeout(() => q('copy') && (q('copy').textContent = 'Copy message'), 1800); }).catch(() => {}); }
   };
   root.onchange = (e) => { if (e.target.matches('[data-nper]')) { S.nPer = e.target.value; return keepPlace('[data-sec="numbers"]', draw); }
+    if (e.target.matches('[data-tper]')) { S.tPer = e.target.value; return keepPlace('[data-sec="types"]', () => C.types(root.querySelector('[data-chart="types"]'))); }
     if (e.target.dataset.id === 'add' && e.target.value) setAreas([...S.areas, e.target.value], e.target.value); };
   root.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-focus]')) { e.preventDefault(); e.target.click(); } };
   draw();
