@@ -49,7 +49,7 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 **Ella's setup steps** (they unlock what is already built):
 
-- **Ask about my neighbourhood (October 16, pushed):** in Supabase, open **SQL Editor → New query**, paste everything in `supabase/neighbourhood-requests.sql`, and click **Run**. It adds one table (`hood_requests`). It is safe to run again, so if you already ran an earlier version, run the new one too. Until then, the Ask form shows "Something went wrong" to clients.
+- ✓ **Ask about my neighbourhood table:** Ella ran `supabase/neighbourhood-requests.sql` in Supabase on October 16. Nothing more to do.
 
 1. Nothing to upload: everything up to S2 Benchmark price over time (back to 2005, events, "Show me" row) is live on GitHub.
 2. In Supabase SQL Editor, run `new-database-tables.sql` (the personal links and views tables).
