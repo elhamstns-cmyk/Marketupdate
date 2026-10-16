@@ -191,12 +191,12 @@ export function makeHoods(ctx) {
     const vals = names.map((n) => row(n)[I[k]]), lo = Math.min(0, ...vals), hi = Math.max(0, ...vals), span = hi - lo || 1, z = (-lo / span) * 100;
     const bar = (v) => `<span class="nb-br">${v == null ? '' : `<i class="${v < 0 ? 'dn' : 'upv'}" style="left:${(v < 0 ? z + (v / span) * 100 : z).toFixed(1)}%;width:${((Math.abs(v) / span) * 100).toFixed(1)}%"></i>`}${lo < 0 && hi > 0 ? `<b class="nb-zero" style="left:${z.toFixed(1)}%"></b>` : ''}</span>`;
     const item = (n) => { const x = row(n), me = here() && n === S.home;
-      return `<button type="button" class="nb-li${me ? ' nb-me' : ''}" data-hpeek="${esc(n)}"><span class="nb-ln">${me ? '★ ' : ''}${esc(n)}<small>Price today ${short(x[I.p])}</small></span><span class="nb-pr">${short(x[I.p])}</span>${pc(x[I[k]])}${bar(x[I[k]])}</button>`; };
+      return `<button type="button" class="nb-li${me ? ' nb-me' : ''}" data-hpeek="${esc(n)}"><span class="nb-ln">${me ? '★ ' : ''}${esc(n)}<small>Benchmark price ${short(x[I.p])}</small></span><span class="nb-pr">${short(x[I.p])}</span>${pc(x[I[k]])}${bar(x[I[k]])}</button>`; };
     const list = S.rankAll || names.length <= 12 ? names : names.filter((n, i) => i < 10 || (here() && n === S.home));
     const html = list.map(item).join('');
     // Column titles, so every number and bar says what it is.
     const shortWhen = { sj: 'since Jan', y1: 'in 1 yr', y3: 'in 3 yrs', y5: 'in 5 yrs', y10: 'in 10 yrs' }[k];
-    return `<div class="nb-lh" aria-hidden="true"><span class="nb-ln">Neighbourhood<span class="nb-short"> · price today</span></span><span class="nb-pr">Typical price today</span><span class="nb-bh">How much prices changed ${WHEN[k]}</span><span class="nb-vh"><span class="nb-long">Change</span><span class="nb-short">Change ${shortWhen}</span></span></div>
+    return `<div class="nb-lh" aria-hidden="true"><span class="nb-ln">Neighbourhood<span class="nb-short"> · benchmark price</span></span><span class="nb-pr">Benchmark price today</span><span class="nb-bh">How much prices changed ${WHEN[k]}</span><span class="nb-vh"><span class="nb-long">Change</span><span class="nb-short">Change ${shortWhen}</span></span></div>
       <div class="nb-list">${html}</div>${names.length > list.length || S.rankAll ? `<button type="button" class="nb-more" data-hmore>${S.rankAll ? 'Show fewer' : `Show all ${names.length} neighbourhoods`}</button>` : ''}`;
   }
 

@@ -211,7 +211,7 @@ for (const path of ['/', '/plans', '/privacy', '/terms']) {
 
 test('the neighbourhood list says what its numbers and bars mean', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
   await p.click('[data-hbrowse]');
-  assert.match(await p.textContent('.nb-lh'), /Typical price today/);
+  assert.match(await p.textContent('.nb-lh'), /Benchmark price today/);
   assert.match(await p.textContent('.nb-lh'), /How much prices changed in 5 years/);
   assert.equal(await p.$('.nb-key2'), null, 'no key line above the list');
   await p.click('[data-hper="y10"]');
