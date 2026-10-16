@@ -48,10 +48,10 @@ test('Key numbers: the "since" menu changes every change, and days to sell sits 
   assert.match(t10[1], /No number yet for Sep 2016/);
 }));
 
-test('Key numbers with several areas: the column title follows the menu', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-south', async (p) => {
+test('Key numbers with several areas: all three column titles follow the menu', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-south', async (p) => {
   await p.selectOption('[data-sec="numbers"] select[data-nper] >> nth=0', 'y3');
   const th = await p.$$eval('[data-sec="numbers"] th .kn-sel', (x) => x.map((e) => e.textContent.trim()));
-  assert.equal(th.length, 2); for (const t of th) assert.match(t, /^since Sep 2023/);
+  assert.equal(th.length, 3, 'price, homes sold and homes for sale each have the menu'); for (const t of th) assert.match(t, /^since Sep 2023/);
 }));
 
 test('adding a city adds a line to the 12-month chart', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-north', async (p) => {
