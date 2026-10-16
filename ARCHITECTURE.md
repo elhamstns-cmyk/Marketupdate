@@ -86,7 +86,7 @@ scripts/hoods-from-gvr.py   Adds "hoods" (neighbourhood prices) from the HPI Ben
 scripts/gvr-neighbourhoods.json  GVR area code → neighbourhood names (which city each belongs to).
 scripts/stripe-setup.mjs    Creates Stripe products/prices once.
 supabase/schema.sql         All tables (append-only migrations; run in the Supabase SQL editor).
-public/index.html           First page + sign-up, white and blue. Draws the real report (mountReport, embedded) as its preview.
+public/index.html           First page + sign-up, white and blue. A phone picture of the report built from this month's numbers (get(), D.history.long), sample cards, lp- classes only.
 public/app.html             Create page shell → /js/app.js
 public/report.html          Public report → mountReport() from /js/board.js
 public/print.html           PDF/print layout of the report

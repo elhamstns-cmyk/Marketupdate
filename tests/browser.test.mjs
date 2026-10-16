@@ -248,11 +248,15 @@ for (const width of [390, 1280]) test(`D2: the Share menu opens fully on screen 
   const r = await p.$eval('.shmenu', (m) => { const x = m.getBoundingClientRect(); return { l: x.left, r: x.right, vw: document.documentElement.clientWidth }; });
   assert.ok(r.l >= 0 && r.r <= r.vw, `menu runs from ${Math.round(r.l)} to ${Math.round(r.r)} on a ${r.vw}px screen`);
 }, { width, setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));
-test('the first page shows the logo, this month\'s real report and three sample reports', { skip }, () => page('/', async (p) => {
+test('the first page shows the logo, this month\'s real numbers, the price line and three sample reports', { skip }, () => page('/', async (p) => {
   assert.ok(await p.$('.nav .dot'), 'logo in the top menu');
   assert.match(await p.textContent('#pill'), /report is ready/);
-  assert.ok(await p.$('#prev.bd [data-sec="numbers"] .kpi'), 'the real report is drawn in the preview');
-  assert.equal((await p.$$('#gal .lp-card')).length, 3);
+  assert.equal((await p.$$('#tiles .lp-tile')).length, 4, 'this month\'s key numbers in the phone picture');
+  assert.match(await p.textContent('#tiles'), /\$1,0\d\d,\d{3}/);
+  assert.ok(await p.$('#chart svg path'), 'the 5-year price line is drawn');
+  assert.match(await p.textContent('#chart'), /Highest \$[\d.]+M/);
+  assert.equal((await p.$$('#gal .lp-sc')).length, 3);
+  assert.match(await p.textContent('#endh'), /^Get \w+'s report/);
   assert.ok(await p.$('#f #email') && await p.$('#consent'), 'sign-up form is there');
 }, { width: 390 }));
 

@@ -216,7 +216,7 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 
 | Name | What it is | Code |
 |---|---|---|
-| P1 First page | Before logging in. P1.1 top menu, P1.2 sign-up box with the real report preview, P1.3 sample reports, P1.4 ready to share (3 steps), P1.5 footer | `public/index.html` |
+| P1 First page | Before logging in (`docs/p1-first-page-ui.png`). P1.1 top menu, P1.2 hero: short headline, sign-up box and a phone picture of the report with an email and an Instagram post, P1.3 four ways to share, P1.4 how it works (3 steps), P1.5 sample reports, P1.6 closing band, P1.7 footer | `public/index.html` |
 | P2 Pricing page | "Pricing" in the top menu | `public/plans.html` |
 | P3 Sign up / Log in | Step 1 (Account) | `app.js → showLogin()`, `showVerify()`, `showForgot()` |
 | P4 Your report preview | Step 2: their details next to their report | `app.js → showPreview()` |
@@ -245,6 +245,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-16 | P1 First page | **Built and pushed (Ella: unclear, not attractive, too wordy).** New page (`docs/p1-first-page-ui.png`): headline "Your monthly market report, done for you." and one short line; "Start" instead of "Sign up"; ticks "From $19 a month · Cancel anytime"; consent shortened to "Send me tips by email (optional)". On the right a phone with the report (this month's four key numbers and a taller 5-year benchmark price line with the highest point and today's price), plus an email and an Instagram post; on a phone only the phone picture shows. New "One report. Four ways to share." (link, email, Instagram, PDF as small pictures) and "How it works" (3 steps, a few words each). Samples are now small report previews with each agent's photo, the price and the line, "Open Sarah's report →"; on a phone they swipe sideways (Ella said the old ones were ugly). Blue closing band "Get <next month>'s report with your name on it". Footer cut to one line. All numbers come from the live report, so the page updates itself each month. The embedded full report preview was removed. |
 | 2026-10-16 | S5 settings (D6) | Ella: too many things. Now three short groups: What your clients see (4 switches), It opens on (city, home type), Your clients (personal links). Removed "Neighbourhood shown first" and "Compare with" from the panel. Mockup `docs/s5-settings-ui.png`. Pushed. |
 | 2026-10-16 | S1 Key numbers | Removed "Sold in September" (the band over Homes sold and Days on market, and the one-area label): the column titles already say it. Numbers in the several-area table are softer (600 weight, ~15.5px) and changes are plain red/green arrows like the rest of the report, no filled pills (`docs/s1-softer-ui.png`). |
 | 2026-10-16 | S2 Benchmark price over time | **Built and pushed:** "Show me: All 3 areas · Coquitlam · …" row under the chart (option A, `docs/s2-areas-ui.png`). It changes this chart only and says so; tapping the area bar at the top takes over again. |
