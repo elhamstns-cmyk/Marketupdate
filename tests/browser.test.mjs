@@ -171,12 +171,16 @@ test('Greater Vancouver alone: clients choose a city', { skip }, () => page('/r/
 test('the Create page loads with the Sections panel and Neighbourhoods settings', { skip }, () => page('/app?plan=pro', async (p) => {
   const list = await p.$$eval('#dpanel [data-sk]', (x) => x.map((e) => e.dataset.sk));
   assert.ok(list.includes('hoods'));
-  // Tapping a row opens its settings right under it.
-  await p.click('#dpanel .srh[data-sk="hoods"] .tx'); await p.waitForTimeout(300);
-  assert.ok(await p.$('#dpanel .sr.open[data-li="hoods"] [data-hc="city"]'), 'city setting shows under the Neighbourhoods row');
-  // The numbers in the panel match the tags on the report.
-  const nums = (sel) => p.$$eval(sel, (x) => x.map((e) => e.textContent).join(','));
-  assert.equal(await nums('#dpanel .srl:not(.off) .th i'), await nums('#rp .dragh i'));
+  // First tap picks the section and scrolls the report to it; the second tap opens its settings page.
+  await p.click('#dpanel .ipsec[data-sk="hoods"] .ipn'); await p.waitForTimeout(500);
+  assert.ok(await p.$('#rp .sx.ed[data-k="hoods"]'), 'the section is picked on the report');
+  assert.equal(await p.$('[data-hc="city"]'), null, 'no settings yet after one tap');
+  await p.click('#dpanel .ipsec[data-sk="hoods"] .ipn'); await p.waitForTimeout(300);
+  assert.ok(await p.$('#dpanel [data-hc="city"]'), 'city setting shows on the second tap');
+  await p.click('#dpanel .ipback'); await p.waitForTimeout(200);
+  assert.ok(await p.$('#dpanel .ipsec[data-sk="hoods"].sel'), 'back to the list, with the section still picked');
+  // The report shows "Drag to move", not section names.
+  assert.match(await p.textContent('#rp .sx[data-k="hoods"] .dragh'), /Drag to move/);
 }, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));
 
 for (const width of [390, 1280]) test(`D2: the Share menu opens fully on screen (${width}px)`, { skip }, () => page('/app?plan=pro', async (p) => {
@@ -230,7 +234,7 @@ test('switching a section off does not make the page jump, and Undo brings it ba
   const top = () => p.evaluate((k) => document.querySelector(`#rp .sx[data-k="${k}"]`)?.getBoundingClientRect().top, k);
   const before = await top();
   // Switch off a section on screen above the one we watch: the one we watch may move up by that section's height, never jump far away.
-  await p.click('#dpanel .srh[data-sk="numbers"] .swl'); await p.waitForTimeout(1600);
+  await p.click('#dpanel .ipsec[data-sk="numbers"] .swl'); await p.waitForTimeout(1600);
   assert.equal(await p.$('#rp .sx[data-k="numbers"]'), null, 'the section is gone');
   assert.ok(Math.abs((await top()) - before) < 700, 'the page stayed in place');
   await p.click('.bdtoast button'); await p.waitForTimeout(1600);

@@ -315,25 +315,24 @@ const layoutName = () => { const a = layoutOf(agent(), D).areas; return a.length
 const shareText = (link) => { const n = layoutName(); return { url: link, subject: `${n} market update: ${D.month}`, short: `Here is the ${D.month} market update for ${n}: ${link}`, body: emailDraft(D, agent(), firstArea(), link).text }; };
 const avatar = () => (P.photo ? `<img src="${esc(P.photo)}" alt="">` : `<span class="ini">${esc((P.name || '?').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase())}</span>`);
 const SEC = Object.fromEntries(SECTIONS.map(([k, l, d]) => [k, { l, d }]));
-// Small pictures of each section, drawn like the real thing, so agents can tell the rows apart at a glance.
-const PB = '#4f86e8', PL = '#c9d6f2', PG = '#e6e8ee', PO = '#e8893a';
-const PIC = {
-  numbers: [6, 29, 52].map((x) => `<rect x="${x - 3}" y="8" width="20" height="30" rx="3" fill="#fff" stroke="${PG}"/><rect x="${x}" y="13" width="11" height="3" rx="1.5" fill="${PB}"/><rect x="${x}" y="21" width="14" height="2" rx="1" fill="${PL}"/><rect x="${x}" y="27" width="10" height="2" rx="1" fill="${PL}"/>`).join(''),
-  trend: `<path d="M5 12 L18 14 L28 24 L40 27 L52 26 L66 36" fill="none" stroke="${PB}" stroke-width="2.4" stroke-linecap="round"/><path d="M5 12 L18 15 L28 29 L40 31 L52 30 L66 41" fill="none" stroke="${PO}" stroke-width="2.4" stroke-linecap="round"/>`,
-  market: [15, 31].map((y) => `<rect x="6" y="${y}" width="20" height="4" rx="2" fill="#dbe6fb"/><rect x="26" y="${y}" width="20" height="4" rx="2" fill="#d9efe2"/><rect x="46" y="${y}" width="20" height="4" rx="2" fill="#f8dcd6"/>`).join('') + `<circle cx="22" cy="17" r="4" fill="${PB}" stroke="#fff" stroke-width="1.5"/><circle cx="24" cy="33" r="4" fill="${PO}" stroke="#fff" stroke-width="1.5"/>`,
-  types: [9, 21, 33].map((y) => `<path d="M6 ${y + 6} l5-5 5 5 v5 h-10z" fill="none" stroke="${PB}" stroke-width="1.6"/><rect x="22" y="${y + 3}" width="18" height="3" rx="1.5" fill="${PL}"/><rect x="50" y="${y + 3}" width="16" height="3" rx="1.5" fill="${PB}"/>`).join(''),
-  hoods: `<rect x="4" y="5" width="30" height="14" rx="3" fill="#fff" stroke="${PG}"/><rect x="38" y="5" width="30" height="14" rx="3" fill="#eef3fc" stroke="${PB}"/>` + [25, 32, 39].map((y, i) => `<rect x="6" y="${y}" width="16" height="3" rx="1.5" fill="${PL}"/><rect x="36" y="${y}" width="${[22, 15, 9][i]}" height="3" rx="1.5" fill="${i < 2 ? '#1a8f4e' : '#d6452f'}" opacity=".75"/>`).join(''),
-  growth: `<path d="M6 40h60" stroke="${PG}"/>` + [[12, 26], [32, 18], [52, 8]].map(([x, y]) => `<rect x="${x}" y="${y}" width="10" height="${40 - y}" rx="2" fill="${PB}"/>`).join(''),
-  summary: [10, 20, 30].map((y) => `<circle cx="9" cy="${y + 1.5}" r="2.4" fill="${PB}"/><rect x="16" y="${y}" width="${y === 30 ? 32 : 48}" height="3" rx="1.5" fill="${PL}"/>`).join(''),
-  sold: `<path d="M5 41h62" stroke="${PG}"/>` + [22, 16, 26, 12, 20, 8, 18, 14].map((y, i) => `<rect x="${7 + i * 7.6}" y="${y}" width="5" height="${41 - y}" rx="1.2" fill="${i === 7 ? PB : PL}"/>`).join(''),
-  compare: [10, 20, 30].map((y, i) => `<rect x="6" y="${y}" width="14" height="3" rx="1.5" fill="${PL}"/><rect x="24" y="${y}" width="${[40, 30, 20][i]}" height="5" rx="2.5" fill="${PB}" opacity="${1 - i * 0.25}"/>`).join(''),
-  contact: `<circle cx="15" cy="18" r="8" fill="${PL}"/><rect x="28" y="12" width="30" height="3" rx="1.5" fill="${PB}"/><rect x="28" y="19" width="22" height="3" rx="1.5" fill="${PL}"/><rect x="6" y="31" width="60" height="9" rx="3" fill="#fff" stroke="${PG}"/>`,
+// A small line icon for each section, like the icons in iPhone Settings.
+const SIC = {
+  numbers: '<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="16" rx="1.5"/><rect x="16" y="4" width="5" height="16" rx="1.5"/>',
+  trend: '<path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-6"/>',
+  market: '<path d="M4 18a8 8 0 0 1 16 0"/><path d="m12 18 4-5"/><circle cx="12" cy="18" r="1.4"/>',
+  types: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
+  hoods: '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  growth: '<path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+  summary: '<path d="M8 6h13M8 12h13M8 18h9"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
+  sold: '<path d="M3 21h18"/><rect x="5" y="11" width="3" height="7"/><rect x="10.5" y="6" width="3" height="12"/><rect x="16" y="9" width="3" height="9"/>',
+  compare: '<path d="M10 6h11M10 12h11M10 18h11"/><path d="M4 6h1v4M4 10h2M4 14h2l-2 4h2"/>',
+  contact: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
 };
-const pic = (k) => `<svg viewBox="0 0 72 46" width="66" height="42" aria-hidden="true">${PIC[k] || ''}</svg>`;
+const sic = (k) => `<span class="ipi" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SIC[k] || ''}</svg></span>`;
 const TYPE_NAME = { detached: 'Detached', townhome: 'Townhouse', condo: 'Condo' };
 const EYE = '<svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
-// Panel state: m 'list' or 'details'; k = the selected section; open = its settings are showing under its row.
-let PS = { m: 'list', k: null, open: false }, ZOOM = 0.85, IGS = null;
+// Panel state: m 'list', 'section' (one section's settings page) or 'details'; k = the selected section.
+let PS = { m: 'list', k: null }, ZOOM = 0.85, IGS = null;
 const cur = () => layoutOf(agent(), D);
 const snap = (L) => ({ sections: L.sections, known: SEC_IDS, areas: L.areas, agentTop: L.agentTop, clientAreas: L.clientAreas, view: L.view, conf: L.conf });
 const mode = () => (P.show?.mode === 'template' && P.show?.template ? 'template' : 'default');
@@ -348,7 +347,7 @@ const setConf = (k, patch) => { const c = { ...cur().conf }, x = { ...(c[k] || {
 function dashboard() {
   const pg = $('#page');
   if (!D) { pg.innerHTML = `<div class="c">${steps(4)}<h2>Your first report is on its way</h2><p class="lead">We will email you as soon as this month's report is published.</p></div>`; return; }
-  $('#subnav').hidden = true; PS = { m: P.name ? 'list' : 'details', k: null, open: false };
+  $('#subnav').hidden = true; PS = { m: P.name ? 'list' : 'details', k: null };
   const notes = [cfg.demo ? 'Preview mode: nothing is saved to a server and no payment is taken.' : '', noticeOk, qs.has('welcome') ? `You are subscribed${P.name ? ', ' + P.name.trim().split(/\s+/)[0] : ''}. Welcome aboard.` : ''].filter(Boolean);
   pg.innerHTML = `<div class="dbar"><div class="crumb"><button type="button" class="lk" data-go="history">Your reports</button><span>/</span><b>${esc(D.month)}</b><span class="ok small" id="saved"></span></div>
     <div class="dact"><span id="laysel"></span><span class="shwrap"><button type="button" class="btn sm ghost" id="sharebtn">${sv('share')}Share</button></span><button type="button" class="btn sm" id="pvbtn">${EYE}Preview</button>
@@ -390,7 +389,7 @@ function preview() {
   const rp = $('#rp'); if (!rp) return;
   mountReport(rp, D, agent(), { embedded: true, ...(isPro() ? { edit: (patch) => setLayout(patch, false), selected: PS.k,
     // Clicking a section on the report opens its settings in the panel.
-    onSelect: (k) => { PS = k ? { m: 'list', k, open: true } : { m: 'list', k: null, open: false }; drawPanel(); if (k) panelTo(k); },
+    onSelect: (k) => { PS = { m: PS.m === 'section' && k ? 'section' : 'list', k: k || null }; drawPanel(); if (k && PS.m === 'list') panelTo(k); },
     onAdd: showAddable, onRemove: (k) => removeSec(k) } : {}) });
   rp.style.zoom = ZOOM;
 }
@@ -435,7 +434,7 @@ function removeSec(k) {
   // If the section is off screen, glide to it first so the agent sees it go.
   reveal(sx).then(() => Promise.all([li && slideOut(li, 260), sx && (inPair ? sx.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateX(40px)' }], { duration: goneMs() * 360, easing: 'ease-in', fill: 'forwards' }).finished : slideOut(sx, 380))])
     ).catch(() => {}).then(() => {
-      holdPlace(() => { if (PS.k === k) PS = { m: 'list', k: null, open: false }; setLayout({ sections: before.filter((x) => x !== k) }); }, k);
+      holdPlace(() => { if (PS.k === k) PS = { m: 'list', k: null }; setLayout({ sections: before.filter((x) => x !== k) }); }, k);
       BUSY = false; undoToast(`<b>${esc(nm)}</b> was taken off your report`, () => { holdPlace(() => setLayout({ sections: before })); slideIn(k); });
     });
 }
@@ -451,12 +450,12 @@ function slideIn(k) {
 }
 function addSec(k) {
   const L = cur(); if (BUSY || L.sections.includes(k)) return;
-  holdPlace(() => { PS = { m: 'list', k, open: false }; setLayout({ sections: [...L.sections, k] }); });
+  holdPlace(() => { PS = { m: 'list', k }; setLayout({ sections: [...L.sections, k] }); });
   document.querySelector('.bdtoast')?.remove(); slideIn(k); alertMsg('Added to the end of your report. Drag its tag to move it.');
 }
 // "+ Add a section" on the report: show the sections that can be added, in the panel.
-function showAddable() { PS = { m: 'list', k: PS.k, open: false }; drawPanel(); const g = $('#canadd');
-  if (!g) return alertMsg('Every section is already on your report.'); panelTo(null, '#canadd'); g.parentElement.querySelectorAll('.srl.off .sr').forEach((x) => pulse(x)); }
+function showAddable() { PS = { m: 'list', k: PS.k }; drawPanel(); const g = $('#canadd');
+  if (!g) return alertMsg('Every section is already on your report.'); panelTo(null, '#canadd'); document.querySelectorAll('#canadd + .ipg .ipr').forEach((x) => pulse(x)); }
 function undoToast(msg, undo) { document.querySelector('.bdtoast')?.remove(); const t = document.createElement('div'); t.className = 'bdtoast'; t.setAttribute('role', 'status');
   t.innerHTML = `<span>${msg}</span><button type="button">Undo</button>`; document.body.appendChild(t);
   t.querySelector('button').onclick = () => { t.remove(); undo(); }; clearTimeout(undoToast.t); undoToast.t = setTimeout(() => t.remove(), 5000); }
@@ -480,28 +479,26 @@ function hoodsPanel(c, L) {
     <div class="grp3">For your clients</div><p class="hint">Each client gets their own link that opens on their neighbourhood.</p>
     <button type="button" class="btn wide ghost" data-plinks style="margin-top:8px">Personal links for clients</button>`;
 }
-// The settings for one section, shown under its row when it is open.
-function secSettings(k, L) {
-  const c = L.conf[k] || {}, i = L.sections.indexOf(k), titled = !['numbers', 'contact'].includes(k);
-  let what;
-  if (k === 'hoods') what = hoodsPanel(c, L);
-  else if (!USES_AREAS.includes(k)) what = `<p class="hint">${k === 'compare' ? 'This section always shows every area, ranked by benchmark price.' : 'Your photo, your details and a message box for clients. Change your details from the menu under your photo.'}</p>`;
+// One section's settings page (the second tap), laid out like an iPhone settings page.
+function secPage(k, L) {
+  const c = L.conf[k] || {}, i = L.sections.indexOf(k), titled = !['numbers', 'contact'].includes(k), g = (label, body, foot) => `${label ? `<div class="ipl">${label}</div>` : ''}<div class="ipg">${body}</div>${foot ? `<p class="ipf">${foot}</p>` : ''}`;
+  let what = '';
+  if (k === 'hoods') what = g('', `<div class="ipad">${hoodsPanel(c, L)}</div>`);
+  else if (!USES_AREAS.includes(k)) what = `<p class="ipf ipf0">${k === 'compare' ? 'This section always shows every area, ranked by benchmark price.' : 'Your photo, your details and a message box for clients. Change your details from the menu under your photo.'}</p>`;
   else { const own = !!c.areas, ar = c.areas || L.areas, free = areasOf(D).filter((a) => !ar.includes(a));
-    what = `<span class="lbl2">Areas in this section</span><div class="seg2"><button type="button" data-own="0" aria-pressed="${!own}">Same as the report</button><button type="button" data-own="1" aria-pressed="${own}">Choose</button></div>
+    what = g('Areas', `<div class="ipad"><div class="seg2"><button type="button" data-own="0" aria-pressed="${!own}">Same as the report</button><button type="button" data-own="1" aria-pressed="${own}">Choose</button></div>
       ${own ? `<div class="chips2">${ar.map((a) => `<span class="chip2">${esc(a)}${ar.length > 1 ? `<button type="button" data-arm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}</div>
-        ${ar.length < MAX_AREAS ? `<label class="addl">+ Add an area (up to ${MAX_AREAS})<select data-aadd><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}`
-      : `<p class="hint">Now: ${L.areas.map(esc).join(', ')}</p>`}
-      ${USES_TYPES.includes(k) ? `<span class="lbl2">Home types</span><div class="chips2">${TYPE_KEYS.map((t) => { const on = !c.types || c.types.includes(t); return `<button type="button" class="pill2${on ? ' on' : ''}" data-ty="${t}" aria-pressed="${on}">${on ? '✓ ' : ''}${TYPE_NAME[t]}</button>`; }).join('')}</div>` : ''}
-      <span class="lbl2">Compared with</span><div class="fake">Same month last year</div>`; }
-  const look = `${titled ? `<span class="lbl2">Title</span><input class="inp2" data-title value="${esc(c.title || '')}" placeholder="${esc(SEC[k].l)}">
-      ${tgl('data-cf="sub"', 'Show the line under the title', c.sub !== false)}` : '<p class="hint">This section uses its own titles.</p>'}
-    ${k === 'market' ? tgl('data-cf="note"', 'Show a one-line explanation', c.note !== false) : ''}
-    ${PAIRABLE.includes(k) ? `<span class="lbl2">Size</span><div class="seg2"><button type="button" data-sz="half" aria-pressed="${c.size !== 'full'}">Half width</button><button type="button" data-sz="full" aria-pressed="${c.size === 'full'}">Full width</button></div><p class="hint">Half width sits next to another half-width section.</p>` : ''}`;
-  return `<div class="srb"><div class="grp3">What it shows</div>${what}<div class="grp3">How it looks</div>${look}
-    ${k === 'hoods' ? '' : '<div class="okline">✓ Updates by itself every month</div>'}
-    <div class="srbot"><button type="button" data-mv="-1"${i ? '' : ' disabled'}>↑ Up</button><button type="button" data-mv="1"${i < L.sections.length - 1 ? '' : ' disabled'}>↓ Down</button><button type="button" class="red" data-hide${L.sections.length > 1 ? '' : ' disabled'}>Remove</button></div></div>`;
+        ${ar.length < MAX_AREAS ? `<label class="addl">+ Add an area (up to ${MAX_AREAS})<select data-aadd><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}` : ''}</div>`, own ? '' : `Now: ${L.areas.map(esc).join(' and ')}`)
+      + (USES_TYPES.includes(k) ? g('Home types', TYPE_KEYS.map((t) => { const on = !c.types || c.types.includes(t); return `<button type="button" class="ipr" data-ty="${t}" aria-pressed="${on}"><span class="ipn">${TYPE_NAME[t]}</span>${on ? '<span class="ipck" aria-hidden="true">✓</span>' : ''}</button>`; }).join('')) : ''); }
+  const look = titled ? g('Title', `<label class="ipr"><input class="ipin" data-title value="${esc(c.title || '')}" placeholder="${esc(SEC[k].l)}" aria-label="Title"></label>${iptg('data-cf="sub"', 'Line under the title', c.sub !== false)}${k === 'market' ? iptg('data-cf="note"', 'One-line explanation', c.note !== false) : ''}`) : '';
+  const size = PAIRABLE.includes(k) ? g('Size', `<div class="ipad"><div class="seg2"><button type="button" data-sz="half" aria-pressed="${c.size !== 'full'}">Half width</button><button type="button" data-sz="full" aria-pressed="${c.size === 'full'}">Full width</button></div></div>`, 'Half width sits next to another half-width section.') : '';
+  return `<button type="button" class="ipback" data-p="list">‹ Sections</button><h2 class="iph">${esc(c.title || SEC[k].l)}</h2><p class="ipsub">${esc(SEC[k].d)}. Updates by itself every month.</p>
+    ${what}${look}${size}${g('', `<button type="button" class="ipr ipb" data-mv="-1"${i ? '' : ' disabled'}>Move up</button><button type="button" class="ipr ipb" data-mv="1"${i < L.sections.length - 1 ? '' : ' disabled'}>Move down</button>`)}
+    ${g('', `<button type="button" class="ipr ipred" data-hide${L.sections.length > 1 ? '' : ' disabled'}>Remove from report</button>`)}`;
 }
-const count = (n) => `${n} section${n === 1 ? '' : 's'}`;
+// An iPhone-style switch row.
+const iptg = (attr, l, on) => `<label class="ipr"><span class="ipn">${l}</span><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>`;
+let LASTM = 'list';
 function drawPanel() {
   const el = $('#dpanel'); if (!el) return; const L = cur(), pro = isPro(), keep = el.querySelector('.pbody')?.scrollTop || 0;
   $('#rp')?._select?.(PS.m === 'list' ? PS.k : null); $('#rp')?._adding?.(false);
@@ -517,39 +514,39 @@ function drawPanel() {
   } else if (!pro) {
     body = `${head('Sections')}<div class="lockbox"><span>With Pro you choose your areas and sections, move them around, and save your own template.</span><button type="button" class="btn sm" id="up4">Upgrade to Pro</button></div>`;
   } else {
-    if (PS.m !== 'list') PS = { m: 'list', k: PS.k, open: false };
-    if (!L.sections.includes(PS.k)) PS.open = false;
-    // Numbers match the tags on the report (sections the report can't show this month get none).
-    const vis = L.sections.filter((k) => (k !== 'growth' || D.growth) && (k !== 'hoods' || D.hoods)), off = SECTIONS.filter(([k]) => !L.sections.includes(k) && (k !== 'growth' || D.growth));
-    const row = (k) => { const n = vis.indexOf(k) + 1, open = PS.k === k && PS.open, nm = esc(L.conf[k]?.title || SEC[k].l);
-      return `<li class="sr${PS.k === k ? ' sel' : ''}${open ? ' open' : ''}" data-li="${k}"><div class="srh" draggable="true" data-sk="${k}" role="button" tabindex="0" aria-expanded="${open}" title="Tap to see its settings. Drag to move it.">
-        <span class="th">${n ? `<i>${n}</i>` : ''}${pic(k)}</span><span class="tx"><b>${nm}</b><small>${esc(SEC[k].d)}</small></span>
-        <label class="swl" title="Show on your report"><input type="checkbox" data-on="${k}" checked${L.sections.length > 1 ? '' : ' disabled'} aria-label="Show ${nm} on your report"><span class="sw2" aria-hidden="true"></span></label><span class="chev" aria-hidden="true"></span></div>${open ? secSettings(k, L) : ''}</li>`; };
-    body = `${head('Sections')}<p class="hint">Tap a section to see its settings. The numbers match the tags on your report. Drag a row to move it.</p>
-      <div class="grp">On your report <span>${count(L.sections.length)}</span></div><ol class="srl">${L.sections.map(row).join('')}</ol>
-      ${off.length ? `<div class="grp" id="canadd">You can add <span>${count(off.length)}</span></div><ol class="srl off">${off.map(([k, l, d]) => `<li class="sr" data-li="${k}"><div class="srh"><span class="th">${pic(k)}</span><span class="tx"><b>${esc(l)}</b><small>${esc(d)}</small></span><button type="button" class="addb" data-addk="${k}">+ Add</button></div></li>`).join('')}</ol>` : ''}
-      <div class="wbox"><div class="wh">Whole report</div>${L.areas.length > 1 ? `<span class="lbl2">When clients open the report, show</span><div class="seg2" style="margin-bottom:4px"><button type="button" data-vw="side" aria-pressed="${L.view === 'side'}">All areas together</button><button type="button" data-vw="one" aria-pressed="${L.view === 'one'}">The first area</button></div>` : ''}
-      ${tgl('data-lt="agentTop"', 'Show my name and photo at the top', L.agentTop)}${tgl('data-lt="clientAreas"', 'Clients can add or remove areas', L.clientAreas)}</div>`;
+    if (PS.m === 'section' && !L.sections.includes(PS.k)) PS = { m: 'list', k: null };
+    const off = SECTIONS.filter(([k]) => !L.sections.includes(k) && (k !== 'growth' || D.growth));
+    // First tap picks a section and scrolls the report to it; a second tap (or the ›) opens its settings page.
+    const row = (k) => { const nm = esc(L.conf[k]?.title || SEC[k].l);
+      return `<div class="ipr ipsec${PS.k === k ? ' sel' : ''}" draggable="true" data-sk="${k}" data-li="${k}" role="button" tabindex="0" title="Tap to find it on your report. Tap again for its settings. Drag to move it.">${sic(k)}<span class="ipn">${nm}</span>
+        <label class="swl" title="Show on your report"><input type="checkbox" data-on="${k}" checked${L.sections.length > 1 ? '' : ' disabled'} aria-label="Show ${nm} on your report"><span class="sw2" aria-hidden="true"></span></label><button type="button" class="ipgo" data-go2="${k}" aria-label="Settings for ${nm}">›</button></div>`; };
+    body = PS.m === 'section' ? secPage(PS.k, L) : `<h2 class="iph">Sections</h2><p class="ipsub">Tap a section to find it on your report. Tap it again for its settings.</p>
+      <div class="ipl">On your report</div><div class="ipg">${L.sections.map(row).join('')}</div>
+      ${off.length ? `<div class="ipl" id="canadd">More sections</div><div class="ipg">${off.map(([k, l]) => `<div class="ipr" data-li="${k}">${sic(k)}<span class="ipn">${esc(l)}</span><button type="button" class="ipadd" data-addk="${k}">Add</button></div>`).join('')}</div>` : ''}
+      <div class="ipl">Whole report</div><div class="ipg">${L.areas.length > 1 ? `<div class="ipad"><span class="ipn">When clients open it, show</span><div class="seg2"><button type="button" data-vw="side" aria-pressed="${L.view === 'side'}">All areas</button><button type="button" data-vw="one" aria-pressed="${L.view === 'one'}">The first area</button></div></div>` : ''}
+      ${iptg('data-lt="agentTop"', 'My name and photo at the top', L.agentTop)}${iptg('data-lt="clientAreas"', 'Clients can add or remove areas', L.clientAreas)}</div>`;
   }
   if (pro && PS.m !== 'details') { const m = mode(), isDef = sameLayout(L, { ...DEFAULT_LAYOUT, areas: L.areas });
     foot = m === 'template' ? `<span class="st"><i class="ok"></i>Using your template. Changes save to it.</span>${isDef ? '' : '<button type="button" class="linkbtn" id="ltreset">Back to the default layout</button>'}`
       : `<span class="st"><i></i>${isDef ? 'Using the default layout' : 'You changed the default layout'}</span><button type="button" class="btn wide" id="savetpl">Save as my template</button><span class="small muted center">Every new month opens with your template.</span>${isDef ? '' : '<button type="button" class="linkbtn" id="ltreset">Back to the default layout</button>'}`; }
-  el.innerHTML = `<div class="pbody">${body}</div>${foot ? `<div class="pfoot">${foot}</div>` : ''}`;
+  el.innerHTML = `<div class="pbody${pro && PS.m !== 'details' ? ' ip' : ''}">${body}</div>${foot ? `<div class="pfoot">${foot}</div>` : ''}`;
   // Redrawing keeps the panel where it was scrolled to.
-  const pb = el.querySelector('.pbody'); if (pb) pb.scrollTop = keep;
+  const pb = el.querySelector('.pbody'); if (pb) pb.scrollTop = PS.m === LASTM ? keep : 0; LASTM = PS.m;
   if (PS.m === 'details') thumbs();
 }
-// Tap a row: open its settings (or close them), and show that section on the report.
-function toggleRow(k) { const open = !(PS.k === k && PS.open); PS = { m: 'list', k, open }; drawPanel(); selectSec(k, true); if (open) requestAnimationFrame(() => panelTo(k)); }
+// First tap: pick the section and scroll the report to it. Second tap on the same row: its settings page.
+function tapRow(k) { if (PS.m === 'list' && PS.k === k) return openPage(k); PS = { m: 'list', k }; selectSec(k, true); }
+function openPage(k) { PS = { m: 'section', k }; drawPanel(); selectSec(k, true); }
 // One set of listeners for the panel, whatever it is showing.
 function wirePanel() {
   const el = $('#dpanel'); if (!el || el._w) return; el._w = 1;
   el.addEventListener('click', (e) => { const t = e.target;
-    if (t.closest('.swl')) return; // the on/off switches are handled on change
+    if (t.closest('.swl') || (t.closest('label.ipr') && !t.closest('button'))) return; // switches are handled on change
     const b = t.closest('button');
-    if (!b) { const h = t.closest('.srh[data-sk]'); if (h) toggleRow(h.dataset.sk); return; }
+    if (!b) { const h = t.closest('.ipsec[data-sk]'); if (h && !t.closest('label')) tapRow(h.dataset.sk); return; }
     if (b.disabled) return; const d = b.dataset, L = cur(), k = PS.k;
-    if (d.p) { PS = { m: d.p, k: PS.k, open: PS.open }; return drawPanel(); }
+    if (d.p) { PS = { m: d.p, k: PS.k }; drawPanel(); if (d.p === 'list' && PS.k) panelTo(PS.k); return; }
+    if (d.go2) return openPage(d.go2);
     if (d.addk) return addSec(d.addk);
     if (d.sz) return setConf(k, { size: d.sz === 'full' ? 'full' : undefined });
     if (d.own) return setConf(k, { areas: d.own === '1' ? [...L.areas] : undefined });
@@ -578,7 +575,7 @@ function wirePanel() {
     if (t.dataset.k === 'phone') t.value = localPhone(t.value);
     const im = t.dataset.img; if (!im || !t.files[0]) return;
     try { const v = await pickImage(im, t.files[0]); if (v) { P[im] = v; touch(im); thumbs(); later(); } } catch (err) { alertMsg(err.message, true); } t.value = ''; });
-  el.addEventListener('keydown', (e) => { const h = e.target.closest?.('.srh[data-sk]'); if (h && e.target === h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleRow(h.dataset.sk); } });
+  el.addEventListener('keydown', (e) => { const h = e.target.closest?.('.ipsec[data-sk]'); if (h && e.target === h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); tapRow(h.dataset.sk); } });
   let tT; el.addEventListener('input', (e) => { const t = e.target;
     if (t.matches('[data-htext]')) { clearTimeout(tT); tT = setTimeout(() => setConf('hoods', { text: t.value.trim() || undefined }), 450); return; }
     if (t.matches('[data-title]')) { clearTimeout(tT); tT = setTimeout(() => setConf(PS.k, { title: t.value.trim() || undefined }), 350); return; }

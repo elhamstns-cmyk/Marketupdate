@@ -359,11 +359,8 @@ export function mountReport(root, D, A, opts = {}) {
   // Agent view: click a section to edit it (outlined, with an "Editing" tag); "+ Add a section" at the end.
   let SEL = opts.selected || null;
   const BIN = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
-  // Agent view: each section wears a tag with its number and name (the same number as in the Sections panel).
-  // The tag is also the handle to drag the section; when selected, a bin removes it.
-  let NUM = {};
-  function sec(k) { const h = R[k](); if (!ED) return h; const nm = esc(CF(k).title || NAME[k]);
-    return `<div class="sx${SEL === k ? ' ed' : ''}" data-k="${k}">${h}<button type="button" class="dragh" data-drag="${k}" title="Drag to move" aria-label="Section ${NUM[k]}: ${nm}. Drag to move it"><i>${NUM[k]}</i>${nm}</button><button type="button" class="bin" data-bin="${k}" title="Remove this section" aria-label="Remove ${nm}">${BIN}</button></div>`; }
+  // Agent view: each section has a "Drag to move" handle (shown on hover and when selected) and, when selected, a bin to remove it.
+  function sec(k) { const h = R[k](); return ED ? `<div class="sx${SEL === k ? ' ed' : ''}" data-k="${k}">${h}<button type="button" class="dragh" data-drag="${k}" aria-label="Drag ${NAME[k]} to move it">⠿ Drag to move</button><button type="button" class="bin" data-bin="${k}" title="Remove this section" aria-label="Remove ${NAME[k]}">${BIN}</button></div>` : h; }
   const addBox = () => `<button type="button" class="addsec2${opts.adding ? ' on' : ''}" data-addsec>+ Add a section</button>`;
   root._select = (k) => { SEL = k; root.querySelectorAll('.sx').forEach((x) => x.classList.toggle('ed', x.dataset.k === k)); };
   root._adding = (on) => root.querySelector('.addsec2')?.classList.toggle('on', !!on);
@@ -391,7 +388,6 @@ export function mountReport(root, D, A, opts = {}) {
     // Neighbourhoods follow the areas at the top, and the area tapped there when one area is picked ("Show me: <area>").
     HO?.sync(S.areas, S.view === 'one' && S.areas.length > 1 ? S.focus : null);
     const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1).filter((k) => k !== 'hoods' || HO);
-    NUM = Object.fromEntries(secs.map((k, i) => [k, i + 1]));
     const head = sh.length === 1 ? `${esc(sh[0])} Market Report` : `Market Report: ${sh.length} areas`;
     root.innerHTML = `<div class="bw"><header class="top"><div><h1>${head}</h1><p class="sub">${esc(D.month)} · Source: Greater Vancouver REALTORS®</p></div>
       ${L.agentTop && A.name ? `<div class="agent">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><b>${esc(A.name)}</b><span>${esc([roleLabel(A), A.brokerage].filter(Boolean).join(' · '))}</span>${A.phone ? `<span>${esc(A.phone)}</span>` : ''}</div>${A.logo ? `<img class="lg" src="${esc(A.logo)}" alt="">` : ''}</div>` : ''}</header>

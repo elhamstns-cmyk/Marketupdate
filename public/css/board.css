@@ -226,10 +226,8 @@
 @container (max-width:470px){.bd .mscale{display:none}.bd .mrow{grid-template-columns:minmax(80px,130px) 1fr 60px}}
 
 /* agent view: drag handle, bin, drop line */
-.bd .sx>.dragh{position:absolute;top:-13px;left:14px;z-index:4;display:flex;align-items:center;gap:6px;max-width:calc(100% - 28px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1.5px solid #c9d6f2;background:#fff;color:#1d4fbf;font:650 12px var(--bf);padding:3px 10px 3px 3px;border-radius:20px;cursor:grab;box-shadow:0 1px 3px rgba(20,40,90,.08);touch-action:none;transition:background .15s,color .15s,border-color .15s}
-.bd .sx>.dragh i{font-style:normal;flex:none;width:19px;height:19px;border-radius:50%;background:#1d4fbf;color:#fff;display:grid;place-items:center;font-size:11px}
-.bd .sx>.dragh:hover{border-color:#1d4fbf}
-.bd .sx.ed>.dragh{background:#1d4fbf;border-color:#1d4fbf;color:#fff}.bd .sx.ed>.dragh i{background:#fff;color:#1d4fbf}
+.bd .sx>.dragh{position:absolute;top:-13px;left:16px;z-index:4;border:0;background:#1d4fbf;color:#fff;font:650 11.5px var(--bf);padding:4px 9px;border-radius:6px;cursor:grab;opacity:0;transition:opacity .12s;touch-action:none}
+.bd .sx:hover>.dragh,.bd .sx.ed>.dragh{opacity:1}
 /* Stops below the top bar when the dashboard scrolls a section into view. */
 .bd .sx{scroll-margin-top:96px}
 /* A soft blue glow so agents see which section they just picked or added. */
