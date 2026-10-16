@@ -285,7 +285,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
   - Pinned "Your area" bar in their city, or the slim `.nb-away` bar in another city
   - Picker card (when no home is set). After "I'm just looking around" (`S.browse`, saved as `looking`) it shrinks to the `.nb-look` bar; `data-hreopen` opens it again with a ✕ (`S.reopen`, `data-hshrink`)
   - Hero, with the change in dollars and a spark line built from GVR's own % changes
-  - Every neighbourhood: one ranked list (`.nb-li`, block key `tiles`) with type and time buttons (`PERIODS`: sj, y1, y3, y5, y10; opens on y5). Neighbourhoods only, no city row. A key (`.nb-key2`) and column titles (`.nb-lh`) sit above it
+  - Every neighbourhood: one ranked list (`.nb-li`, block key `tiles`) with type and time buttons (`PERIODS`: sj, y1, y3, y5, y10; opens on y5). Neighbourhoods only, no city row. Column titles (`.nb-lh`) sit above it (no key line: Ella removed it)
   - Compare: the client's neighbourhood vs any neighbourhood or whole city in any card city
   - "You also looked at"
   - The agent's take: automatic text, `conf.text`, or off

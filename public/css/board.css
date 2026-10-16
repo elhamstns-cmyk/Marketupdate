@@ -359,9 +359,7 @@
 /* Every neighbourhood: one ranked list. */
 .bd .nb-hd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .bd .nb-hd .nb-ctl{gap:8px}
-/* The key and column titles above the list. */
-.bd .nb-key2{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;font-size:13px;color:#3d4653;margin:-4px 0 0}
-.bd .nb-key2 i{display:inline-block;width:24px;height:10px;border-radius:5px;margin-right:6px;vertical-align:-1px}.bd .nb-key2 i.upv{background:#8fd0aa}.bd .nb-key2 i.dn{background:#f2a493}
+/* Column titles above the list. */
 .bd .nb-lh{display:grid;grid-template-columns:minmax(170px,250px) 136px 1fr 84px;grid-template-areas:'n p b v';gap:0 14px;white-space:nowrap;font-size:12px;font-weight:700;color:var(--mut);padding:0 10px 8px;border-bottom:1px solid var(--ln);margin-bottom:-6px}
 .bd .nb-lh .nb-ln{font-size:12px;font-weight:700}.bd .nb-lh .nb-pr{grid-area:p;text-align:right;color:var(--mut);font-weight:700;font-size:12px}.bd .nb-bh{grid-area:b}.bd .nb-vh{grid-area:v;text-align:right}
 .bd .nb-pr{grid-area:p;text-align:right;font-weight:600;color:#3d4653;font-size:13.5px}

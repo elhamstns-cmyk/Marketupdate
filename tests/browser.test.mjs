@@ -209,7 +209,7 @@ test('the neighbourhood list says what its numbers and bars mean', { skip }, () 
   await p.click('[data-hbrowse]');
   assert.match(await p.textContent('.nb-lh'), /Typical price today/);
   assert.match(await p.textContent('.nb-lh'), /How much prices changed in 5 years/);
-  assert.match(await p.textContent('.nb-key2'), /Prices went up.*Prices went down.*longer bar/s);
+  assert.equal(await p.$('.nb-key2'), null, 'no key line above the list');
   await p.click('[data-hper="y10"]');
   assert.match(await p.textContent('.nb-lh'), /changed in 10 years/);
 }));

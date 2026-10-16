@@ -194,10 +194,9 @@ export function makeHoods(ctx) {
       return `<button type="button" class="nb-li${me ? ' nb-me' : ''}" data-hpeek="${esc(n)}"><span class="nb-ln">${me ? '★ ' : ''}${esc(n)}<small>Price today ${short(x[I.p])}</small></span><span class="nb-pr">${short(x[I.p])}</span>${pc(x[I[k]])}${bar(x[I[k]])}</button>`; };
     const list = S.rankAll || names.length <= 12 ? names : names.filter((n, i) => i < 10 || (here() && n === S.home));
     const html = list.map(item).join('');
-    // A key and column titles, so every number and bar says what it is.
+    // Column titles, so every number and bar says what it is.
     const shortWhen = { sj: 'since Jan', y1: 'in 1 yr', y3: 'in 3 yrs', y5: 'in 5 yrs', y10: 'in 10 yrs' }[k];
-    return `<div class="nb-key2"><span><i class="upv"></i>Prices went up</span><span><i class="dn"></i>Prices went down</span><span>A longer bar means a bigger change. Tap a neighbourhood to take a look.</span></div>
-      <div class="nb-lh" aria-hidden="true"><span class="nb-ln">Neighbourhood<span class="nb-short"> · price today</span></span><span class="nb-pr">Typical price today</span><span class="nb-bh">How much prices changed ${WHEN[k]}</span><span class="nb-vh"><span class="nb-long">Change</span><span class="nb-short">Change ${shortWhen}</span></span></div>
+    return `<div class="nb-lh" aria-hidden="true"><span class="nb-ln">Neighbourhood<span class="nb-short"> · price today</span></span><span class="nb-pr">Typical price today</span><span class="nb-bh">How much prices changed ${WHEN[k]}</span><span class="nb-vh"><span class="nb-long">Change</span><span class="nb-short">Change ${shortWhen}</span></span></div>
       <div class="nb-list">${html}</div>${names.length > list.length || S.rankAll ? `<button type="button" class="nb-more" data-hmore>${S.rankAll ? 'Show fewer' : `Show all ${names.length} neighbourhoods`}</button>` : ''}`;
   }
 
