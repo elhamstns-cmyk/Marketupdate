@@ -100,8 +100,8 @@ export function mountReport(root, D, A, opts = {}) {
       `<table class="tb kn-tb"><thead><tr><th>Area</th>${cols.map((x) => `<th>${x}</th>`).join('')}</tr></thead><tbody>${sh.map((a) => `<tr><td><span class="ma">${dot(colour(a))}${esc(a)}</span></td>${row(all(a), chOf(a))}</tr>`).join('')}</tbody></table>${foot}`, '', true);
     return `<div class="trio" data-sec="numbers">${[
       t('price', 'Benchmark price', `The price of a standard home in ${mon}`, ['Price', `Change ${pick('since ')}`], (o, c) => `<td class="n">${o.price ? money(o.price) : '—'}</td><td>${c.price == null ? none('not published') : arrow(c.price)}</td>`),
-      t('sold', 'Homes sold', `Sold in ${mon}, and how long they took to sell`, ['Sold', `Change ${pick('since ')}`, 'Days to sell'],
-        (o, c) => `<td class="n">${o.sales != null ? N(o.sales) : '—'}</td><td>${cell(c.sales)}</td><td>${o.dom != null ? `${o.dom}${c.dom ? ` ${days(c.dom).replace(/ days?<\/span>$/, '</span>')}` : ''}` : none('—')}</td>`,
+      t('sold', 'Homes sold', `Sold in ${mon}, and how long they took to sell`, ['Sold', 'Days to sell', `Change ${pick('since ')}`],
+        (o, c) => `<td class="n">${o.sales != null ? N(o.sales) : '—'}</td><td>${o.dom != null ? `${o.dom}${c.dom ? ` ${days(c.dom).replace(/ days?<\/span>$/, '</span>')}` : ''}` : none('—')}</td><td>${cell(c.sales)}</td>`,
         `<p class="kn-foot">Days to sell: the small number is the change in days since ${since}.</p>`),
       t('sale', 'Homes for sale', `Listed at the end of ${mon}`, ['For sale', `Change ${pick('since ')}`], (o, c) => `<td class="n">${o.active != null ? N(o.active) : '—'}</td><td>${cell(c.active)}</td>`),
     ].join('')}</div>`;
