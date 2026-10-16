@@ -360,3 +360,11 @@ test('P10/P11: tabs at the top, Save goes to Saved reports, Clients shows reques
   assert.match(await p.textContent('.cp'), /Asked about their neighbourhood/);
   assert.ok(await p.$('.cp .ca-tb'), 'client activity table');
 }, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); sessionStorage.setItem('mup_zoomtip', '1'); } }));
+
+test('P4 preview: on a computer, scrolling the left panel never moves the report', { skip }, () => page('/app?newuser=1', async (p) => {
+  const st = () => p.evaluate(() => ({ win: scrollY, rp: document.querySelector('#rp').scrollTop }));
+  await p.mouse.move(200, 600); for (let i = 0; i < 4; i++) { await p.mouse.wheel(0, 400); await p.waitForTimeout(120); }
+  assert.deepEqual(await st(), { win: 0, rp: 0 }, 'the report stayed put');
+  await p.mouse.move(800, 600); for (let i = 0; i < 4; i++) { await p.mouse.wheel(0, 400); await p.waitForTimeout(120); }
+  const s = await st(); assert.equal(s.win, 0); assert.ok(s.rp > 0, 'the report scrolls on its own');
+}));

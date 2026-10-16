@@ -175,6 +175,14 @@ input[type=text],input[type=email],input[type=tel],input[type=password],select,t
 .mine img{width:52px;height:52px;border-radius:50%;object-fit:cover;flex:none}.mine b{display:block}.mine span{font-size:.86rem;color:var(--mut)}.mine a{color:var(--p);font-weight:700}
 .note.warn{background:#fff6e5;border:1px solid #f0dcae}.note.warn a{color:var(--p);font-weight:700}
 @media (max-width:900px){.pvlay{grid-template-columns:1fr}.pvpanel{position:static}}
+/* on a computer the panel and the report each scroll on their own, so scrolling one never moves the other */
+@media (min-width:901px){
+  .pvlay{--pvh:calc(100vh - var(--pvtop,170px) - 20px);padding-bottom:20px}
+  .pvpanel{position:static;max-height:var(--pvh);overflow-y:auto;overscroll-behavior:contain}
+  .pvframe{height:var(--pvh);min-height:420px}
+  .pvframe>#rp{height:100%;overflow-y:auto;overscroll-behavior:contain}
+  .pvframe .wm{align-items:center}.pvframe .wm span{position:static;margin-top:0}
+}
 .pvsee{display:none;text-align:center;color:var(--p);font-weight:700;font-size:.92rem}
 @media (max-width:900px){.pvsee{display:block}.steps{font-size:.78rem;gap:6px}.steps i{width:12px}}
 /* phone with country code, licence, photo adjuster, collapsible panel, preview actions */

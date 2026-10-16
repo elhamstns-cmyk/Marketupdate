@@ -178,6 +178,7 @@ function cropPhoto(file) {
 }
 
 /* ---------- your report, before paying ---------- */
+let fitPv = null;
 function showPreview() {
   main.onclick = null;
   main.innerHTML = `<div class="c" style="padding-bottom:0">${steps(1)}</div><div class="pvlay"><div class="pvpanel"><h2>Let's make it yours</h2><p class="muted small">Add your details and watch your report update. This is exactly what your clients will see.</p>
@@ -188,6 +189,9 @@ function showPreview() {
     <a href="#" class="pvsee" id="pvsee">See your report preview ↓</a><button class="btn wide" id="pvgo">Looks great. Choose my plan</button><p class="err small" id="pverr" role="status"></p><p class="small muted center" style="margin-top:-6px">You can change everything later.</p></div>
     <div class="pvframe"><div id="rp"></div><div class="wm" aria-hidden="true"><span>PREVIEW</span></div><span class="ptag">Your report · preview</span></div></div>`;
   thumbs(); loadFonts(['modern']);
+  // The panel and the report each fill the window below the steps and scroll on their own (computer only, see site.css).
+  const fit = () => { const l = $('.pvlay'); if (!l) return removeEventListener('resize', fit); l.style.setProperty('--pvtop', `${Math.round(l.getBoundingClientRect().top + scrollY)}px`); };
+  fit(); removeEventListener('resize', fitPv); fitPv = fit; addEventListener('resize', fit);
   const draw = () => mountReport($('#rp'), D, { ...P, theme: { style: 'modern', ...STYLES.modern } }, { embedded: true });
   if (D) draw(); else $('#rp').innerHTML = '<p class="muted" style="padding:40px;text-align:center">Your first report is on its way.</p>';
   const panel = $('.pvpanel'); let t;
