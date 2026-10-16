@@ -550,3 +550,9 @@ body.oncreate>.nav{display:none}
 .cpw .capb .plf{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .cpw .capb .plf #pln{grid-column:1/-1}.cpw .capb .plf [data-plmake]{grid-column:1/-1}
 .cpw .ca-tb td,.cpw .ca-tb th{text-align:left}
+/* Neighbourhoods settings: a row that shows its value and opens a dropdown. */
+.ip .ippick{cursor:pointer}
+.ip .ipv{color:#6b7380;font-size:.92rem;white-space:nowrap}
+.ip .ipchev{color:#a3aab4;font-size:1.15rem;line-height:1;margin-left:2px}
+.ip .ipsel{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+.ip .ip2 .ipchev{margin-left:auto}

@@ -475,28 +475,30 @@ function undoToast(msg, undo) { document.querySelector('.bdtoast')?.remove(); co
 /* ---------- the right panel ---------- */
 const tgl = (attr, l, on) => `<label class="tgr"><span>${l}</span><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>`;
 // Neighbourhoods: everything starts on a sensible choice, so agents don't have to touch it.
+// Neighbourhoods settings, kept short: what clients see (a switch for each part), what it opens on, and personal links.
+// "Neighbourhood shown first" and "Compare with" were taken out of the panel (Oct 2026); saved values still work.
 function hoodsPanel(c, L) {
-  const city = c.city && D.hoods?.[c.city] ? c.city : defaultCity(D, c, L.areas), names = hoodNames(D, city), sel = (attr, opts, cur) => `<select class="inp2" ${attr}>${opts.map(([v, l]) => `<option value="${esc(v)}"${v === (cur || '') ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
-  const take = c.take || 'auto';
-  return `<span class="lbl2">City shown first</span>${sel('data-hc="city"', hoodCities(D).map((x) => [x, x]), city)}
-    <p class="hint">Used when it's one of your report's areas. If your report is only Greater Vancouver, clients start here and can choose another city.</p>
-    <span class="lbl2">Neighbourhood shown first</span>${sel('data-hc="home"', [['', 'Let each client pick'], ...names.map((n) => [n, n])], names.includes(c.home) ? c.home : '')}
-    <p class="hint">Or choose one, for example the area you farm. Clients can always pick their own.</p>
-    <span class="lbl2">Compare with</span>${sel('data-hc="cmp"', [['', `All of ${city}`], ...names.map((n) => [n, n])], names.includes(c.cmp) ? c.cmp : '')}
-    <span class="lbl2">Home type shown first</span>${sel('data-hc="type"', HTYPES.map(([t, l]) => [t, l]), c.type || 'd')}
-    <div class="grp3">Parts of this section</div>${BLOCKS.map(([b, l, d]) => tgl(`data-hb="${b}"`, `${l} <small class="muted">· ${d}</small>`, !(c.off || []).includes(b))).join('')}
-    <span class="lbl2">Your take</span>${sel('data-hc="take"', [['auto', 'Write it for me each month'], ['own', 'In my own words'], ['off', "Don't show it"]], take)}
-    ${take === 'own' ? `<textarea class="inp2" data-htext rows="5" maxlength="600" placeholder="A few lines for your clients about this month">${esc(c.text || '')}</textarea>` : take === 'auto' ? '<p class="hint">Written from that month\'s numbers for the client\'s neighbourhood. Shows with your photo.</p>' : ''}
-    <div class="okline">✓ Updates by itself every month</div>
-    <div class="grp3">For your clients</div><p class="hint">Each client gets their own link that opens on their neighbourhood.</p>
-    <button type="button" class="btn wide ghost" data-plinks style="margin-top:8px">Personal links for clients</button>`;
+  const city = c.city && D.hoods?.[c.city] ? c.city : defaultCity(D, c, L.areas), off = c.off || [], own = c.take === 'own';
+  const takeOn = !off.includes('take') && c.take !== 'off';
+  const g = (label, body, foot) => `<div class="ipl">${label}</div><div class="ipg">${body}</div>${foot ? `<p class="ipf">${foot}</p>` : ''}`;
+  // A row that shows its value and opens a plain dropdown when tapped.
+  const pick = (attr, l, opts, cur) => `<label class="ipr ippick"><span class="ipn">${l}</span><span class="ipv">${esc((opts.find(([v]) => v === cur) || opts[0])[1])}</span><span class="ipchev" aria-hidden="true">›</span>
+    <select class="ipsel" ${attr} aria-label="${l}">${opts.map(([v, x]) => `<option value="${esc(v)}"${v === cur ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></label>`;
+  return g('What your clients see', `${iptg2('data-hb="hero"', 'hood', 'Their neighbourhood', 'Its price and how it changed', !off.includes('hero'))}
+      ${iptg2('data-hb="tiles"', 'list', 'Every neighbourhood', 'A list, best to worst', !off.includes('tiles'))}
+      ${iptg2('data-hb="compare"', 'two', 'Compare two', 'Their area next to another', !off.includes('compare'))}
+      ${iptg2('data-htake', 'me', 'Your take', 'A short note with your photo', takeOn)}
+      ${takeOn ? `<div class="ipad"><div class="seg2"><button type="button" data-htw="auto" aria-pressed="${!own}">Written for me</button><button type="button" data-htw="own" aria-pressed="${own}">In my own words</button></div>
+        ${own ? `<textarea class="inp2" data-htext rows="4" maxlength="600" placeholder="A few lines for your clients about this month" style="margin-top:10px">${esc(c.text || '')}</textarea>` : ''}</div>` : ''}`)
+    + g('It opens on', pick('data-hc="city"', 'City', hoodCities(D).map((x) => [x, x]), city) + pick('data-hc="type"', 'Home type', HTYPES.map(([t, l]) => [t, l]), c.type || 'd'), 'Clients can always pick another.')
+    + g('Your clients', `<button type="button" class="ipr ip2" data-plinks><span class="ipn"><b>Personal links</b><small>One link per client, on their neighbourhood</small></span><span class="ipchev" aria-hidden="true">›</span></button>`);
 }
 // One section's settings page (the second tap), laid out like an iPhone settings page.
 // A section's settings, shown right under its row after its gear is tapped.
 function secSettings(k, L) {
   const c = L.conf[k] || {}, i = L.sections.indexOf(k), titled = !['numbers', 'contact'].includes(k), g = (label, body, foot) => `${label ? `<div class="ipl">${label}</div>` : ''}<div class="ipg">${body}</div>${foot ? `<p class="ipf">${foot}</p>` : ''}`;
   let what = '';
-  if (k === 'hoods') what = g('', `<div class="ipad">${hoodsPanel(c, L)}</div>`);
+  if (k === 'hoods') what = hoodsPanel(c, L);
   else if (!USES_AREAS.includes(k)) what = `<p class="ipf ipf0">${k === 'compare' ? 'This section always shows every area, ranked by benchmark price.' : 'Your photo, your details and a message box for clients. Change your details from the menu under your photo.'}</p>`;
   else { const own = !!c.areas, ar = c.areas || L.areas, free = areasOf(D).filter((a) => !ar.includes(a));
     what = g('Areas', `<div class="ipad"><div class="seg2"><button type="button" data-own="0" aria-pressed="${!own}">Same as the report</button><button type="button" data-own="1" aria-pressed="${own}">Choose</button></div>
@@ -520,6 +522,9 @@ const DI = {
   hood: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
   ask: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  list: '<path d="M4 6h10M4 12h14M4 18h7"/>',
+  two: '<path d="M7 4v16M17 4v16M3 9h8M13 15h8"/>',
+  me: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
 };
 const dic = (k) => `<span class="ipi" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${DI[k]}</svg></span>`;
 // A switch row with an icon, a name and one short grey line.
@@ -584,6 +589,7 @@ function wirePanel() {
     if (b.disabled) return; const d = b.dataset, L = cur(), k = PS.k;
     if (d.p) { PS = { m: d.p, k: PS.k }; drawPanel(); if (d.p === 'list' && PS.k) panelTo(PS.k); return; }
     if (d.gear) return gear(d.gear);
+    if (d.htw) return setConf('hoods', { take: d.htw === 'own' ? 'own' : undefined });
     if (d.bin2) return removeSec(d.bin2);
     if ('done' in d) { PS.open = false; drawPanel(); return panelTo(PS.k); }
     if (d.addk) return addSec(d.addk);
@@ -607,6 +613,8 @@ function wirePanel() {
       if (f === 'city') return setConf('hoods', { city: v, home: undefined, cmp: undefined });
       if (f === 'take') return setConf('hoods', { take: v === 'auto' ? undefined : v });
       return setConf('hoods', { [f]: f === 'type' && v === 'd' ? undefined : v }); }
+    // "Your take" on or off: one switch for what used to be a block switch and a "Don't show it" choice.
+    if ('htake' in t.dataset) { const off = (L.conf.hoods?.off || []).filter((x) => x !== 'take'); return setConf('hoods', { off: off.length ? off : undefined, take: t.checked ? (L.conf.hoods?.take === 'own' ? 'own' : undefined) : 'off' }); }
     if (t.dataset.hb) { const off = (L.conf.hoods?.off || []).filter((x) => x !== t.dataset.hb); if (!t.checked) off.push(t.dataset.hb); return setConf('hoods', { off: off.length ? off : undefined }); }
     if (t.matches('[data-aadd]') && t.value) return setConf(k, { areas: [...(L.conf[k]?.areas || L.areas), t.value] });
     if (t.dataset.cf) return setConf(k, { [t.dataset.cf]: t.checked ? undefined : false });

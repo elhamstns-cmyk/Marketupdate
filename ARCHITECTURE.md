@@ -303,7 +303,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 - **Title:** `HO.title()` gives "Neighbourhoods in <City>" when there's a single card, else "Neighbourhoods".
 - **Peek sheet:** appended to `document.body` as `.nb-sheet` (not inside `.bd`). Its styles in `board.css` therefore use fixed colours. `peek(n, city)` works for any city.
 - **Tracking:** `ctx.track('pick' | 'peek' | 'compare', {city, hood})`, sent with `navigator.sendBeacon` from `report.html`.
-- **Agent settings:** `conf.hoods`, edited in `app.js → hoodsPanel()`. Block keys are `hero`, `tiles`, `compare`, `take` (`rank` was removed; old saved values are dropped by `cleanHoods`). `defaultCity(D, conf, areas)` is the agent-side rule.
+- **Agent settings:** `conf.hoods`, edited in `app.js → hoodsPanel()`. The panel shows only the block switches (`data-hb`, plus `data-htake` for Your take, which sets `take: 'off'`), `data-htw` (auto/own), city and type. `home` and `cmp` are still accepted and used if saved, but no longer shown. Block keys are `hero`, `tiles`, `compare`, `take` (`rank` was removed; old saved values are dropped by `cleanHoods`). `defaultCity(D, conf, areas)` is the agent-side rule.
 
 ### 6.3 The Create page (`app.js`)
 

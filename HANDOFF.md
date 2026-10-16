@@ -152,7 +152,7 @@ Recommended order (proposed, Summary last). The status is for each section.
 
 **What agents get:**
 
-- Settings for "City shown first" (used when it's one of the report's areas, or when the report is only Greater Vancouver), the neighbourhood shown first, compare with, home type, which blocks show (their neighbourhood, every neighbourhood, compare two, their take), and their take. All start on sensible choices. Tapping a city card in the dashboard saves it as "City shown first".
+- **Settings (⚙ on the Neighbourhoods row), kept short:** "What your clients see" (a switch each for Their neighbourhood, Every neighbourhood, Compare two and Your take; Your take then offers "Written for me" or "In my own words"), "It opens on" (City and Home type; "Clients can always pick another"), and "Your clients" → Personal links. "Neighbourhood shown first" and "Compare with" were taken out of the panel on Oct 16 (saved values still work). Tapping a city card in the dashboard saves it as the city it opens on.
 - **Personal links:** from Share, or from the section settings. Client name plus neighbourhood gives the client their own link, which updates itself every month. The list shows what each client looked at, for example "Looked at Westwood Plateau 3 times".
 - **Weekly email** on Monday at 9am, listing which clients looked at other areas. It can be turned off.
 
@@ -245,6 +245,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-16 | S5 settings (D6) | Ella: too many things. Now three short groups: What your clients see (4 switches), It opens on (city, home type), Your clients (personal links). Removed "Neighbourhood shown first" and "Compare with" from the panel. Mockup `docs/s5-settings-ui.png`. Pushed. |
 | 2026-10-16 | S1 Key numbers | Removed "Sold in September" (the band over Homes sold and Days on market, and the one-area label): the column titles already say it. Numbers in the several-area table are softer (600 weight, ~15.5px) and changes are plain red/green arrows like the rest of the report, no filled pills (`docs/s1-softer-ui.png`). |
 | 2026-10-16 | S2 Benchmark price over time | **Built and pushed:** "Show me: All 3 areas · Coquitlam · …" row under the chart (option A, `docs/s2-areas-ui.png`). It changes this chart only and says so; tapping the area bar at the top takes over again. |
 | 2026-10-15 | S2 Benchmark price over time | **Built:** goes back to January 2005, every month (121 monthly GVR benchmark files from the portal, `~/Downloads/GVR data/monthly`). Past prices follow GVR's current figures (GVR re-benchmarked in May 2022), so the line matches GVR's own 1/3/5/10-year changes. Opens on **1 year** (Ella). 16 events, named "Introduction of …" for new rules (Ella's wording), dots that sit close share one dot with a number. Shaded periods and a Bank of Canada rate line were offered, not decided. Full width by default (was half). Mockup: `docs/s2-timeline-ui.png`. |

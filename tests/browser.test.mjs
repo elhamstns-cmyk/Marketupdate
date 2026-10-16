@@ -229,6 +229,20 @@ test('the Create page loads with the Sections panel and Neighbourhoods settings'
   assert.match(await p.textContent('#rp .sx[data-k="hoods"] .dragh'), /Drag to move/);
 }, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));
 
+test('Neighbourhoods settings are short: what clients see, what it opens on, personal links', { skip }, () => page('/app?plan=pro', async (p) => {
+  await p.click('#dpanel [data-gear="hoods"]', { force: true }); await p.waitForTimeout(400);
+  const box = await p.textContent('#dpanel .ipx');
+  for (const t of ['What your clients see', 'Their neighbourhood', 'Every neighbourhood', 'Compare two', 'Your take', 'It opens on', 'Personal links']) assert.ok(box.includes(t), `missing ${t}`);
+  assert.equal(await p.$('#dpanel [data-hc="home"]'), null, '"Neighbourhood shown first" is gone');
+  assert.equal(await p.$('#dpanel [data-hc="cmp"]'), null, '"Compare with" is gone');
+  // Your take: one switch, then "Written for me / In my own words".
+  await p.click('#dpanel [data-htw="own"]'); await p.waitForTimeout(300);
+  assert.ok(await p.$('#dpanel [data-htext]'), 'own words opens a text box');
+  await p.click('#dpanel label:has([data-htake])'); await p.waitForTimeout(300);
+  assert.equal(await p.$('#dpanel [data-htw]'), null, 'switching Your take off hides its choices');
+  assert.equal(await p.$('#rp .nb-take'), null, 'and the take leaves the report');
+}, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));
+
 for (const width of [390, 1280]) test(`D2: the Share menu opens fully on screen (${width}px)`, { skip }, () => page('/app?plan=pro', async (p) => {
   await p.click('#sharebtn'); await p.waitForTimeout(200);
   const r = await p.$eval('.shmenu', (m) => { const x = m.getBoundingClientRect(); return { l: x.left, r: x.right, vw: document.documentElement.clientWidth }; });
