@@ -430,9 +430,7 @@ body.oncreate>.nav{display:none}
 .ip .ipsec.dragging{opacity:.4}.ip .ipsec.over{box-shadow:inset 0 3px 0 #1d4fbf}
 .ip .ipi{width:30px;height:30px;border-radius:8px;background:#eef3fc;color:#1d4fbf;display:grid;place-items:center;flex:none}
 .ip .ipn{flex:1;min-width:0;line-height:1.3;padding:11px 0}
-.ip .ipgo{border:0;background:none;color:#b3b9c2;font-size:1.35rem;line-height:1;padding:8px 2px 10px 4px;cursor:pointer;flex:none}
-.ip .ipgo:hover{color:#1d4fbf}
-.ip .ipadd{border:0;background:none;color:#1d4fbf;font:inherit;font-weight:650;cursor:pointer;padding:8px 0}
+.ip .ipadd{border:0;background:none;color:#1d4fbf;font:inherit;font-weight:650;cursor:pointer;padding:8px 2px;white-space:nowrap}
 .ip .ipck{color:#1d4fbf;font-weight:700}
 .ip .ipb{color:#1d4fbf}.ip .ipb:disabled{color:#b3b9c2;cursor:default}
 .ip .ipred{color:#d6452f;justify-content:center;font-weight:600}.ip .ipred:disabled{color:#e8a99f;cursor:default}
@@ -441,13 +439,26 @@ body.oncreate>.nav{display:none}
 .ip .ipad .ipn{display:block;padding:2px 0 8px}
 .ip .ipad .seg2{margin:0}
 .ip .ipad .chips2{margin-top:10px}
-.ip .ipback{border:0;background:none;color:#1d4fbf;font:inherit;font-size:.95rem;font-weight:500;padding:0;margin:0 0 10px;cursor:pointer;align-self:flex-start;text-transform:none;letter-spacing:0}
 .ip .ipr input[type=checkbox]{position:absolute;opacity:0;width:1px;height:1px}
 .ip .ipr input:checked+.sw2,.ip .swl input:checked+.sw2{background:#1d4fbf}
 .ip .ipr input:checked+.sw2::after{transform:translateX(15px)}
 .ip .sw2{flex:none}
 .ip .ipr.pulse{animation:srpulse 1.4s ease-out}
 @keyframes srpulse{0%{box-shadow:inset 0 0 0 2px rgba(29,79,191,.6)}100%{box-shadow:inset 0 0 0 2px rgba(29,79,191,0)}}
+.ip .ipgear,.ip .ipbin{flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;border:0;background:none;cursor:pointer;padding:0}
+.ip .ipgear{color:#c3c8d0;visibility:hidden}
+.ip .ipsec:hover .ipgear,.ip .ipsec:focus-within .ipgear{visibility:visible}
+.ip .ipsec.sel .ipgear{visibility:visible;color:#1d4fbf}
+.ip .ipsec .ipgear:hover{background:#eef3fc;color:#1d4fbf}
+.ip .ipsec.open .ipgear{background:#1d4fbf;color:#fff}
+.ip .ipbin{border:1px solid #f1c9c1;color:#d6452f;background:#fff}
+.ip .ipbin:hover{background:#fdf0ed;border-color:#d6452f}.ip .ipbin:disabled{opacity:.4;cursor:default}
+.ip .ipsec.sel{box-shadow:inset 3px 0 0 #1d4fbf}
+.ip .ipx{background:#f7f9fc;border-top:1px solid #dbe4f6;border-bottom:1px solid #dbe4f6;padding:14px 12px 10px;display:flex;flex-direction:column;animation:srb .2s ease-out}
+.ip .ipx .ipg{box-shadow:0 0 0 1px #e9ebef}
+.ip .ipdone{align-self:center;border:0;background:none;color:#1d4fbf;font:inherit;font-weight:650;font-size:.92rem;padding:6px 16px;cursor:pointer}
+@keyframes srb{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ip .ipx{animation:none}}
 /* Neighbourhoods settings sit inside one white card */
 .ip .ipad .lbl2{color:#1b2430}
 .ip .ipad .grp3{display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:700;color:#6b7380;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 4px}

@@ -332,7 +332,8 @@ const SIC = {
 const sic = (k) => `<span class="ipi" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SIC[k] || ''}</svg></span>`;
 const TYPE_NAME = { detached: 'Detached', townhome: 'Townhouse', condo: 'Condo' };
 const EYE = '<svg class="ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
-// Panel state: m 'list', 'section' (one section's settings page) or 'details'; k = the selected section.
+// Panel state: m 'list' or 'details'; k = the picked section; open = its settings are showing under its row (after tapping its gear).
+const GEAR = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>', BIN2 = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
 let PS = { m: 'list', k: null }, ZOOM = 0.85, IGS = null;
 const cur = () => layoutOf(agent(), D);
 const snap = (L) => ({ sections: L.sections, known: SEC_IDS, areas: L.areas, agentTop: L.agentTop, clientAreas: L.clientAreas, view: L.view, conf: L.conf, months: L.months });
@@ -390,7 +391,7 @@ function preview() {
   const rp = $('#rp'); if (!rp) return;
   mountReport(rp, D, agent(), { embedded: true, ...(isPro() ? { edit: (patch) => setLayout(patch, false), selected: PS.k,
     // Clicking a section on the report opens its settings in the panel.
-    onSelect: (k) => { PS = { m: PS.m === 'section' && k ? 'section' : 'list', k: k || null }; drawPanel(); if (k && PS.m === 'list') panelTo(k); },
+    onSelect: (k) => { PS = { m: 'list', k: k || null, open: !!k && PS.open && PS.k === k }; drawPanel(); if (k) panelTo(k); },
     onAdd: showAddable, onRemove: (k) => removeSec(k) } : {}) });
   rp.style.zoom = ZOOM;
 }
@@ -481,7 +482,8 @@ function hoodsPanel(c, L) {
     <button type="button" class="btn wide ghost" data-plinks style="margin-top:8px">Personal links for clients</button>`;
 }
 // One section's settings page (the second tap), laid out like an iPhone settings page.
-function secPage(k, L) {
+// A section's settings, shown right under its row after its gear is tapped.
+function secSettings(k, L) {
   const c = L.conf[k] || {}, i = L.sections.indexOf(k), titled = !['numbers', 'contact'].includes(k), g = (label, body, foot) => `${label ? `<div class="ipl">${label}</div>` : ''}<div class="ipg">${body}</div>${foot ? `<p class="ipf">${foot}</p>` : ''}`;
   let what = '';
   if (k === 'hoods') what = g('', `<div class="ipad">${hoodsPanel(c, L)}</div>`);
@@ -493,9 +495,8 @@ function secPage(k, L) {
       + (USES_TYPES.includes(k) ? g('Home types', TYPE_KEYS.map((t) => { const on = !c.types || c.types.includes(t); return `<button type="button" class="ipr" data-ty="${t}" aria-pressed="${on}"><span class="ipn">${TYPE_NAME[t]}</span>${on ? '<span class="ipck" aria-hidden="true">✓</span>' : ''}</button>`; }).join('')) : ''); }
   const look = titled ? g('Title', `<label class="ipr"><input class="ipin" data-title value="${esc(c.title || '')}" placeholder="${esc(SEC[k].l)}" aria-label="Title"></label>${iptg('data-cf="sub"', 'Line under the title', c.sub !== false)}${k === 'market' ? iptg('data-cf="note"', 'One-line explanation', c.note !== false) : ''}`) : '';
   const size = PAIRABLE.includes(k) ? g('Size', `<div class="ipad"><div class="seg2"><button type="button" data-sz="half" aria-pressed="${c.size !== 'full'}">Half width</button><button type="button" data-sz="full" aria-pressed="${c.size === 'full'}">Full width</button></div></div>`, 'Half width sits next to another half-width section.') : '';
-  return `<button type="button" class="ipback" data-p="list">‹ Sections</button><h2 class="iph">${esc(c.title || SEC[k].l)}</h2><p class="ipsub">${esc(SEC[k].d)}. Updates by itself every month.</p>
-    ${what}${look}${size}${g('', `<button type="button" class="ipr ipb" data-mv="-1"${i ? '' : ' disabled'}>Move up</button><button type="button" class="ipr ipb" data-mv="1"${i < L.sections.length - 1 ? '' : ' disabled'}>Move down</button>`)}
-    ${g('', `<button type="button" class="ipr ipred" data-hide${L.sections.length > 1 ? '' : ' disabled'}>Remove from report</button>`)}`;
+  return `<div class="ipx">${what}${look}${size}${g('', `<button type="button" class="ipr ipb" data-mv="-1"${i ? '' : ' disabled'}>Move up</button><button type="button" class="ipr ipb" data-mv="1"${i < L.sections.length - 1 ? '' : ' disabled'}>Move down</button>`)}
+    <p class="ipf ipf0">Updates by itself every month.</p><button type="button" class="ipdone" data-done>Done</button></div>`;
 }
 // An iPhone-style switch row.
 const iptg = (attr, l, on) => `<label class="ipr"><span class="ipn">${l}</span><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>`;
@@ -525,15 +526,15 @@ function drawPanel() {
   } else if (!pro) {
     body = `${head('Sections')}<div class="lockbox"><span>With Pro you choose your areas and sections, move them around, and save your own template.</span><button type="button" class="btn sm" id="up4">Upgrade to Pro</button></div>`;
   } else {
-    if (PS.m === 'section' && !L.sections.includes(PS.k)) PS = { m: 'list', k: null };
+    if (!L.sections.includes(PS.k)) PS = { m: 'list', k: null, open: false };
     const off = SECTIONS.filter(([k]) => !L.sections.includes(k) && (k !== 'growth' || D.growth));
-    // First tap picks a section and scrolls the report to it; a second tap (or the ›) opens its settings page.
-    const row = (k) => { const nm = esc(L.conf[k]?.title || SEC[k].l);
-      return `<div class="ipr ipsec${PS.k === k ? ' sel' : ''}" draggable="true" data-sk="${k}" data-li="${k}" role="button" tabindex="0" title="Tap to find it on your report. Tap again for its settings. Drag to move it.">${sic(k)}<span class="ipn">${nm}</span>
-        <label class="swl" title="Show on your report"><input type="checkbox" data-on="${k}" checked${L.sections.length > 1 ? '' : ' disabled'} aria-label="Show ${nm} on your report"><span class="sw2" aria-hidden="true"></span></label><button type="button" class="ipgo" data-go2="${k}" aria-label="Settings for ${nm}">›</button></div>`; };
-    body = PS.m === 'section' ? secPage(PS.k, L) : `<h2 class="iph">Sections</h2><p class="ipsub">Tap a section to find it on your report. Tap it again for its settings.</p>
+    // Tap a row: it is picked and the report scrolls to it. Only the picked row shows its gear (settings) and bin (take it off).
+    const row = (k) => { const nm = esc(L.conf[k]?.title || SEC[k].l), sel = PS.k === k, open = sel && PS.open;
+      return `<div class="ipr ipsec${sel ? ' sel' : ''}${open ? ' open' : ''}" draggable="true" data-sk="${k}" data-li="${k}" role="button" tabindex="0" title="Tap to find it on your report. Drag to move it.">${sic(k)}<span class="ipn">${nm}</span>
+        <button type="button" class="ipgear" data-gear="${k}" aria-pressed="${open}" aria-label="Settings for ${nm}" title="Settings">${GEAR}</button>${sel ? `<button type="button" class="ipbin" data-bin2="${k}"${L.sections.length > 1 ? '' : ' disabled'} aria-label="Take ${nm} off your report" title="Take it off your report">${BIN2}</button>` : ''}</div>${open ? secSettings(k, L) : ''}`; };
+    body = `<h2 class="iph">Sections</h2><p class="ipsub">Tap a section to find it on your report. Tap ⚙ for its settings.</p>
       <div class="ipl">On your report</div><div class="ipg">${L.sections.map(row).join('')}</div>
-      ${off.length ? `<div class="ipl" id="canadd">More sections</div><div class="ipg">${off.map(([k, l]) => `<div class="ipr" data-li="${k}">${sic(k)}<span class="ipn">${esc(l)}</span><button type="button" class="ipadd" data-addk="${k}">Add</button></div>`).join('')}</div>` : ''}
+      ${off.length ? `<div class="ipl" id="canadd">More sections</div><div class="ipg">${off.map(([k, l]) => `<div class="ipr" data-li="${k}">${sic(k)}<span class="ipn">${esc(l)}</span><button type="button" class="ipadd" data-addk="${k}">+ Add</button></div>`).join('')}</div>` : ''}
       <div class="ipl">Whole report</div><div class="ipg">${L.areas.length > 1 ? `<div class="ipad"><span class="ipn">When clients open it, show</span><div class="seg2"><button type="button" data-vw="side" aria-pressed="${L.view === 'side'}">All areas</button><button type="button" data-vw="one" aria-pressed="${L.view === 'one'}">The first area</button></div></div>` : ''}
       ${iptg('data-lt="agentTop"', 'My name and photo at the top', L.agentTop)}${iptg('data-lt="clientAreas"', 'Clients can add or remove areas', L.clientAreas)}</div>
       ${monthsPanel(L.months)}`;
@@ -546,9 +547,10 @@ function drawPanel() {
   const pb = el.querySelector('.pbody'); if (pb) pb.scrollTop = PS.m === LASTM ? keep : 0; LASTM = PS.m;
   if (PS.m === 'details') thumbs();
 }
-// First tap: pick the section and scroll the report to it. Second tap on the same row: its settings page.
-function tapRow(k) { if (PS.m === 'list' && PS.k === k) return openPage(k); PS = { m: 'list', k }; selectSec(k, true); }
-function openPage(k) { PS = { m: 'section', k }; drawPanel(); selectSec(k, true); }
+// Tap a row: pick the section and scroll the report to it.
+function tapRow(k) { if (PS.k !== k) { PS = { m: 'list', k, open: false }; drawPanel(); } selectSec(k, true); }
+// The gear opens (or closes) the settings under that row.
+function gear(k) { const open = !(PS.k === k && PS.open); PS = { m: 'list', k, open }; drawPanel(); selectSec(k, true); if (open) requestAnimationFrame(() => { const pb = $('#dpanel .pbody'), r = $(`#dpanel [data-li="${k}"]`); if (pb && r) pb.scrollBy({ top: r.getBoundingClientRect().top - pb.getBoundingClientRect().top - 12, behavior: calm() ? 'auto' : 'smooth' }); }); }
 // One set of listeners for the panel, whatever it is showing.
 function wirePanel() {
   const el = $('#dpanel'); if (!el || el._w) return; el._w = 1;
@@ -558,7 +560,9 @@ function wirePanel() {
     if (!b) { const h = t.closest('.ipsec[data-sk]'); if (h && !t.closest('label')) tapRow(h.dataset.sk); return; }
     if (b.disabled) return; const d = b.dataset, L = cur(), k = PS.k;
     if (d.p) { PS = { m: d.p, k: PS.k }; drawPanel(); if (d.p === 'list' && PS.k) panelTo(PS.k); return; }
-    if (d.go2) return openPage(d.go2);
+    if (d.gear) return gear(d.gear);
+    if (d.bin2) return removeSec(d.bin2);
+    if ('done' in d) { PS.open = false; drawPanel(); return panelTo(PS.k); }
     if (d.addk) return addSec(d.addk);
     if (d.sz) return setConf(k, { size: d.sz === 'full' ? 'full' : undefined });
     if ('mback' in d) return setLayout({ months: { ...L.months, back: +d.mback } }, false);

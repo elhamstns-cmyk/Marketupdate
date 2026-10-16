@@ -175,14 +175,17 @@ test('Greater Vancouver alone: clients choose a city', { skip }, () => page('/r/
 test('the Create page loads with the Sections panel and Neighbourhoods settings', { skip }, () => page('/app?plan=pro', async (p) => {
   const list = await p.$$eval('#dpanel [data-sk]', (x) => x.map((e) => e.dataset.sk));
   assert.ok(list.includes('hoods'));
-  // First tap picks the section and scrolls the report to it; the second tap opens its settings page.
+  // Tapping a row picks the section and scrolls the report to it; only that row shows its gear and bin.
   await p.click('#dpanel .ipsec[data-sk="hoods"] .ipn'); await p.waitForTimeout(500);
   assert.ok(await p.$('#rp .sx.ed[data-k="hoods"]'), 'the section is picked on the report');
-  assert.equal(await p.$('[data-hc="city"]'), null, 'no settings yet after one tap');
-  await p.click('#dpanel .ipsec[data-sk="hoods"] .ipn'); await p.waitForTimeout(300);
-  assert.ok(await p.$('#dpanel [data-hc="city"]'), 'city setting shows on the second tap');
-  await p.click('#dpanel .ipback'); await p.waitForTimeout(200);
-  assert.ok(await p.$('#dpanel .ipsec[data-sk="hoods"].sel'), 'back to the list, with the section still picked');
+  assert.equal(await p.$('[data-hc="city"]'), null, 'no settings yet');
+  assert.ok(await p.$('#dpanel .ipsec[data-sk="hoods"] [data-bin2]'), 'the picked row has a bin');
+  assert.equal((await p.$$('#dpanel [data-bin2]')).length, 1, 'only the picked row has a bin');
+  // The gear opens the settings right under that row; Done closes them.
+  await p.click('#dpanel [data-gear="hoods"]'); await p.waitForTimeout(300);
+  assert.ok(await p.$('#dpanel .ipsec[data-sk="hoods"] + .ipx [data-hc="city"]'), 'city setting shows under the Neighbourhoods row');
+  await p.click('#dpanel [data-done]'); await p.waitForTimeout(200);
+  assert.equal(await p.$('#dpanel .ipx'), null, 'Done closes the settings');
   // The report shows "Drag to move", not section names.
   assert.match(await p.textContent('#rp .sx[data-k="hoods"] .dragh'), /Drag to move/);
 }, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));
@@ -238,7 +241,7 @@ test('switching a section off does not make the page jump, and Undo brings it ba
   const top = () => p.evaluate((k) => document.querySelector(`#rp .sx[data-k="${k}"]`)?.getBoundingClientRect().top, k);
   const before = await top();
   // Switch off a section on screen above the one we watch: the one we watch may move up by that section's height, never jump far away.
-  await p.click('#dpanel .ipsec[data-sk="numbers"] .swl'); await p.waitForTimeout(1600);
+  await p.click('#dpanel .ipsec[data-sk="numbers"] .ipn'); await p.waitForTimeout(300); await p.click('#dpanel [data-bin2="numbers"]'); await p.waitForTimeout(1600);
   assert.equal(await p.$('#rp .sx[data-k="numbers"]'), null, 'the section is gone');
   assert.ok(Math.abs((await top()) - before) < 700, 'the page stayed in place');
   await p.click('.bdtoast button'); await p.waitForTimeout(1600);
