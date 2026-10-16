@@ -276,7 +276,7 @@ async function start() {
   if (!P.role && sessionStorage.getItem('mup_role')) { P.role = sessionStorage.getItem('mup_role') === 'broker' ? 'broker' : 'realtor'; dirty.add('role'); }
   if (!active) return sessionStorage.getItem('mup_previewed') && P.name ? showPlans() : showPreview();
   sessionStorage.removeItem('mup_want'); sessionStorage.removeItem('mup_went'); sessionStorage.removeItem('mup_previewed');
-  await loadHistory(); show(qs.get('view') || 'create');
+  await loadHistory(); show(qs.get('view') || 'create'); loadReqN();
   const igs = qs.get('ig'); if (igs) { alertMsg({ connected: 'Instagram connected.', cancelled: 'Instagram was not connected.', failed: 'We could not connect Instagram. Please try again.' }[igs] || '', igs !== 'connected'); history.replaceState(null, '', '/app?view=account'); }
 }
 $('#logout').onclick = () => { keep(null); location.href = '/'; };
@@ -285,14 +285,22 @@ let toastT; const alertMsg = (t, bad) => { if (!t) return; let m = $('#toast'); 
   m.textContent = t; m.className = bad ? 'bad on' : 'on'; clearTimeout(toastT); toastT = setTimeout(() => (m.className = bad ? 'bad' : ''), 3200); };
 
 /* ---------- the three pages: Create, My reports, Account ---------- */
-function drawNav() { const n = $('#subnav'); if (!n) return;
-  n.innerHTML = `<div class="sn" role="tablist">${[['create', 'Create'], ['history', `My reports${HIST.length ? ` <span class="cnt">${HIST.length}</span>` : ''}`], ['account', 'Account']].map(([k, l]) => `<button type="button" role="tab" data-view="${k}" aria-selected="${view === k}">${l}</button>`).join('')}</div>`; }
+// The three tabs at the top of every page: Create report · Clients · Saved reports (Account is under the agent's photo).
+let REQN = 0;
+const tabsHtml = () => (isPro() ? [['create', 'Create report'], ['clients', `Clients${REQN ? ` <span class="rqn">${REQN}</span>` : ''}`], ['saved', 'Saved reports']] : [['create', 'Create report'], ['saved', 'Saved reports']])
+  .map(([k, l]) => `<button type="button" role="tab" data-view="${k}" aria-selected="${view === k}">${l}</button>`).join('');
+function drawNav() { const n = $('#subnav'); if (n) n.innerHTML = `<div class="sn" role="tablist">${tabsHtml()}${view === 'account' ? '<button type="button" role="tab" data-view="account" aria-selected="true">Account</button>' : ''}</div>`;
+  const t = $('#dtabs'); if (t) t.innerHTML = tabsHtml(); }
+// How many clients asked about their neighbourhood and are waiting (the red count on Clients).
+async function loadReqN() { if (cfg.demo || !isPro()) return; try { REQN = ((await api('/api/links?only=requests')).requests || []).length; drawNav(); } catch {} }
 function show(v) {
-  view = ['create', 'history', 'account'].includes(v) ? v : 'create'; saveNow();
+  if (v === 'history') v = 'saved';
+  view = ['create', 'clients', 'saved', 'account'].includes(v) ? v : 'create'; if (view === 'clients' && !isPro()) view = 'create'; saveNow();
+  try { history.replaceState(null, '', view === 'create' ? '/app' : `/app?view=${view}`); } catch {}
   main.innerHTML = `<div class="subnav" id="subnav"></div><div id="page" class="pg-${view}"></div>`; drawNav();
   $('#subnav').onclick = (e) => { const b = e.target.closest('[data-view]'); if (b && b.dataset.view !== view) show(b.dataset.view); };
   document.body.classList.toggle('oncreate', view === 'create');
-  if (view === 'history') drawHistory(); else if (view === 'account') drawAccount(); else dashboard();
+  if (view === 'saved') drawSaved(); else if (view === 'clients') drawClients(); else if (view === 'account') drawAccount(); else dashboard();
   window.scrollTo(0, 0);
 }
 /* saving: only what changed, shortly after the last change */
@@ -351,17 +359,19 @@ function dashboard() {
   if (!D) { pg.innerHTML = `<div class="c">${steps(4)}<h2>Your first report is on its way</h2><p class="lead">We will email you as soon as this month's report is published.</p></div>`; return; }
   $('#subnav').hidden = true; PS = { m: P.name ? 'list' : 'details', k: null };
   const notes = [cfg.demo ? 'Preview mode: nothing is saved to a server and no payment is taken.' : '', noticeOk, qs.has('welcome') ? `You are subscribed${P.name ? ', ' + P.name.trim().split(/\s+/)[0] : ''}. Welcome aboard.` : ''].filter(Boolean);
-  pg.innerHTML = `<div class="dbar"><div class="crumb"><button type="button" class="lk" data-go="history">Your reports</button><span>/</span><b>${esc(D.month)}</b><span class="ok small" id="saved"></span></div>
-    <div class="dact"><span id="laysel"></span><span class="shwrap"><button type="button" class="btn sm ghost" id="sharebtn">${sv('share')}Share</button></span><button type="button" class="btn sm" id="pvbtn">${EYE}Preview</button>
+  pg.innerHTML = `<div class="dbar"><div class="crumb"><nav class="dtabs" id="dtabs" role="tablist"></nav><span class="ok small" id="saved"></span></div>
+    <div class="dact"><span id="laysel"></span>${isPro() ? '<button type="button" class="btn sm ghost" id="savebtn" title="Save this report in Saved reports">Save</button>' : ''}<span class="shwrap"><button type="button" class="btn sm ghost" id="sharebtn">${sv('share')}Share</button></span><button type="button" class="btn sm" id="pvbtn">${EYE}Preview</button>
     <span class="mewrap"><button type="button" class="me" id="mebtn" aria-haspopup="menu"><span class="av">${avatar()}</span><span class="who"><b>${esc(P.name || 'Add your name')}</b><small>${esc(P.brokerage || '')}</small></span><span class="car">⌄</span></button></span></div></div>
     <div class="dwrap"><div class="dleft" id="dleft">${notes.map((n) => `<p class="dnote">${esc(n)}</p>`).join('')}${!cfg.demo && P.email_verified === false ? `<p class="dnote warn">Please confirm your email. We sent a link to <b>${esc(P.email || '')}</b>. <a href="#" id="cfmagain">Send it again</a></p>` : ''}
       <div id="rp"></div><div class="zoomc" role="group" aria-label="Zoom"><button type="button" data-z="-" aria-label="Zoom out">−</button><span id="zv">85%</span><button type="button" data-z="+" aria-label="Zoom in">+</button><button type="button" data-z="fit" title="Back to 85%" aria-label="Reset zoom">⤢</button></div></div>
     <aside class="dpanel" id="dpanel"></aside></div>`;
-  noticeOk = ''; drawTop(); preview(); setZoom(ZOOM); wirePanel(); drawPanel(); wireZoom();
+  noticeOk = ''; drawNav(); drawTop(); preview(); setZoom(ZOOM); wirePanel(); drawPanel(); wireZoom();
   pg.onclick = (e) => { const g = e.target.closest('[data-go]'); if (g) return show(g.dataset.go);
     if (e.target.id === 'cfmagain') { e.preventDefault(); return sendConfirm(P.email).then((ok) => alertMsg(ok ? 'Sent. Check your inbox.' : 'Please wait a minute and try again.', !ok)); }
     const z = e.target.closest('[data-z]'); if (z) return setZoom(z.dataset.z === 'fit' ? 0.85 : ZOOM + (z.dataset.z === '+' ? 0.1 : -0.1));
     if (e.target.closest('#pvbtn')) { if (!ready()) return; saveNow(); return act('link', record('link'), 'open'); }
+    if (e.target.closest('[data-view]')) { const v = e.target.closest('[data-view]').dataset.view; if (v !== view) show(v); return; }
+    if (e.target.closest('#savebtn')) return saveReport();
     if (e.target.closest('#sharebtn')) return shareDrop(e.target.closest('#sharebtn'));
     if (e.target.closest('#mebtn')) return meMenu(e.target.closest('#mebtn')); };
   pg.onchange = (e) => { if (e.target.id !== 'layout') return; const t = P.show?.template;
@@ -588,7 +598,7 @@ function wirePanel() {
     if (d.vw) return setLayout({ view: d.vw });
     if (b.id === 'ltreset') { if (!confirm('Go back to the default sections and order?')) return; return setLayout({ ...DEFAULT_LAYOUT, areas: L.areas }); }
     if (b.id === 'savetpl') { P.show = { ...showOf(P), ...snap(cur()), mode: 'template', template: snap(cur()) }; touch('show'); drawTop(); drawPanel(); return alertMsg('Saved as your template. Every new month opens this way.'); }
-    if ('plinks' in d) return personalLinks();
+    if ('plinks' in d) return show('clients');
     if (b.id === 'up4') return portal();
     if (d.rm) { P[d.rm] = ''; touch(d.rm); thumbs(); later(); return alertMsg(`Your ${d.rm} was removed.`); } });
   el.addEventListener('change', async (e) => { const t = e.target, k = PS.k, L = cur();
@@ -634,7 +644,7 @@ function fitMenu(m, btn) {
 function meMenu(btn) {
   if (btn.parentElement.querySelector('.amenu')) return closeMenu(); closeMenu();
   const m = document.createElement('div'); m.className = 'shmenu amenu'; m.setAttribute('role', 'menu');
-  m.innerHTML = [['details', 'Your details'], ['account', 'Account and billing'], ['history', 'Your reports'], ['logout', 'Log out']].map(([k, l]) => `${k === 'logout' ? '<hr>' : ''}<button type="button" role="menuitem" data-mm="${k}">${l}</button>`).join('');
+  m.innerHTML = [['details', 'Your details'], ['account', 'Account and billing'], ['saved', 'Saved reports'], ['logout', 'Log out']].map(([k, l]) => `${k === 'logout' ? '<hr>' : ''}<button type="button" role="menuitem" data-mm="${k}">${l}</button>`).join('');
   btn.parentElement.appendChild(m); fitMenu(m, btn);
   m.onclick = (e) => { const b = e.target.closest('[data-mm]'); if (!b) return; closeMenu(); const k = b.dataset.mm;
     if (k === 'details') { PS = { m: 'details', k: PS.k }; return drawPanel(); } if (k === 'logout') return $('#logout').click(); show(k); };
@@ -646,14 +656,14 @@ function shareDrop(btn) {
   if (btn.parentElement.querySelector('.shmenu')) return closeMenu(); if (!ready()) return;
   saveNow(); closeMenu(); const pro = isPro(), m = document.createElement('div'); m.className = 'shmenu dmenu'; m.setAttribute('role', 'menu');
   const it = (k, ic, l, sub, off, pv) => `<button type="button" role="menuitem" data-s="${k}"${off ? ' disabled' : ''}><span class="i">${sv(ic)}</span><span><b>${l}</b>${sub ? `<small>${sub}</small>` : ''}</span>${pv ? `<em>${off ? 'Pro' : 'Preview ›'}</em>` : ''}</button>`;
-  m.innerHTML = `<p class="mh">Send your report</p>${it('copy', 'link', 'Copy link', 'Paste it in a text, email or post')}${it('email', 'mail', 'Email for your clients', 'A finished message for Gmail or your CRM')}${it('qr', 'qr', 'QR code', 'For open houses, flyers and signs')}${it('plinks', 'link', 'Personal links', 'One link per client, with their name and area', !pro)}${isPhone() ? it('native', 'share', 'Share from this phone') : ''}
+  m.innerHTML = `<p class="mh">Send your report</p>${it('copy', 'link', 'Copy link', 'Paste it in a text, email or post')}${it('email', 'mail', 'Email for your clients', 'A finished message for Gmail or your CRM')}${it('qr', 'qr', 'QR code', 'For open houses, flyers and signs')}${it('plinks', 'link', 'Personal links', 'One link per client, with their name and neighbourhood', !pro)}${isPhone() ? it('native', 'share', 'Share from this phone') : ''}
     <hr><p class="mh">Images and PDF</p>${it('post', 'ig', 'Instagram post', 'Square image', !pro, 1)}${it('story', 'ig', 'Instagram story', 'Tall image', !pro, 1)}${it('pdf', 'dl', 'PDF', 'To print or attach', !pro, 1)}`;
   btn.parentElement.appendChild(m); fitMenu(m, btn);
   m.onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b || b.disabled) return; const k = b.dataset.s; closeMenu();
     if (k === 'copy') return act('link', record('link'));
     if (k === 'email') return act('email', record('email'));
     if (k === 'native') { const t = shareText(reportLink(location.origin, P, 'Greater Vancouver')); navigator.share({ title: t.subject, text: t.short.replace(/: \S+$/, '.'), url: t.url }).catch(() => {}); return record('link').catch(() => {}); }
-    if (k === 'plinks') return personalLinks();
+    if (k === 'plinks') return show('clients');
     if (k === 'qr') return record('link').then((x) => qrModal({ title: 'Your report QR code', text: 'Anyone who scans this with a phone camera opens your report.', url: linkOf(x), file: `${P.slug}-QR.png` })).catch((er) => alertMsg(er.message, true));
     openPreview(k); };
   setTimeout(() => document.addEventListener('click', function off(ev) { if (!ev.target.closest('.dmenu') && !ev.target.closest('#sharebtn')) { closeMenu(); document.removeEventListener('click', off, true); } }, true));
@@ -671,12 +681,13 @@ function demoClient(now = Date.now()) {
   const views = [{ hood: 'Westwood Plateau', kind: 'compare', created_at: at(0, 1) }, { hood: 'Westwood Plateau', kind: 'peek', created_at: at(1, 3) }, { hood: 'Coquitlam West', kind: 'peek', created_at: at(1, 3) }, { hood: 'Westwood Plateau', kind: 'peek', created_at: at(9, 5) }];
   return { id: 'sample', name: 'the Chen family', city: 'Coquitlam', hood: 'Burke Mountain', type: 'd', opens: visits.length, last_opened_at: visits[0].started_at, sample: true, visits, views };
 }
-async function personalLinks() {
+// host: draw it as the Clients page (P10) inside that element; without it, as a window.
+async function personalLinks(host) {
   if (!isPro()) return alertMsg('Personal links are part of Pro.', true);
-  if (!ready()) return;
-  document.querySelector('.plm')?.remove(); const W = document.createElement('div'); W.className = 'plm'; document.body.appendChild(W);
-  let data = { items: [], weekly: true, top: [], general: 0 }, city = defaultCity(D, cur().conf.hoods || {}, cur().areas), err = '', days = 30, open = null, loading = true;
-  const close = () => { W.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => e.key === 'Escape' && (open ? (open = null, draw()) : close()); document.addEventListener('keydown', k1);
+  if (!host && !ready()) return;
+  let W = host; if (!host) { document.querySelector('.plm')?.remove(); W = document.createElement('div'); W.className = 'plm'; document.body.appendChild(W); }
+  let data = { items: [], weekly: true, top: [], general: 0, requests: [] }, city = defaultCity(D, cur().conf.hoods || {}, cur().areas), err = '', days = 30, open = null, loading = true;
+  const close = () => { if (host) return; W.remove(); document.removeEventListener('keydown', k1); }, k1 = (e) => e.key === 'Escape' && (open ? (open = null, draw()) : close()); if (!host) document.addEventListener('keydown', k1);
   async function load() {
     loading = true;
     if (cfg.demo) { let mine = []; try { mine = JSON.parse(localStorage.getItem(PL_DEMO) || '[]'); } catch {}
@@ -713,11 +724,24 @@ async function personalLinks() {
       ${a.recent.length ? `<span class="lbl2">Recent visits</span><ul class="ca-tl">${a.recent.map((r) => `<li><b>${esc(when(r.at))}</b> · ${mins(r.seconds)}${r.device ? ` on a ${r.device}` : ''}${r.did.length ? ` · ${r.did.map(esc).join(' · ')}` : ''}</li>`).join('')}</ul>` : ''}`}
       ${a.why ? `<div class="ca-why"><b>Why it matters:</b> ${esc(a.why)}</div>` : ''}
       <div class="ca-act"><a class="btn" href="mailto:?subject=${encodeURIComponent(`Your ${x.hood} market report`)}&body=${encodeURIComponent(note)}">✉ Send them a note</a><button type="button" class="btn ghost" data-plc="${esc(x.id)}">Copy their link</button></div>`; }
+  // P10: clients who asked about their neighbourhood (S5 Ask), newest first.
+  function reqHtml() {
+    const rq = (data.requests || []).filter((r) => r.status !== 'done').slice(0, 20), done = (data.requests || []).filter((r) => r.status === 'done').length;
+    return `<div class="cp-l">Asked about their neighbourhood ${rq.filter((r) => r.status === 'new').length ? `<span>${rq.filter((r) => r.status === 'new').length} new</span>` : ''}</div>
+      <div class="cp-card">${rq.length ? rq.map((r) => `<div class="rq"><span class="rq-d${r.status === 'new' ? ' on' : ''}"></span><div class="rq-t"><b>${esc(r.name)}</b> asked about <b>${esc(r.hood)}</b>, ${esc(r.city)}<small>${esc(r.email)} · ${esc(when(r.created_at))}${r.status === 'sent' && r.mode === 'send' ? ' · sent for you automatically' : ''}</small></div>
+        ${r.status === 'new' ? `<button type="button" class="btn sm" data-rqs="${esc(r.id)}">Send their link</button><button type="button" class="btn sm ghost" data-rqd="${esc(r.id)}">Done</button>` : '<span class="rq-ok">✓ Sent</span>'}</div>`).join('')
+        : `<p class="cp-empty">No one has asked yet. When "Pick their neighbourhood" is off, clients can ask you about theirs, and it shows here.</p>`}</div>${done ? `<p class="small muted cp-note">${done === 1 ? '1 request' : `${done} requests`} marked done.</p>` : ''}`;
+  }
+  // P10: what the agent sent this month and before (links, emails, PDFs, images), from their history.
+  function sentHtml() {
+    const list = HIST.filter((x) => x.kind !== 'save').slice(0, 10);
+    return `<div class="cp-card">${list.length ? list.map((it) => `<div class="rq"><span class="rq-i">${icon(it.kind)}</span><div class="rq-t"><b>${esc(KIND[it.kind][0])}</b><small>${esc(it.area)} · ${esc(when(it.created_at))}</small></div></div>`).join('')
+      : '<p class="cp-empty">Nothing sent yet. Use Share on Create report.</p>'}</div>`;
+  }
   function draw() {
     const L = cur(), names = hoodNames(D, city), mOpt = MK.length > 1;
     const x = open && data.items.find((i) => i.id === open);
-    W.innerHTML = `<div class="plbox cabox" role="dialog" aria-modal="true" aria-labelledby="plt"><div class="plh"><div><h3 id="plt">Client activity</h3><p class="muted small">Each client gets their own link with their name and neighbourhood. It updates itself every month, so send it once. Then see who is actively looking.</p></div><button type="button" class="x" data-plx aria-label="Close">✕</button></div>
-      ${x ? detail(x) : `<div class="plf${mOpt ? ' plf6' : ''}"><input type="text" id="pln" maxlength="60" placeholder="Client name, e.g. the Chen family">
+    const inner = x ? detail(x) : `<div class="plf${mOpt ? ' plf6' : ''}"><input type="text" id="pln" maxlength="60" placeholder="Client name, e.g. the Chen family">
         <select id="plcity" aria-label="City">${hoodCities(D).map((c) => `<option${c === city ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>
         <select id="plh" aria-label="Neighbourhood"><option value="">Neighbourhood</option>${names.map((n) => `<option>${esc(n)}</option>`).join('')}</select>
         <select id="plt2" aria-label="Home type">${HTYPES.map(([t, l]) => `<option value="${t}">${l}</option>`).join('')}</select>
@@ -730,9 +754,17 @@ async function personalLinks() {
       <p class="small muted">Tap a client to see what they read. ${data.general ? `Your general link (Instagram, your website) was opened ${timesW(data.general)} in the ${perName.replace('all time', 'last year')}. We can't tell who opened it.` : 'Your general link (Instagram, your website) is counted only as totals. We can’t tell who opened it.'}</p>
       ${data.top?.length ? `<p class="small muted">Most-viewed neighbourhoods (everyone who opened your report): ${data.top.map(([h, n]) => `${esc(h)} (${n})`).join(', ')}.</p>` : ''}
       <label class="tgr"><span>Email me every Monday with which clients were actively looking</span><input type="checkbox" data-plw${data.weekly !== false ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>
-      <div class="plsoon"><b>Add many at once</b> <span class="pltag2">Later</span><br>Upload a contact list or connect your CRM (like Follow Up Boss) to make links for everyone automatically.</div>`}</div>`;
+      <div class="plsoon"><b>Add many at once</b> <span class="pltag2">Later</span><br>Upload a contact list or connect your CRM (like Follow Up Boss) to make links for everyone automatically.</div>`;
+    W.innerHTML = host ? `<div class="cp"><div class="cp-h"><h1>Clients</h1><p class="muted">Who asked about their neighbourhood, and who is reading what you sent.</p></div>
+      <div class="cp-cols"><div class="cp-main">${x ? '' : reqHtml()}<div class="cp-l">Client activity</div><div class="plbox cabox capb">${inner}</div></div>${x ? '' : `<aside class="cp-side"><div class="cp-l">What you sent</div>${sentHtml()}</aside>`}</div></div>`
+      : `<div class="plbox cabox" role="dialog" aria-modal="true" aria-labelledby="plt"><div class="plh"><div><h3 id="plt">Client activity</h3><p class="muted small">Each client gets their own link with their name and neighbourhood. It updates itself every month, so send it once. Then see who is actively looking.</p></div><button type="button" class="x" data-plx aria-label="Close">✕</button></div>${inner}</div>`;
   }
-  W.onclick = async (e) => { if (e.target === W || e.target.closest('[data-plx]')) return close(); const b = e.target.closest('button');
+  W.onclick = async (e) => { if ((!host && e.target === W) || e.target.closest('[data-plx]')) return close(); const b = e.target.closest('button');
+    if (b && (b.dataset.rqs || b.dataset.rqd)) { const id = b.dataset.rqs || b.dataset.rqd; b.disabled = true;
+      try { const j = await api('/api/links', { action: 'request', id, do: b.dataset.rqs ? 'send' : 'done' });
+        data.requests = data.requests.map((r) => (r.id === id ? j.request : r)); if (j.item && !data.items.some((i) => i.id === j.item.id)) data.items = [...data.items, j.item];
+        REQN = data.requests.filter((r) => r.status === 'new').length; drawNav(); alertMsg(b.dataset.rqs ? `Sent. ${j.request.name} got their ${j.request.hood} link from you.` : 'Marked done.'); }
+      catch (er) { b.disabled = false; return alertMsg(er.message, true); } return draw(); }
     if (!b) { const r = e.target.closest('[data-cao]'); if (r && !e.target.closest('a')) { open = r.dataset.cao; draw(); W.querySelector('.plbox').scrollTop = 0; } return; }
     if ('cab' in b.dataset) { open = null; return draw(); }
     if (b.dataset.cad) { days = +b.dataset.cad; draw(); await load(); return draw(); }
@@ -750,7 +782,7 @@ async function personalLinks() {
   W.onchange = (e) => { const t = e.target;
     if (t.id === 'plcity') { city = t.value; const n = $('#pln').value; draw(); $('#pln').value = n; }
     if (t.matches('[data-plw]')) { data.weekly = t.checked; if (!cfg.demo) api('/api/links', { action: 'weekly', on: t.checked }).catch((er) => alertMsg(er.message, true)); alertMsg(t.checked ? 'Monday email is on.' : 'Monday email is off.'); } };
-  draw(); await load(); draw(); $('#pln')?.focus();
+  draw(); await load(); if (host) { REQN = (data.requests || []).filter((r) => r.status === 'new').length; drawNav(); } draw(); if (!host) $('#pln')?.focus();
 }
 // The preview window: see the image (or PDF) first, choose what's on it, then download, post or send to a phone.
 async function openPreview(kind) {
@@ -808,30 +840,31 @@ function confirmPost(W, K, get) {
 }
 
 /* ---------- My reports ---------- */
-function drawHistory() {
-  const pg = $('#page'), groups = { all: () => true, link: (k) => k === 'link', email: (k) => k === 'email', pdf: (k) => k === 'pdf', social: (k) => ['post', 'story', 'caption'].includes(k) };
-  const list = HIST.filter((x) => groups[filter](x.kind)), day = (d) => { const t = new Date(d), n = new Date(), y = new Date(Date.now() - 864e5);
-    return t.toDateString() === n.toDateString() ? 'Today' : t.toDateString() === y.toDateString() ? 'Yesterday' : t.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }); };
-  const time = (d) => new Date(d).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' });
-  const hidden = (it) => { const sh = it.settings?.show; const off = sh ? Object.keys(HIDE_NAMES).filter((k) => sh[k] === false).map((k) => HIDE_NAMES[k]) : []; return off.length ? `Hiding ${off.join(', ')}` : 'Showing everything'; };
-  let last = '', rows = '';
-  for (const it of list) { const d = day(it.created_at); if (d !== last) { rows += `<h4 class="dayh">${d}</h4>`; last = d; }
-    const live = ['link', 'email', 'caption'].includes(it.kind);
-    rows += `<div class="hrow" data-id="${it.id}"><span class="ic">${icon(it.kind)}</span><div class="hi"><b>${esc(it.area)} · ${KIND[it.kind][0]}</b>
-      <span>${time(it.created_at)} · ${live ? 'Always shows the newest numbers' : `${esc(it.month)} numbers`}</span>${isPro() ? `<span class="hid">${hidden(it)}</span>` : ''}</div>
-      <div class="ab">${it.kind === 'link' ? '<button class="btn sm ghost" data-verb="open">Open</button>' : ''}<button class="btn sm${it.kind === 'link' ? '' : ' ghost'}" data-verb="go">${KIND[it.kind][1]}</button>
-      <button class="rm2" data-verb="del" aria-label="Remove from My reports" title="Remove"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div></div>`; }
-  pg.innerHTML = `<div class="hist"><div class="hhead"><div><h2>My reports</h2><p class="muted">Everything you have created, newest first. Links and emails always show the newest numbers. PDFs and images keep the month they were made from.</p></div>
-      ${HIST.length ? '<button class="btn" data-go="create">Create new</button>' : ''}</div>
-    ${HIST.length ? `<div class="chipsel" role="group" aria-label="Show">${[['all', 'All'], ['link', 'Links'], ['email', 'Emails'], ['pdf', 'PDFs'], ['social', 'Social']].map(([k, l]) => `<button type="button" data-f="${k}" aria-pressed="${filter === k}">${l}</button>`).join('')}</div>` : ''}
-    ${list.length ? `<div class="hlist">${rows}</div>` : `<div class="empty">${icon('pdf')}<b>${HIST.length ? 'Nothing of this type yet.' : 'Nothing here yet.'}</b><span>Create a link, email, PDF or image and it will be saved here with the date and time.</span><button class="btn" data-go="create">Create your first one</button></div>`}</div>`;
-  pg.onclick = async (e) => { const g = e.target.closest('[data-go]'); if (g) return show(g.dataset.go);
-    const f = e.target.closest('[data-f]'); if (f) { filter = f.dataset.f; return drawHistory(); }
-    const b = e.target.closest('[data-verb]'); if (!b) return; const it = HIST.find((x) => x.id === b.closest('.hrow').dataset.id); if (!it) return;
-    if (b.dataset.verb === 'del') { HIST = HIST.filter((x) => x.id !== it.id); if (cfg.demo) { try { localStorage.setItem(demoKey, JSON.stringify(HIST)); } catch {} } else fetch(`/api/exports?id=${encodeURIComponent(it.id)}`, { method: 'DELETE', headers: { authorization: `Bearer ${await token()}` } });
-      drawNav(); drawHistory(); return alertMsg('Removed from My reports.'); }
-    act(it.kind, Promise.resolve(it), b.dataset.verb === 'open' ? 'open' : null); };
+/* ---------- P11 Saved reports: reports the agent saved with Save on Create report ---------- */
+// The name of a saved report: the cities it shows ("Coquitlam and Greater Vancouver"), or "<client> · <neighbourhood>".
+const savedName = (it) => { const a = it.settings?.show?.areas || [it.area]; return a.length === 1 ? a[0] : a.length === 2 ? a.join(' and ') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`; };
+const savedWhen = (d) => { const x = new Date(d), t = new Date();
+  return x.toDateString() === t.toDateString() ? `Saved today, ${x.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' }).replace(/\s?([ap])\.?m\.?/i, (_, m) => m.toLowerCase() + 'm')}`
+    : `Saved ${x.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', ...(x.getFullYear() !== t.getFullYear() ? { year: 'numeric' } : {}) })}`; };
+function drawSaved() {
+  const pg = $('#page'), list = HIST.filter((x) => x.kind === 'save'), groups = [];
+  for (const it of list) { const m = new Date(it.created_at).toLocaleDateString('en-CA', { month: 'long', year: 'numeric' }); let g = groups.find((x) => x.m === m); if (!g) groups.push((g = { m, items: [] })); g.items.push(it); }
+  pg.innerHTML = `<div class="c sp"><h1>Saved reports</h1><p class="muted">Reports you saved. Tap one to open it.</p>
+    ${groups.length ? groups.map((g) => `<div class="cp-l">${esc(g.m)}</div><div class="cp-card">${g.items.map((it) => `<button type="button" class="sr2" data-open="${esc(it.id)}"><span class="rq-t"><b>${esc(savedName(it))}</b><small>${esc(savedWhen(it.created_at))}</small></span><span class="sr2-o">Open</span><span class="sr2-c" aria-hidden="true">›</span></button>`).join('')}</div>`).join('')
+      : `<div class="cp-card"><p class="cp-empty">Nothing saved yet. On Create report, tap <b>Save</b> and your report shows up here.</p></div>`}</div>`;
+  pg.onclick = (e) => { const b = e.target.closest('[data-open]'); if (!b) return; const it = HIST.find((x) => x.id === b.dataset.open); if (it) window.open(linkOf(it), '_blank'); };
 }
+// Save on Create report: keeps the report as it is now (cities, sections, settings) in Saved reports. Saving the same report again just updates its time.
+async function saveReport() {
+  if (!ready()) return; saveNow(); const b = $('#savebtn'); if (b) b.disabled = true;
+  try { await record('save', layoutOf(agent(), D).areas[0]);
+    document.querySelector('.bdtoast')?.remove(); const t = document.createElement('div'); t.className = 'bdtoast'; t.setAttribute('role', 'status');
+    t.innerHTML = '<span>✓ Saved. Find it any time in <b>Saved reports</b></span><button type="button">Open</button>'; document.body.appendChild(t);
+    t.querySelector('button').onclick = () => { t.remove(); show('saved'); }; setTimeout(() => t.remove(), 5000);
+  } catch (e) { alertMsg(e.message, true); } if (b) b.disabled = false;
+}
+/* ---------- P10 Clients: neighbourhood requests, client activity, what you sent ---------- */
+function drawClients() { const pg = $('#page'); pg.innerHTML = '<div class="c cpw"></div>'; personalLinks(pg.firstElementChild); }
 
 /* ---------- Account: log in details, password, billing ---------- */
 async function drawAccount() {

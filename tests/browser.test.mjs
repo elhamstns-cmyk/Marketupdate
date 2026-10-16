@@ -312,3 +312,14 @@ test('S5: with "Pick their neighbourhood" off, clients see one Ask button and a 
   await p.click('.nbask-go'); await p.waitForTimeout(500);
   assert.match(await p.textContent('.nbask-ok'), /on its way/);
 }, { width: 390 }));
+
+test('P10/P11: tabs at the top, Save goes to Saved reports, Clients shows requests and activity', { skip }, () => page('/app?plan=pro', async (p) => {
+  assert.deepEqual(await p.$$eval('#dtabs button', (x) => x.map((e) => e.textContent.trim())), ['Create report', 'Clients', 'Saved reports']);
+  await p.click('#savebtn'); await p.waitForTimeout(400);
+  assert.match(await p.textContent('.bdtoast'), /Saved reports/);
+  await p.click('#dtabs [data-view="saved"]'); await p.waitForTimeout(500);
+  assert.equal((await p.$$('.sr2')).length, 1, 'the saved report is listed');
+  await p.click('.sn [data-view="clients"]'); await p.waitForTimeout(800);
+  assert.match(await p.textContent('.cp'), /Asked about their neighbourhood/);
+  assert.ok(await p.$('.cp .ca-tb'), 'client activity table');
+}, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); sessionStorage.setItem('mup_zoomtip', '1'); } }));
