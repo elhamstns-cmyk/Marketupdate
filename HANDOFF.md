@@ -57,6 +57,12 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 **UI made, waiting for Ella's go-ahead:**
 
+- **D11 What clients can do** (`docs/d11-what-clients-can-do-ui.png`): replaces "Whole report" and D10 Past months at the bottom of the Sections panel. Always say **city** (Coquitlam, Burnaby North) and **neighbourhood** (Westwood Plateau), never "area"; Greater Vancouver is "the whole region". Rows, all switches: Add other cities · Pick their neighbourhood · Ask you about their neighbourhood (shows a button when they can't pick one) · Look at past months (up to 3 years). Then "When a client asks": Send it for me / Just tell me. Then "Report opens on": All cities together / The first city (kept out of "What clients can do" because it isn't something clients do). Move "How far back" out (keep 3 years), "Send a client one month" into the Personal links window, "My name and photo at the top" into Your details. Later, rename "areas" to "cities" in R2 ("Both cities", "+ Add city") and S10 ("How cities compare").
+- **S5 Ask about my neighbourhood** (`docs/s5-ask-ui.png`): when "Pick their neighbourhood" is off, S5 becomes one blue card, "What are homes worth in your neighbourhood?" with **Ask about my neighbourhood**. A short form (neighbourhood, name, email, one consent line: Canada's anti-spam law). "Send it for me" creates a personal link and emails it from the agent; "Just tell me" emails the agent and adds it to P10. Needs a new Supabase table (give Ella one SQL block).
+- **P10 Clients** (`docs/p10-clients-ui.png`): new top-bar tab. Neighbourhood requests first (red count on the tab, Send her link / Done), then D9 Client activity (moved out of the Share menu), and "What you sent" (links, Instagram, email, PDF).
+- **P11 Saved reports** (`docs/p11-saved-reports-ui.png`): new top-bar tab, a plain list by month (name, "Saved Oct 3", Open ›). A **Save** button on the Create page saves the report there ("Saved. Find it any time in Saved reports"). Replaces the "Your reports" page under the agent's photo.
+- **Top bar tabs:** Create report · Clients · Saved reports. Suggested build order: D11, then S5 Ask, then P10 and P11.
+
 - **Sections panel:** a recommended order with Summary last (the pictures, numbers and short lines are built, see D6 in §9).
 - **Template bar:** one slim line with "Save as template" and a ⋯ menu.
 - **Interest rates section:** Bank of Canada rate 2.25%, prime 4.45%, next announcement October 28, step graph, plus an admin "confirm each month" box (rates-ui.png).
@@ -185,6 +191,7 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 | D8 Preview window | Post / Story / PDF preview, what's on the image, caption, post to Instagram | `app.js → openPreview()`, `social2.js` |
 | D9 Client activity | Opens from Share (was "Personal links window"): each client's link, how active they are, opens, reading time, sections, what they looked at, one client's details, the Monday email switch (`docs/activity-ui.png`) | `app.js → personalLinks()`, `activity.js` |
 | D10 Month settings | Sections panel → Options → Past months: let clients look at past months, how far back (12 months, 3 years, back to 2016), send a client one month (`docs/months-ui.png`) | `app.js → monthsPanel()` |
+| D11 What clients can do | UI only (`docs/d11-what-clients-can-do-ui.png`). Bottom of the Sections panel: cities, neighbourhoods, ask button, past months, when a client asks, report opens on | `app.js → drawPanel()` (replaces "Whole report" and `monthsPanel()`) |
 
 **Report (what clients see, `/r/<agent>`):**
 
@@ -224,6 +231,8 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 | P7 PDF page | `public/print.html` |
 | P8 Share page (story link) | `public/share.html` |
 | P9 Admin | `public/admin.html` |
+| P10 Clients | UI only (`docs/p10-clients-ui.png`). Top-bar tab: neighbourhood requests, client activity, what you sent |
+| P11 Saved reports | UI only (`docs/p11-saved-reports-ui.png`). Top-bar tab: reports saved with the Save button |
 | E1 Emails | "Report ready" (`admin-publish`), welcome (`stripe-webhook`), Monday "who's actively looking" (`weekly`) |
 | I1 Instagram images | `social2.js → calmImage()` |
 
