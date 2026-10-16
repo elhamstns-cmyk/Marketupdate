@@ -108,7 +108,7 @@ body{background:#fff}
 .lp-end{background:var(--p);color:#fff;border-radius:24px;padding:52px 24px;text-align:center;margin:0 auto 72px;width:min(1080px,calc(100% - 40px))}
 .lp-end h2{color:#fff;font-size:clamp(1.8rem,4vw,2.5rem);letter-spacing:-.035em;font-weight:800}
 .lp-end p{opacity:.9;margin:10px 0 24px;font-size:1.1rem}
-.lp-end .btn{background:#fff;color:var(--p);border-color:#fff}
+.lp-endrow{max-width:470px;margin:0 auto;border-color:transparent;box-shadow:0 10px 30px rgba(0,0,0,.18)}.lp-endrow .btn{background:var(--p);color:#fff}.lp-end .lp-msg{margin:10px 0 0;opacity:1}.lp-end .lp-msg.err{color:#fff}
 .lp-foot{border-top:1px solid var(--line);padding:26px 20px 36px;text-align:center;font-size:.8rem;color:var(--mut);display:grid;gap:10px;justify-items:center}
 .lp-foot .logo{font-size:1rem;color:var(--ink)}.lp-foot .dot{width:24px;height:24px}
 .lp-foot nav{display:flex;gap:20px;font-weight:600;color:var(--ink)}.lp-foot nav a{text-decoration:none}
@@ -133,7 +133,7 @@ body{background:#fff}
 </defs></svg>
 
 <div class="lp-hero">
-<div class="nav lp-nav"><a class="logo" href="/"><span class="dot"></span>The Market Update</a><div class="navr"><a class="hide-sm" href="#samples">Sample report</a><a class="hide-sm" href="/plans">Pricing</a><a href="/app">Log in</a><a class="btn sm" href="#f">Start</a></div></div>
+<div class="nav lp-nav"><a class="logo" href="/"><span class="dot"></span>The Market Update</a><div class="navr"><a class="hide-sm" href="#samples">Sample report</a><a class="hide-sm" href="/plans">Pricing</a><a href="/app">Log in</a><a class="btn sm" href="#f" data-start>Start</a></div></div>
 <div class="lp-w"><div class="lp-hg">
   <div>
     <span class="lp-pill" id="pill" hidden><i></i><span id="pilltx"></span></span>
@@ -192,7 +192,7 @@ body{background:#fff}
   <div class="lp-samples" id="gal"></div>
 </div></section>
 
-<div class="lp-end"><h2 id="endh">Get next month's report with your name on it</h2><p>From $19 a month. Cancel anytime.</p><a class="btn" href="#f">Start</a></div>
+<div class="lp-end"><h2 id="endh">Get next month's report with your name on it</h2><p>From $19 a month. Cancel anytime.</p><form id="f2" class="lp-row lp-endrow" novalidate><input type="email" id="email2" placeholder="Your email address" autocomplete="email" aria-label="Your email address" required><button class="btn">Start</button></form><p class="lp-msg" id="msg2" role="status"></p></div>
 
 <footer class="lp-foot">
   <a class="logo" href="/"><span class="dot"></span>The Market Update</a>
@@ -205,15 +205,22 @@ import { SAMPLES, money, monthKey, esc, get } from '/js/report.js';
 const $ = (i) => document.getElementById(i), $$ = (s) => document.querySelectorAll(s);
 const fill = (s, t) => $$(s).forEach((e) => (e.textContent = t));
 
-// Sign up: same flow as before (saves the lead, then goes to account creation).
-$('f').addEventListener('submit', async (e) => { e.preventDefault(); const m = $('msg'); m.className = 'lp-msg';
-  const email = $('email').value.trim(), role = document.querySelector('input[name=role]:checked').value;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { m.className = 'lp-msg err'; m.textContent = 'Please enter a valid email address.'; $('email').focus(); return; }
-  $('go').disabled = true; m.textContent = 'One moment…';
+// Sign up: same flow as before (saves the lead, then goes to account creation). The top form and the one in the closing band both use it.
+async function signUp(e, email$, msg$, btn) { e.preventDefault(); const m = $(msg$); m.className = 'lp-msg';
+  const email = $(email$).value.trim(), role = document.querySelector('input[name=role]:checked').value;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { m.className = 'lp-msg err'; m.textContent = 'Please enter a valid email address.'; $(email$).focus(); return; }
+  btn.disabled = true; m.textContent = 'One moment…';
   try { const r = await fetch('/api/subscribe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, role, consent: $('consent').checked, consentText: $('ctext').textContent, company: $('company').value }) }), j = await r.json();
     if (!r.ok) throw new Error(j.error);
     location.href = '/app?email=' + encodeURIComponent(email) + '&role=' + role;
-  } catch (err) { m.className = 'lp-msg err'; m.textContent = err.message || 'Something went wrong. Please try again.'; $('go').disabled = false; } });
+  } catch (err) { m.className = 'lp-msg err'; m.textContent = err.message || 'Something went wrong. Please try again.'; btn.disabled = false; } }
+$('f').addEventListener('submit', (e) => signUp(e, 'email', 'msg', $('go')));
+$('f2').addEventListener('submit', (e) => signUp(e, 'email2', 'msg2', e.target.querySelector('button')));
+
+// "Start" in the top menu glides to the email box and puts the cursor in it, instead of jumping.
+document.querySelector('[data-start]').addEventListener('click', (e) => { e.preventDefault();
+  const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('f').scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'center' }); setTimeout(() => $('email').focus({ preventScroll: true }), smooth ? 400 : 0); });
 
 // A red or green change, like the report: red for down, green for up.
 const ch = (v, tail, unit = '%') => v == null ? '' : `<span class="${v < 0 ? 'lp-dn' : 'lp-upc'}">${v < 0 ? '▼' : '▲'} ${unit === '%' ? Math.abs(v).toFixed(1) + '%' : Math.abs(v) + ' days'}${tail ? ' ' + tail : ''}</span>`;

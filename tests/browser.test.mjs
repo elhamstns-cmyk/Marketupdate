@@ -263,6 +263,7 @@ test('the first page shows the logo, this month\'s real numbers, the price line 
   assert.match(await p.textContent('#chart'), /Highest \$[\d.]+M/);
   assert.equal((await p.$$('#gal .lp-sc')).length, 3);
   assert.match(await p.textContent('#endh'), /^Get \w+'s report/);
+  assert.ok(await p.$('#f2 #email2'), 'the closing band has its own email box, so Start never jumps the page');
   assert.ok(await p.$('#f #email') && await p.$('#consent'), 'sign-up form is there');
 }, { width: 390 }));
 
