@@ -68,6 +68,11 @@ test('Key numbers with several areas: titles on top of each column, one menu for
   assert.match(await p.textContent(S), /No number yet/);
 }));
 
+test('Key numbers: the menu lists only the times', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
+  const opts = await p.$eval('[data-sec="numbers"] select[data-nper]', (e) => [...e.options].map((o) => o.textContent));
+  assert.deepEqual(opts, ['Last month', '1 year ago', '3 years ago', '5 years ago', '10 years ago']);
+}));
+
 test('Key numbers with several areas on a phone: one block per number, nothing off the screen', { skip }, () => page('/r/demo?areas=greater-vancouver,maple-ridge,coquitlam', async (p) => {
   assert.equal(await p.$eval('[data-sec="numbers"] .kn-g', (e) => getComputedStyle(e).display), 'none');
   assert.equal(await p.$$eval('[data-sec="numbers"] .kn-b', (x) => x.length), 4);
