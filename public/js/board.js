@@ -3,11 +3,12 @@
 import { get, money, esc, slug, areasOf, themeVars, palette, mix, lum, phoneFmt, roleLabel, askCopy, first, sourceLine, market, monthKey, TN } from './report.js';
 import { salesGroup, salesByArea, soldStory, monthLong, typesStoryOne, typesStoryAreas, dollarChange, NUM_PERIODS, periodMonth, numbersChange, typeChange } from './charts.js';
 import { makeHoods } from './hoods.js';
+import { EVENTS, EVENT_ICON } from './events.js';
 
 /* ---------- sections and layout ---------- */
 // The section list and layout rules live in layout.js (shared with the server). Re-exported here for app.js.
-import { SECTIONS, SEC_IDS, MAX_AREAS, TYPE_KEYS, DEFAULT_LAYOUT, cleanConf, cleanHoods, sameLayout, layoutOf as layoutFrom } from './layout.js';
-export { SECTIONS, SEC_IDS, MAX_AREAS, TYPE_KEYS, DEFAULT_LAYOUT, cleanConf, cleanHoods, sameLayout };
+import { SECTIONS, SEC_IDS, MAX_AREAS, TYPE_KEYS, DEFAULT_LAYOUT, cleanConf, cleanHoods, sameLayout, sizeOf, layoutOf as layoutFrom } from './layout.js';
+export { SECTIONS, SEC_IDS, MAX_AREAS, TYPE_KEYS, DEFAULT_LAYOUT, cleanConf, cleanHoods, sameLayout, sizeOf };
 // One calm look for every report: white cards on soft grey, blue accent, Inter.
 export const CALM = { style: 'calm', ac: '#1d4fbf', bg: '#ffffff', font: 'modern' };
 // The agent's saved layout, cleaned against this month's data.
@@ -22,6 +23,12 @@ const COL = ['#2f6fe0', '#e5892c', '#1f9a55', '#8e4fd0', '#d64f7a', '#1a9fb0'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const addM = (k, n) => { let [y, m] = k.split('-').map(Number); m += n; y += Math.floor((m - 1) / 12); m = ((m - 1) % 12 + 12) % 12 + 1; return `${y}-${String(m).padStart(2, '0')}`; };
 const mName = (k) => MON[+k.slice(5) - 1];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+// A month as one number (2026-09 → 24320), so months can be counted and placed on a time line.
+const mIdx = (k) => +k.slice(0, 4) * 12 + (+k.slice(5, 7) - 1);
+// S2 time buttons: [months back, label, short label on a phone]
+const TL_RANGES = [['12', '1 year', '1 yr'], ['60', '5 years', '5 yrs'], ['120', '10 years', '10 yrs'], ['all', 'All', 'All']];
+let UID = 0;
 const N = (n) => Number(n).toLocaleString('en-CA');
 const pctOf = (now, then) => (now != null && then ? Math.round(((now - then) / then) * 1000) / 10 : null);
 const signed = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + '%';
@@ -54,7 +61,8 @@ export function mountReport(root, D, A, opts = {}) {
   let start = L.areas;
   if (opts.areas?.length) { const x = opts.areas.filter((a) => ALL.includes(a)); if (x.length) start = x.slice(0, MAX_AREAS); }
   else if (opts.area && ALL.includes(opts.area) && opts.area !== 'Greater Vancouver') start = L.areas.includes(opts.area) ? L.areas : [opts.area];
-  const S = { areas: [...start], focus: opts.area && start.includes(opts.area) ? opts.area : start[0], view: L.view, soldArea: null, soldView: 'bars', gType: 'composite', gYears: 2, tType: null, tPer: 'y1', intent: null, nPer: 'y1' };
+  const S = { areas: [...start], focus: opts.area && start.includes(opts.area) ? opts.area : start[0], view: L.view, soldArea: null, soldView: 'bars', gType: 'composite', gYears: 2, tType: null, tPer: 'y1', intent: null, nPer: 'y1', tw: null, tev: null, ton: null };
+  const uid = ++UID;
   const canEdit = (ED || L.clientAreas) && ALL.length > 1;
   const XTRA = [], colour = (a) => { let i = S.areas.indexOf(a); if (i < 0) { if (!XTRA.includes(a)) XTRA.push(a); i = S.areas.length + XTRA.indexOf(a); } return COL[i % COL.length]; };
   const CF = (k) => L.conf[k] || {};
@@ -119,9 +127,9 @@ export function mountReport(root, D, A, opts = {}) {
     return `<section class="kn kn-m" data-sec="numbers"><div class="kn-mh"><h3 class="kn-h">${knIc('all')}${h}</h3><span class="kn-since">Every change is since ${pick('')}</span></div>
       <div class="kn-pan">${grid}<div class="kn-bs">${blocks}</div></div></section>`;
   };
-  R.trend = () => { const sh = areasFor('trend'), one = sh.length === 1;
-    return card('trend', 'Benchmark price over 12 months', one ? `${esc(sh[0])}, MLS® HPI benchmark price` : `Change since ${mName(addM(endKey, -11))} ${addM(endKey, -11).slice(0, 4)}, so areas with very different prices are easy to compare`,
-      `${one ? '' : `<div class="leg">${sh.map((a) => `<span><i style="background:${colour(a)}"></i>${esc(a)}</span>`).join('')}</div>`}<div class="lc" data-chart="trend"></div>`); };
+  // S2: one card; the chart, time buttons, area row and event card are drawn by C.trend so they can redraw on their own.
+  R.trend = () => card('trend', 'Benchmark price over time', `${esc(areasFor('trend')[0])}, MLS® HPI benchmark price`,
+    '<div class="lc tl" data-chart="trend"></div>', `<div class="seg tl-rng" role="group" aria-label="How far back">${TL_RANGES.map(([n, l, s]) => `<button type="button" data-tr="${n}" aria-pressed="false"><span class="tl-l">${l}</span><span class="tl-s">${s}</span></button>`).join('')}</div>`);
   R.market = () => { const sh = areasFor('market'), pos = (r) => (Math.min(r, 36) / 36) * 100;
     if (sh.length === 1) { const a = sh[0], o = all(a), r = o.ratio, m = mkt(r);
       const rows = typesFor('market').map(([t, l]) => [l, get(D, a, t).ratio]).filter((x) => x[1] != null);
@@ -206,31 +214,134 @@ export function mountReport(root, D, A, opts = {}) {
       <div class="ty-list">${rows.map(row).join('')}</div>
       <p class="ty-key"><span>Longer bar = higher price</span><span><b class="ch upv"><i>▲</i>green</b> = higher than ${when}</span><span><b class="ch dn"><i>▼</i>red</b> = lower than ${when}</span></p>`; };
 
+  // S2 "Benchmark price over time": every month back to 2005 (D.history.long), then this year's months from D.history.price.
+  // Clients go back in time with the 1 / 5 / 10 years / All buttons, by dragging the chart (pinch on a phone or trackpad),
+  // with + and −, or by dragging the window on the strip under the chart. Orange dots mark what was happening (events.js).
+  // "Show me" under the chart switches areas for this chart only; tapping the area bar at the top resets it (S.ton = null).
   C.trend = (el) => {
-    const sh = areasFor('trend'), one = sh.length === 1, keys = Array.from({ length: 12 }, (_, i) => addM(endKey, i - 11));
-    const ser = sh.map((a) => { const h = D.history?.price?.composite?.[a] || {}, base = h[keys.find((k) => h[k])];
-      return { a, c: one ? 'var(--ac)' : colour(a), v: keys.map((k) => (h[k] ? (one ? h[k] : (h[k] / base - 1) * 100) : null)) }; }).filter((s) => s.v.filter((x) => x != null).length > 1);
-    if (!ser.length) { el.innerHTML = '<p class="na">Not enough history for this area yet.</p>'; return; }
-    const miss = sh.filter((a) => !ser.some((x) => x.a === a));
-    const W = Math.max(280, el.clientWidth || 600), H = W < 480 ? 200 : 236, l = 6, r = one ? 62 : 48, t = 12, b = 28, vals = ser.flatMap((s) => s.v.filter((x) => x != null));
-    let lo = Math.min(...vals), hi = Math.max(...vals); if (!one) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); } const pad = (hi - lo || Math.abs(hi) * 0.05 || 1) * 0.12; lo -= pad; hi += pad;
-    const st = niceStep(hi - lo, 4), x = (i) => l + (i * (W - l - r)) / 11, y = (v) => t + ((hi - v) / (hi - lo)) * (H - t - b);
-    let g = '';
-    for (let v = Math.ceil(lo / st) * st; v <= hi; v += st) g += `<line x1="${l}" x2="${W - r + 4}" y1="${y(v)}" y2="${y(v)}" class="gl"/><text x="${W - r + 12}" y="${y(v) + 4}" class="ax">${one ? short(v) : (Math.abs(v) < 1e-9 ? '0' : (v > 0 ? '+' : '−') + Math.abs(+v.toFixed(1))) + '%'}</text>`;
-    keys.forEach((k, i) => { if ((11 - i) % 2 === 0) g += `<text x="${x(i)}" y="${H - 8}" class="ax" text-anchor="${i === 11 ? 'end' : 'middle'}">${mName(k)}${i === 1 ? ' ’' + k.slice(2, 4) : ''}</text>`; });
-    const path = (s) => s.v.map((v, i) => (v == null ? '' : `${x(i).toFixed(1)},${y(v).toFixed(1)}`)).filter(Boolean).join(' ');
-    if (one) { const s = ser[0], pts = s.v.map((v, i) => [i, v]).filter((q) => q[1] != null); g += `<path d="M${pts.map(([i, v]) => `${x(i)},${y(v)}`).join('L')}L${x(pts[pts.length - 1][0])},${H - b}L${x(pts[0][0])},${H - b}Z" fill="var(--ac)" opacity=".07"/>`; }
-    g += ser.map((s) => `<polyline fill="none" stroke="${s.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" points="${path(s)}"/>${s.v[11] != null ? `<circle cx="${x(11)}" cy="${y(s.v[11])}" r="4" fill="${s.c}"/>` : ''}`).join('');
-    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Benchmark price over the last 12 months">${g}<line class="hx" y1="${t}" y2="${H - b}" opacity="0"/><g class="hd"></g><rect width="${W}" height="${H}" fill="transparent"/></svg><div class="ctip"></div>${miss.length ? `<p class="na">No 12-month history is published for ${miss.map(esc).join(', ')}.</p>` : ''}`;
-    const sv = el.querySelector('svg'), tip = el.querySelector('.ctip'), hx = sv.querySelector('.hx'), hd = sv.querySelector('.hd');
-    const fmt = (v) => (one ? money(v) : signed(v));
-    const move = (e) => { const bb = sv.getBoundingClientRect(), px = ((e.clientX - bb.left) / bb.width) * W, i = Math.max(0, Math.min(11, Math.round(((px - l) / (W - l - r)) * 11)));
-      hx.setAttribute('x1', x(i)); hx.setAttribute('x2', x(i)); hx.setAttribute('opacity', 1);
-      hd.innerHTML = ser.filter((s) => s.v[i] != null).map((s) => `<circle cx="${x(i)}" cy="${y(s.v[i])}" r="4.5" fill="${s.c}" stroke="var(--card)" stroke-width="2"/>`).join('');
-      tip.innerHTML = `<b>${mName(keys[i])} ${keys[i].slice(0, 4)}</b>${ser.filter((s) => s.v[i] != null).map((s) => `<span>${one ? '' : dot(s.c)}${one ? '' : esc(s.a) + ' '}<b>${fmt(s.v[i])}</b></span>`).join('')}`;
-      const left = (x(i) / W) * 100; tip.style.left = left + '%'; tip.style.transform = `translateX(${left > 60 ? 'calc(-100% - 14px)' : '14px'})`; tip.style.opacity = 1; };
-    sv.addEventListener('pointermove', move); sv.addEventListener('pointerdown', move);
-    sv.addEventListener('pointerleave', () => { tip.style.opacity = 0; hx.setAttribute('opacity', 0); hd.innerHTML = ''; });
+    const pool = CF('trend').areas || S.areas, on = (S.ton || areasFor('trend')).filter((a) => pool.includes(a) || !CF('trend').areas), endI = mIdx(endKey);
+    const ser = (a) => { const out = new Map(), L = D.history?.long;
+      if (L?.p?.[a]) { const s0 = mIdx(L.start[a]); L.p[a].forEach((v, i) => v != null && out.set(s0 + i, v * 100)); }
+      const last = out.size ? Math.max(...out.keys()) : -1;
+      for (const [k, v] of Object.entries(D.history?.price?.composite?.[a] || {})) { const i = mIdx(k); if (v && i > last) out.set(i, v); }
+      return [...out].filter(([i]) => i <= endI).sort((x, y) => x[0] - y[0]); };
+    const SER = Object.fromEntries(on.map((a) => [a, ser(a)])), lines = on.filter((a) => SER[a].length > 1), miss = on.filter((a) => !lines.includes(a));
+    if (!lines.length) { el.innerHTML = '<p class="na">Not enough history for this area yet.</p>'; return; }
+    const START = Math.min(...lines.map((a) => SER[a][0][0])), END = endI, evOn = CF('trend').events !== false;
+    if (!S.tw) S.tw = [END - 12, END];
+    const clamp = (a, b) => { const sp = Math.max(12, Math.min(END - START, b - a)); a = Math.max(START, Math.min(a, END - sp)); return [a, a + sp]; };
+    S.tw = clamp(...S.tw);
+    const at = (s, i) => { if (i <= s[0][0]) return s[0][1]; if (i >= s[s.length - 1][0]) return s[s.length - 1][1];
+      for (let j = 1; j < s.length; j++) if (s[j][0] >= i) { const [a, va] = s[j - 1], [b, vb] = s[j]; return va + ((i - a) / (b - a)) * (vb - va); } };
+    const near = (s, i, dir) => (dir < 0 ? [...s].reverse().find((p) => p[0] <= i) : s.find((p) => p[0] >= i)) || null;
+    const lab = (i) => `${MON[i % 12]} ${Math.floor(i / 12)}`, LAB = (i) => `${MONTHS[i % 12]} ${Math.floor(i / 12)}`;
+    const many = pool.length > 1, allOn = many && on.length === pool.length && pool.every((a) => on.includes(a)), allName = pool.length === 2 ? 'Both areas' : `All ${pool.length} areas`;
+    el.innerHTML = `${lines.length > 1 ? `<div class="leg">${lines.map((a) => `<span><i style="background:${colour(a)}"></i>${esc(a)}</span>`).join('')}</div>` : ''}
+      <div class="tl-ch"><div class="tl-zm"><button type="button" class="tl-zb" data-tz="in" aria-label="Zoom in, closer to today">+</button><button type="button" class="tl-zb" data-tz="out" aria-label="Zoom out, further back">−</button></div><svg class="tl-svg"></svg><div class="ctip"></div></div>
+      <div class="tl-ov"><svg class="tl-ovs"></svg><div class="tl-ovl"><span>${Math.floor(START / 12)}</span><span>Drag the blue window to go back in time</span><span>Today</span></div></div>
+      <div class="tl-ev"></div>
+      ${many ? `<div class="tl-show"><span class="tl-lb">Show me:</span><button type="button" class="chip tabby${allOn ? ' on' : ''}" data-tsa aria-pressed="${allOn}">${ALLIC}${allName}</button>${pool.map((a) => `<button type="button" class="chip tabby${on.length === 1 && on[0] === a ? ' on' : ''}" data-tsh="${esc(a)}" aria-pressed="${on.length === 1 && on[0] === a}">${dot(colour(a))}${esc(a)}</button>`).join('')}</div>
+        ${S.ton ? '<p class="tl-note">Only this chart changes. Tap the areas at the top to change the whole report.</p>' : ''}` : ''}
+      ${miss.length ? `<p class="na">No price history is published for ${miss.map(esc).join(', ')}.</p>` : ''}`;
+    const sv = el.querySelector('.tl-svg'), tip = el.querySelector('.ctip'), ov = el.querySelector('.tl-ovs'), evb = el.querySelector('.tl-ev'), box = el.querySelector('.tl-ch');
+    const sec = el.closest('section'), sub = sec?.querySelector('.sub'), rng = sec?.querySelector('.tl-rng');
+    let G = null;
+    function paint() {
+      const [w0, w1] = S.tw, one = lines.length === 1, W = Math.max(280, box.clientWidth || 600), H = W < 520 ? 240 : 290, lane = evOn ? 28 : 0, l = 6, r = one ? 60 : 50, t = 34, b = 24 + lane;
+      const x = (i) => l + ((i - w0) / (w1 - w0)) * (W - l - r);
+      const L2 = lines.map((a) => { const s = SER[a], base = at(s, w0), f = (v) => (one ? v : (v / base - 1) * 100);
+        return { a, c: one ? 'var(--ac)' : colour(a), s, pts: s.filter((p) => p[0] >= w0 - 24 && p[0] <= w1 + 24).map(([i, v]) => [i, f(v)]), edge: [w0, w1].map((i) => f(at(s, i))) }; });
+      const vis = L2.flatMap((Q) => [...Q.pts.filter((p) => p[0] >= w0 && p[0] <= w1).map((p) => p[1]), ...Q.edge]);
+      let lo = Math.min(...vis), hi = Math.max(...vis); if (!one) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+      const pad = (hi - lo || Math.abs(hi) * 0.05 || 1) * 0.1; lo -= pad * (one ? 2.6 : 1); hi += pad;
+      const y = (v) => t + ((hi - v) / (hi - lo)) * (H - t - b), st = niceStep(hi - lo, 4);
+      let g = `<defs><clipPath id="tlcp${uid}"><rect x="${l}" y="0" width="${W - l - r}" height="${H}"/></clipPath></defs>`;
+      for (let v = Math.ceil(lo / st) * st; v <= hi; v += st) g += `<line x1="${l}" x2="${W - r + 4}" y1="${y(v)}" y2="${y(v)}" class="gl"/><text x="${W - r + 10}" y="${y(v) + 4}" class="ax">${one ? short(v) : (Math.abs(v) < 1e-9 ? '0%' : signed(v).replace('.0', ''))}</text>`;
+      const span = w1 - w0, every = span <= 18 ? 2 : span <= 36 ? 6 : span <= 84 ? 12 : span <= 150 ? 24 : 36;
+      for (let i = Math.ceil(w0); i <= w1; i++) { const ok = every < 12 ? (END - i) % every === 0 : i % 12 === 0 && Math.floor(i / 12) % (every / 12) === 0; if (!ok) continue;
+        const X = x(i); if (X < l + 14 || X > W - r - 14) continue;
+        g += `<text x="${X}" y="${H - lane - 6}" class="ax" text-anchor="middle">${every < 12 ? MON[i % 12] + (i % 12 === 0 ? ' ’' + String(Math.floor(i / 12)).slice(2) : '') : Math.floor(i / 12)}</text>`; }
+      // events in view; dots closer than 20px share one dot with a number
+      const evs = evOn ? EVENTS.map((e, n) => ({ ...e, n, i: mIdx(e.k) })).filter((e) => e.i >= w0 && e.i <= w1 && e.i >= START) : [];
+      const grp = []; evs.forEach((e) => { const X = x(e.i), q = grp[grp.length - 1]; if (q && X - q.x1 < 20) { q.es.push(e); q.x1 = X; } else grp.push({ x0: X, x1: X, es: [e] }); });
+      g += `<g clip-path="url(#tlcp${uid})">`;
+      evs.forEach((e) => { g += `<line x1="${x(e.i)}" x2="${x(e.i)}" y1="${t - 6}" y2="${H - b}" stroke="${S.tev === e.n ? 'var(--tl-ev)' : 'var(--tl-evl)'}" stroke-dasharray="2 4" stroke-width="${S.tev === e.n ? 1.6 : 1}"/>`; });
+      if (one) { const Q = L2[0], P = [[w0, Q.edge[0]], ...Q.pts.filter((p) => p[0] > w0 && p[0] < w1), [w1, Q.edge[1]]];
+        g += `<path d="M${P.map((p) => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join('L')}L${x(w1)},${H - b}L${x(w0)},${H - b}Z" fill="var(--ac)" opacity=".07"/>`; }
+      L2.forEach((Q) => { g += `<polyline fill="none" stroke="${Q.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" points="${Q.pts.map((p) => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ')}"/>`;
+        const e = Q.pts[Q.pts.length - 1]; if (e && e[0] === END && w1 >= END - 0.01) g += `<circle cx="${x(END)}" cy="${y(e[1])}" r="4.5" fill="${Q.c}"/>`; });
+      g += '</g>';
+      if (one) { const inv = L2[0].pts.filter((p) => p[0] >= w0 && p[0] <= w1);
+        if (inv.length > 2) { const hp = inv.reduce((m, p) => (p[1] > m[1] ? p : m)), lp = inv.reduce((m, p) => (p[1] < m[1] ? p : m));
+          [[hp, 'Highest', -12], [lp, 'Lowest', 20]].forEach(([p, w, dy]) => { const X = x(p[0]), anc = X > W * 0.72 ? 'end' : X < W * 0.2 ? 'start' : 'middle';
+            g += `<circle cx="${X}" cy="${y(p[1])}" r="3.5" fill="var(--card)" stroke="var(--ac)" stroke-width="2"/><text x="${X}" y="${y(p[1]) + dy}" text-anchor="${anc}" class="tl-hl">${w}: ${short(p[1])} · ${lab(p[0])}</text>`; }); } }
+      grp.forEach((q) => { const X = (q.x0 + q.x1) / 2, n = q.es.length, sel = q.es.some((e) => e.n === S.tev);
+        g += `<g class="tl-mk" data-tev="${q.es[0].n}" data-tids="${q.es.map((e) => e.n).join(',')}" tabindex="0" role="button" aria-label="${esc(q.es.map((e) => `${e.t}, ${e.w}`).join('; '))}"><circle cx="${X}" cy="${H - 12}" r="14" fill="transparent"/><circle cx="${X}" cy="${H - 12}" r="${n > 1 ? 9 : sel ? 8 : 6.5}" fill="${sel ? 'var(--tl-ev)' : 'var(--tl-dot)'}" stroke="var(--card)" stroke-width="2"/>${n > 1 ? `<text x="${X}" y="${H - 8.5}" text-anchor="middle" class="tl-n">${n}</text>` : ''}</g>`; });
+      g += `<line class="hx" y1="${t - 8}" y2="${H - b}" opacity="0"/><g class="hd"></g>`;
+      sv.setAttribute('viewBox', `0 0 ${W} ${H}`); sv.innerHTML = g;
+      G = { W, H, l, r, b, x, y, one, evs, L2 };
+      if (sub) sub.textContent = one ? `${lines[0]}, MLS® HPI benchmark price · ${lab(Math.round(w0))} to ${lab(Math.round(w1))}` : `Change since ${lab(Math.round(w0))}, so areas with very different prices are easy to compare`;
+      rng?.querySelectorAll('[data-tr]').forEach((bt) => { const want = bt.dataset.tr === 'all' ? END - START : +bt.dataset.tr; bt.setAttribute('aria-pressed', Math.abs(w1 - w0 - want) < 0.5 && Math.abs(w1 - END) < 0.5); });
+      el.querySelector('[data-tz="in"]').disabled = w1 - w0 <= 12.01; el.querySelector('[data-tz="out"]').disabled = w1 - w0 >= END - START - 0.01;
+      // the strip: the whole history, with the window you're looking at
+      const OW = Math.max(280, box.clientWidth || 600), OH = 44, s0 = SER[lines[0]], OX = (i) => 2 + ((i - START) / (END - START || 1)) * (OW - 4), vs = s0.map((p) => p[1]), mn = Math.min(...vs), mx = Math.max(...vs), OY = (v) => 6 + ((mx - v) / (mx - mn || 1)) * (OH - 12), a = OX(w0), c = OX(w1);
+      ov.setAttribute('viewBox', `0 0 ${OW} ${OH}`);
+      ov.innerHTML = `<rect width="${OW}" height="${OH}" rx="8" class="tl-ovbg"/><polyline fill="none" class="tl-ovln" stroke-width="1.5" points="${s0.map((p) => `${OX(p[0]).toFixed(1)},${OY(p[1]).toFixed(1)}`).join(' ')}"/>${evOn ? EVENTS.filter((e) => mIdx(e.k) >= START && mIdx(e.k) <= END).map((e) => `<circle cx="${OX(mIdx(e.k))}" cy="${OH - 5}" r="2.2" fill="var(--tl-dot)"/>`).join('') : ''}
+        <rect class="tl-win" x="${a}" y="1" width="${Math.max(6, c - a)}" height="${OH - 2}" rx="7"/><rect class="tl-hdl" data-h="0" x="${a - 5}" y="${OH / 2 - 11}" width="10" height="22" rx="4"/><rect class="tl-hdl" data-h="1" x="${c - 5}" y="${OH / 2 - 11}" width="10" height="22" rx="4"/>`;
+      // the event card, or a hint
+      if (!evOn) evb.innerHTML = '';
+      else if (S.tev == null) evb.innerHTML = `<p class="tl-hint">${EVENT_ICON.world}<span>${evs.length ? 'Tap an orange dot to see what was happening at that time.' : 'Tap 5 years, 10 years or All to see what was happening in past years, like COVID-19 or new taxes.'}</span></p>`;
+      else { const e = EVENTS[S.tev], i = mIdx(e.k), a1 = lines[0], s = SER[a1], p0 = near(s, i, -1), p1 = near(s, i + 12, 1) || s[s.length - 1], ids = evs.map((v) => v.n), k = ids.indexOf(S.tev);
+        let chg = ''; if (p0 && p1 && p1[0] > p0[0]) { const v = (p1[1] / p0[1] - 1) * 100; chg = `<p class="tl-chg">Benchmark price in ${esc(a1)}: ${money(p0[1])} in ${lab(p0[0])}, ${money(p1[1])} in ${lab(p1[0])} ${arrow(v)}</p>`; }
+        evb.innerHTML = `<div class="tl-card" role="region" aria-live="polite"><div class="tl-ic">${EVENT_ICON[e.ic]}</div><div class="tl-cb"><span class="tl-when">${esc(e.w)}</span><b>${esc(e.t)}</b><p>${esc(e.d)}</p>${chg}
+          <div class="tl-nav"><button type="button" data-tst="-1"${k <= 0 ? ' disabled' : ''}>‹ Earlier event</button><button type="button" data-tst="1"${k < 0 || k >= ids.length - 1 ? ' disabled' : ''}>Later event ›</button></div></div><button type="button" class="tl-x" data-tx aria-label="Close">✕</button></div>`; }
+    }
+    const setWin = (a, b) => { S.tw = clamp(a, b); paint(); };
+    const zoomAt = (m, f) => setWin(m - (m - S.tw[0]) * f, m + (S.tw[1] - m) * f);
+    const monthAt = (cx) => { const bb = sv.getBoundingClientRect(), px = ((cx - bb.left) / bb.width) * G.W; return S.tw[0] + ((px - G.l) / (G.W - G.l - G.r)) * (S.tw[1] - S.tw[0]); };
+    const hide = () => { tip.style.opacity = 0; sv.querySelector('.hx')?.setAttribute('opacity', 0); const hd = sv.querySelector('.hd'); if (hd) hd.innerHTML = ''; };
+    const place = (X, top) => { const left = (X / G.W) * 100; tip.style.left = left + '%'; tip.style.top = top + 'px'; tip.style.transform = `translateX(${left > 58 ? 'calc(-100% - 14px)' : '14px'})`; tip.style.opacity = 1; };
+    function hover(cx) { const m = monthAt(cx), [w0, w1] = S.tw; if (m < w0 - 1 || m > w1 + 1) return hide();
+      let best = null; G.L2.forEach((Q) => Q.pts.forEach((p) => { if (p[0] >= w0 && p[0] <= w1 && (best == null || Math.abs(p[0] - m) < Math.abs(best - m))) best = p[0]; }));
+      if (best == null) return hide(); const X = G.x(best), hx = sv.querySelector('.hx'); hx.setAttribute('x1', X); hx.setAttribute('x2', X); hx.setAttribute('opacity', 1);
+      const rows2 = G.L2.map((Q) => [Q, Q.pts.find((p) => p[0] === best)]).filter((q) => q[1]);
+      sv.querySelector('.hd').innerHTML = rows2.map(([Q, p]) => `<circle cx="${X}" cy="${G.y(p[1])}" r="4.5" fill="${Q.c}" stroke="var(--card)" stroke-width="2"/>`).join('');
+      const ev = G.evs.find((e) => Math.abs(e.i - best) <= 1);
+      tip.innerHTML = `<b>${LAB(best)}</b>${rows2.map(([Q, p]) => `<span>${G.one ? '' : dot(Q.c) + esc(Q.a) + ' '}<b>${G.one ? money(p[1]) : signed(p[1])}</b></span>`).join('')}${ev ? `<span class="tl-te">● ${esc(ev.t)}</span>` : ''}`;
+      place(X, 30); }
+    const ptrs = new Map(); let pan = null, pinch = null;
+    sv.onpointerdown = (e) => { const mk = e.target.closest('.tl-mk'); if (mk) { S.tev = S.tev === +mk.dataset.tev ? null : +mk.dataset.tev; return paint(); }
+      ptrs.set(e.pointerId, e.clientX);
+      if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.abs(a - b) || 1, w: [...S.tw], m: monthAt((a + b) / 2) }; pan = null; return hide(); }
+      if (e.pointerType === 'mouse') { sv.setPointerCapture(e.pointerId); pan = { x: e.clientX, w: [...S.tw] }; box.classList.add('grab'); } else hover(e.clientX); };
+    sv.onpointermove = (e) => { if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, e.clientX);
+      if (pinch && ptrs.size === 2) { const [a, b] = [...ptrs.values()], sp = (pinch.w[1] - pinch.w[0]) * (pinch.d / (Math.abs(a - b) || 1)), k = (pinch.m - pinch.w[0]) / (pinch.w[1] - pinch.w[0]); return setWin(pinch.m - sp * k, pinch.m + sp * (1 - k)); }
+      if (pan) { if (Math.abs(e.clientX - pan.x) > 3) { const bb = sv.getBoundingClientRect(), dm = ((e.clientX - pan.x) / bb.width) * (G.W / (G.W - G.l - G.r)) * (pan.w[1] - pan.w[0]); hide(); setWin(pan.w[0] - dm, pan.w[1] - dm); } return; }
+      const mk = e.target.closest('.tl-mk');
+      if (mk) { const es = mk.dataset.tids.split(',').map((n) => EVENTS[+n]); hide(); tip.innerHTML = es.map((v) => `<span><b>${esc(v.t)}</b> · ${esc(v.w)}</span>`).join('') + '<span class="tl-te">Tap for more</span>'; return place(G.x(mIdx(es[0].k)), Math.max(0, sv.getBoundingClientRect().height - 70 - 22 * es.length)); }
+      hover(e.clientX); };
+    const up = (e) => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (pan) { pan = null; box.classList.remove('grab'); } };
+    sv.onpointerup = up; sv.onpointercancel = up; sv.onpointerleave = () => { if (!pan) hide(); };
+    // A trackpad pinch arrives as ctrl + wheel. A plain scroll wheel keeps scrolling the page.
+    sv.onwheel = (e) => { if (!e.ctrlKey) return; e.preventDefault(); zoomAt(monthAt(e.clientX), Math.exp(e.deltaY * 0.01)); };
+    sv.onkeydown = (e) => { const mk = e.target.closest?.('.tl-mk'); if (mk && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); S.tev = +mk.dataset.tev; paint(); } };
+    let od = null; const ovM = (e) => { const bb = ov.getBoundingClientRect(); return START + ((e.clientX - bb.left) / bb.width) * (END - START); };
+    ov.onpointerdown = (e) => { const m = ovM(e), h = e.target.dataset?.h; ov.setPointerCapture(e.pointerId);
+      if (h == null && !e.target.classList.contains('tl-win')) { const sp = S.tw[1] - S.tw[0]; setWin(m - sp / 2, m + sp / 2); }
+      od = { h: h == null ? 'move' : +h, m, w: [...S.tw] }; };
+    ov.onpointermove = (e) => { if (!od) return; const d = ovM(e) - od.m;
+      if (od.h === 'move') setWin(od.w[0] + d, od.w[1] + d);
+      else if (od.h === 0) setWin(Math.min(od.w[0] + d, od.w[1] - 12), od.w[1]);
+      else { S.tw = [od.w[0], Math.min(END, Math.max(od.w[1] + d, od.w[0] + 12))]; paint(); } };
+    ov.onpointerup = ov.onpointercancel = () => { od = null; };
+    el.onclick = (e) => { const b = (s) => e.target.closest(s);
+      if (b('[data-tz]')) return zoomAt(S.tw[1] - (S.tw[1] - S.tw[0]) * 0.25, b('[data-tz]').dataset.tz === 'in' ? 0.6 : 1 / 0.6);
+      if (b('[data-tx]')) { S.tev = null; return paint(); }
+      if (b('[data-tst]')) { const ids = G.evs.map((v) => v.n), k = ids.indexOf(S.tev) + +b('[data-tst]').dataset.tst; if (ids[k] != null) { S.tev = ids[k]; paint(); } return; }
+      if (b('[data-tsa]')) { S.ton = [...pool]; return C.trend(el); }
+      if (b('[data-tsh]')) { S.ton = [b('[data-tsh]').dataset.tsh]; return C.trend(el); } };
+    if (rng) rng.onclick = (e) => { const bt = e.target.closest('[data-tr]'); if (!bt) return; S.tev = null; const v = bt.dataset.tr; setWin(v === 'all' ? START : END - +v, END); };
+    paint();
   };
   C.sold = (el) => {
     const a = S.soldArea, g = salesGroup(a), keys = Array.from({ length: 12 }, (_, i) => addM(endKey, i - 11));
@@ -352,7 +463,7 @@ export function mountReport(root, D, A, opts = {}) {
 
   /* ----- page ----- */
   const PAIR = { trend: 7, market: 5, summary: 6, sold: 6 };
-  const pairs = (k) => PAIR[k] && CF(k).size !== 'full';
+  const pairs = (k) => PAIR[k] && sizeOf(k, CF(k)) === 'half';
   function rows(secs) { const out = []; for (let i = 0; i < secs.length; i++) { const a = secs[i], b = secs[i + 1]; if (pairs(a) && pairs(b)) { out.push([a, b]); i++; } else out.push([a]); } return out; }
   // R2: "Show me: Both areas · Coquitlam · Burnaby North · + Add area", and a line saying what the report below shows.
   const ALLIC = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg>';
@@ -438,7 +549,7 @@ export function mountReport(root, D, A, opts = {}) {
     if (q('mail')) q('mail').href = `mailto:${A.contact_email}?subject=${encodeURIComponent(ask.subj)}&body=${encodeURIComponent(t)}`;
     if (q('sms')) { const d = String(A.phone).replace(/\D/g, ''); q('sms').href = `sms:+${d.length === 11 && d[0] === '1' ? d : '1' + d}?&body=${encodeURIComponent(t)}`; } }
   function remember() { if (opts.embedded || ED) return; try { const u = new URL(location.href); u.searchParams.set('areas', S.areas.map(slug).join(',')); u.hash = ''; history.replaceState(null, '', u.toString().replace(/%2C/g, ',')); } catch {} }
-  function setAreas(next, focus) { S.areas = next.slice(0, MAX_AREAS); if (ED) saveLayout({ areas: [...S.areas] }); if (!S.areas.includes(S.focus)) S.focus = S.areas[0]; if (focus) S.focus = focus; remember(); draw(); }
+  function setAreas(next, focus) { S.ton = null; S.areas = next.slice(0, MAX_AREAS); if (ED) saveLayout({ areas: [...S.areas] }); if (!S.areas.includes(S.focus)) S.focus = S.areas[0]; if (focus) S.focus = focus; remember(); draw(); }
   function wire() {
     if (q('where')) { q('where').addEventListener('input', msg); msg(); }
   }
@@ -450,8 +561,8 @@ export function mountReport(root, D, A, opts = {}) {
     if (ED && b('.sx') && !b('button,a,input,select,label,.mrow,[data-chart="trend"]')) { const k = b('.sx').dataset.k; root._select(k); opts.onSelect?.(k); }
     if (b('[data-rm]')) { e.stopPropagation(); const a = b('[data-rm]').dataset.rm; return setAreas(S.areas.filter((x) => x !== a)); }
     // Tapping an area shows the whole report for that area; "Both areas" / "All 3 areas" compares them again.
-    if (b('[data-focus]')) { S.focus = b('[data-focus]').dataset.focus; S.view = 'one'; return draw(); }
-    if (b('[data-all]')) { S.view = 'side'; return draw(); }
+    if (b('[data-focus]')) { S.focus = b('[data-focus]').dataset.focus; S.view = 'one'; S.ton = null; return draw(); }
+    if (b('[data-all]')) { S.view = 'side'; S.ton = null; return draw(); }
     if (b('[data-mopen]')) { S.moOpen = !S.moOpen; S.moYear = +endKey.slice(0, 4); draw(); return root.querySelector('.mo-grid .on,.mo-grid button:not([disabled])')?.focus(); }
     if (b('[data-mclose]')) { S.moOpen = false; return draw(); }
     if (b('[data-myr]')) { const y = +b('[data-myr]').dataset.myr; if (y) { S.moYear = y; draw(); root.querySelector('.mo-yr b')?.focus?.(); } return; }

@@ -5,7 +5,7 @@
 export const SECTIONS = [
   // [id, name, the short line agents see under the name in the Sections panel]
   ['numbers', 'Key numbers', 'Price, homes sold, homes for sale'],
-  ['trend', 'Benchmark price over 12 months', 'Line graph, one line for each area'],
+  ['trend', 'Benchmark price over time', 'Line graph back to 2005, with what was happening'],
   ['market', "Buyer's or seller's market?", 'A scale for each area'],
   ['types', 'Prices by home type', 'Detached, townhouse and condo'],
   ['hoods', 'Neighbourhoods', 'Prices for each neighbourhood'],
@@ -19,6 +19,9 @@ export const SEC_IDS = SECTIONS.map((s) => s[0]);
 // Sections added after agents started saving layouts. A layout saved before one existed gets it once (see layoutOf).
 export const NEW_SECTIONS = ['hoods'];
 export const MAX_AREAS = 6;
+// Sections that sit side by side with another (weight = share of the row), and those that are full width unless set to half.
+export const FULL_FIRST = ['trend'];
+export const sizeOf = (k, c) => (c && (c.size === 'full' || c.size === 'half') ? c.size : FULL_FIRST.includes(k) ? 'full' : 'half');
 export const TYPE_KEYS = ['detached', 'townhome', 'condo'];
 // The parts of the Neighbourhoods section an agent can switch off (labels live in hoods.js → BLOCKS).
 // 'tiles' is the ranked list of every neighbourhood (it replaced the coloured tiles and "Who grew the most").
@@ -56,8 +59,9 @@ export function cleanConf(c, all) {
     if (typeof x.title === 'string' && x.title.trim()) y.title = x.title.trim().slice(0, 70);
     const a = cleanAreas(x.areas, all); if (a?.length) y.areas = a;
     if (Array.isArray(x.types)) { const t = x.types.filter((v) => TYPE_KEYS.includes(v)); if (t.length && t.length < 3) y.types = t; }
-    for (const f of ['sub', 'note']) if (x[f] === false) y[f] = false;
-    if (x.size === 'full') y.size = 'full';
+    for (const f of ['sub', 'note', 'events']) if (x[f] === false) y[f] = false;
+    // Only store a size that differs from the section's usual one.
+    if ((x.size === 'full' || x.size === 'half') && x.size !== sizeOf(k)) y.size = x.size;
     if (k === 'hoods') Object.assign(y, cleanHoods(x));
     if (Object.keys(y).length) o[k] = y;
   }

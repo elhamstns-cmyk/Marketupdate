@@ -77,8 +77,10 @@ lib/smtp.js                 Minimal SMTP sender: smtpSend(list) → number sent.
 lib/routes/*.js             One handler per API address (see §5 table).
 data/seed-report.js         `export default {...}`: a full month of report data (demo + fallback).
 data/history.js(.json)      Monthly price/sales/listings history since 2025-01 (12-month charts).
+data/price-long.js          S2: typical price (composite) of every area, every month since 2005-01 (built by the script below).
 scripts/dev.mjs             Local server.
 scripts/history-from-gvr.py Build history from GVR stats packages.
+scripts/price-history-from-gvr.py  Build data/price-long.js from a folder of monthly HPI Benchmark Summary files (rerun only when GVR re-benchmarks).
 scripts/growth-from-gvr.py  Adds "growth" (3/5/10-year % by area and type) from the Stats Package PDF.
 scripts/hoods-from-gvr.py   Adds "hoods" (neighbourhood prices) from the HPI Benchmark Summary Excel.
 scripts/gvr-neighbourhoods.json  GVR area code → neighbourhood names (which city each belongs to).
@@ -125,7 +127,8 @@ The client calls this document `D`.
   history: {                        // added server-side from data/history.js if missing
     price:    { composite|detached|townhome|condo: { "<Area>": { "2025-01": 1234567, … } } },
     sales:    { detached|townhome|condo: { "<sales group>": { "2025-01": 123, … } } },
-    listings: { … same as sales … }
+    listings: { … same as sales … },
+    long:     { end: "2026-09", start: { "<Area>": "2005-01" }, p: { "<Area>": [4094, …] } }  // S2, hundreds of $; added server-side from data/price-long.js
   },
   hoods: {                          // optional: neighbourhood benchmark prices
     "Coquitlam": {
@@ -199,8 +202,8 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 | `getUser(req)` | Checks the bearer token with Supabase Auth. Returns the user or `null`. |
 | `isActive(p)` | `status` is `active` or `trialing` |
 | `latestReport()`, `reportFor(key)` | Read from `reports`. Both pass through `withHistory()`. |
-| `withHistory(D)` | Fills `history` from `data/history.js`, area by area, when it is missing. Adds the seed's `hoods` when the month matches. |
-| `forPlan(D, plan)` | Essentials: keeps only Greater Vancouver and strips `areas`, `hoods` and most history |
+| `withHistory(D)` | Fills `history` from `data/history.js`, area by area, when it is missing, and adds `history.long` (S2's prices back to 2005) from `data/price-long.js`. Adds the seed's `hoods` when the month matches. |
+| `forPlan(D, plan)` | Essentials: keeps only Greater Vancouver and strips `areas`, `hoods` and most history (`history.long` keeps Greater Vancouver only) |
 | `cleanTheme`, `cleanShow` | Validate agent input before saving. `cleanShow` is re-exported from `public/js/layout.js`, which the browser uses too. |
 | `publicAgent(p)` | The fields safe to show on a public report. **Never put personal or private fields in it.** |
 | `stripe(path, params)`, `verifyStripe(raw, header, secret)` | Stripe REST call and webhook signature check |
@@ -250,6 +253,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 | `app.js` | The Create page (dashboard). Long file. | Not imported by others. Runs on load (top-level `await`). |
 | `report.js` | Shared helpers and older renderers | `get`, `money`, `esc`, `slug`, `areasOf`, `first`, `phoneFmt`, `roleLabel`, `askCopy`, `sourceLine`, `monthKey`, `palette`, `themeVars`, `SAMPLES`, … |
 | `charts.js` | Series, simple chart helpers and the one-line stories | `salesGroup`, `priceSeries`, `salesSeries`, `lineChart`, `barChart`, `soldStory`, `typesStoryOne`, `typesStoryAreas`, `dollarChange`, `typeChange` (S4) |
+| `events.js` | S2's "what was happening" list (date, name, one or two sentences, icon). Facts must be checkable; never say an event caused a price change | `EVENTS`, `EVENT_ICON` |
 | `social2.js` | Instagram images on canvas (calm blue design) | `calmImage(D, A, area, kind, opts)`, `calmCaption`, `IMG_DEFAULTS`, `IMG_PARTS`, `imgOpts` |
 | `exports.js` | Links, email draft, image wrappers | `reportLink`, `emailDraft`, `socialImage` (→ `calmImage`), `caption`, `download` (`*Old` versions are legacy) |
 | `share.js` / `qr.js` | Share menu, QR modal, icon set `sv(name)`; QR SVG generator | |
@@ -270,7 +274,8 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 
 - Each section has a renderer `R[id]()` that returns HTML through `card(id, title, sub, body, extra)`.
 - Charts and interactive parts are placeholders `<div data-chart="x">`, filled by `C[x](el)` after the HTML is on the page. A `ResizeObserver` runs `charts()` again when the size changes.
-- Sections with a `PAIR` weight (`trend`, `market`, `summary`, `sold`) sit side by side unless their size is set to full.
+- Sections with a `PAIR` weight (`trend`, `market`, `summary`, `sold`) sit side by side when their size is half. `layout.js → sizeOf(k, conf)` gives the size: `trend` is full width unless the agent picks half (`FULL_FIRST`); the others are half unless set to full.
+- **S2 (`C.trend`)** keeps its own state in `S`: `tw` (the months in view, as month numbers), `tev` (the open event) and `ton` (areas picked in its "Show me" row; `null` = follow the area bar, and any area-bar tap resets it). `paint()` redraws only the chart, strip and event card, so dragging stays smooth. Its data attributes are `data-tr`, `data-tz`, `data-tst`, `data-tx`, `data-tsa`, `data-tsh` and `.tl-mk` dots; styles are `tl-*` in `board.css`. `conf.trend.events === false` hides the events.
 - **Events:** one delegated `root.onclick` and one `root.onchange`. Add new handlers there, or keep them inside your own module, as `hoods.js` does with `data-h*` attributes. **Don't reuse the `data-*` names already used in `root.onclick`.**
 - **Edit mode:** each section is wrapped in `.sx[data-k]` with a "Drag to move" handle (`.dragh`, shown on hover and when selected) and a bin. `saveLayout(patch)` calls `opts.edit(patch)`, and `app.js → setLayout()` saves it to `P.show`. `opts.onRemove(k)` lets the dashboard animate removing a section (the bin calls it instead of removing at once).
 - **Homes sold (`sold`):** one area draws `C.sold` (a bar chart). Several areas draw `C.soldm`: the story line, a Greater Vancouver row, the cities' bars or lines (`S.soldView`, buttons `data-sv`) and the change row. Its data comes from `charts.js → salesByArea()` (areas sharing a sales group, such as Burnaby North and South, are counted once) and the story from `soldStory()`, both tested in `tests/sold.test.mjs`. Under 520px wide it shows the last 6 months. Classes are prefixed `sd-`.
@@ -415,6 +420,7 @@ For visual changes, still take Playwright screenshots at desktop width and at 39
 
 **Pending owner decisions (UI made, not built):**
 
+- S2: shaded periods (booms, rate cycles) and a Bank of Canada rate line under the price chart
 - A "Use recommended order" option in the Sections panel
 - A slimmer template bar with a ⋯ menu
 - An interest rates section (Bank of Canada rate, prime rate, next announcement, step graph)

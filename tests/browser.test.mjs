@@ -81,7 +81,7 @@ test('Key numbers with several areas on a phone: one block per number, nothing o
   assert.equal(over, 0);
 }, { width: 390 }));
 
-test('adding a city adds a line to the 12-month chart', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-north', async (p) => {
+test('adding a city adds a line to the price chart', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-north', async (p) => {
   const legend = await p.$$eval('.cd-trend .leg span', (x) => x.map((e) => e.textContent));
   assert.deepEqual(legend, ['Coquitlam', 'Burnaby North']);
 }));
@@ -128,6 +128,22 @@ test('Prices by home type: the "Change since" menu changes every change, the sen
   assert.equal(await p.$$eval('.cd-types .ty-c.upv', (x) => x.length), 4, 'every area is up over 10 years');
   await p.click('.cd-types [data-tt="condo"]');
   assert.match(await p.textContent('.cd-types .ty-ch'), /Sep 2016/, 'the time stays when switching home type');
+}));
+
+test('S2 goes back in time, shows what was happening, and switches areas right under the chart', { skip }, () => page('/r/demo?areas=coquitlam,burnaby-north', async (p) => {
+  const sub = () => p.textContent('.cd-trend .sub');
+  assert.match(await sub(), /Change since/);
+  assert.equal(await p.getAttribute('.cd-trend [data-tr="12"]', 'aria-pressed'), 'true', 'opens on 1 year');
+  await p.click('.cd-trend [data-tsh="Burnaby North"]');
+  assert.match(await sub(), /^Burnaby North, MLS® HPI benchmark price/);
+  assert.match(await p.textContent('.cd-trend .tl-note'), /Only this chart changes/);
+  await p.click('.cd-trend [data-tr="all"]');
+  assert.match(await sub(), /Jan 2005 to/);
+  await p.click('.cd-trend .tl-mk');
+  assert.match(await p.textContent('.cd-trend .tl-card'), /global financial crisis/);
+  // the area bar at the top takes over again
+  await p.click('[data-focus="Coquitlam"]');
+  assert.match(await sub(), /^Coquitlam,/);
 }));
 
 test('a personal link opens on the client\'s neighbourhood', { skip }, () => page('/r/demo?p=x', async (p) => {

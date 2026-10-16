@@ -84,3 +84,16 @@ test('cleanShow keeps the template, mode and Instagram image switches, and nothi
   assert.equal(s.hacker, undefined);
   assert.equal(cleanShow('nope'), null);
 });
+
+test('S2 is full width unless the agent picks half, and its events can be switched off', () => {
+  assert.equal(L.sizeOf('trend', {}), 'full'); assert.equal(L.sizeOf('market', {}), 'half');
+  const c = L.cleanConf({ trend: { size: 'full', events: false, sub: true }, market: { size: 'half' }, sold: { size: 'full' } });
+  assert.deepEqual(c, { trend: { events: false }, sold: { size: 'full' } });
+  assert.deepEqual(L.cleanConf({ trend: { size: 'half' } }), { trend: { size: 'half' } });
+});
+
+test('every S2 event has a month, a name, a date line and a story, in time order', async () => {
+  const { EVENTS, EVENT_ICON } = await import('../public/js/events.js');
+  let last = '';
+  for (const e of EVENTS) { assert.match(e.k, /^\d{4}-\d{2}$/); assert.ok(e.t && e.w && e.d, e.k); assert.ok(EVENT_ICON[e.ic], `${e.k} icon`); assert.ok(e.k >= last, `${e.k} out of order`); last = e.k; }
+});

@@ -1,4 +1,4 @@
-import { mountReport, SECTIONS, SEC_IDS, layoutOf, DEFAULT_LAYOUT, MAX_AREAS, sameLayout, PAIRABLE, USES_TYPES, USES_AREAS, TYPE_KEYS } from './board.js';
+import { mountReport, SECTIONS, SEC_IDS, layoutOf, DEFAULT_LAYOUT, MAX_AREAS, sameLayout, PAIRABLE, USES_TYPES, USES_AREAS, TYPE_KEYS, sizeOf } from './board.js';
 import { esc, areasOf, STYLES, FONTS, BASIC_THEME, loadFonts, SHOW_NUMBERS, SHOW_SECTIONS, DEFAULT_SHOW, TYPES, T1, showOf, monthKey, COVERS } from './report.js';
 import { reportLink, emailDraft, caption, socialImage, download } from './exports.js';
 import { calmImage, calmCaption, imgOpts, IMG_PARTS } from './social2.js';
@@ -493,8 +493,8 @@ function secSettings(k, L) {
       ${own ? `<div class="chips2">${ar.map((a) => `<span class="chip2">${esc(a)}${ar.length > 1 ? `<button type="button" data-arm="${esc(a)}" aria-label="Remove ${esc(a)}">✕</button>` : ''}</span>`).join('')}</div>
         ${ar.length < MAX_AREAS ? `<label class="addl">+ Add an area (up to ${MAX_AREAS})<select data-aadd><option value="">Add an area</option>${free.map((a) => `<option>${esc(a)}</option>`).join('')}</select></label>` : ''}` : ''}</div>`, own ? '' : `Now: ${L.areas.map(esc).join(' and ')}`)
       + (USES_TYPES.includes(k) ? g('Home types', TYPE_KEYS.map((t) => { const on = !c.types || c.types.includes(t); return `<button type="button" class="ipr" data-ty="${t}" aria-pressed="${on}"><span class="ipn">${TYPE_NAME[t]}</span>${on ? '<span class="ipck" aria-hidden="true">✓</span>' : ''}</button>`; }).join('')) : ''); }
-  const look = titled ? g('Title', `<label class="ipr"><input class="ipin" data-title value="${esc(c.title || '')}" placeholder="${esc(SEC[k].l)}" aria-label="Title"></label>${iptg('data-cf="sub"', 'Line under the title', c.sub !== false)}${k === 'market' ? iptg('data-cf="note"', 'One-line explanation', c.note !== false) : ''}`) : '';
-  const size = PAIRABLE.includes(k) ? g('Size', `<div class="ipad"><div class="seg2"><button type="button" data-sz="half" aria-pressed="${c.size !== 'full'}">Half width</button><button type="button" data-sz="full" aria-pressed="${c.size === 'full'}">Full width</button></div></div>`, 'Half width sits next to another half-width section.') : '';
+  const look = titled ? g('Title', `<label class="ipr"><input class="ipin" data-title value="${esc(c.title || '')}" placeholder="${esc(SEC[k].l)}" aria-label="Title"></label>${iptg('data-cf="sub"', 'Line under the title', c.sub !== false)}${k === 'market' ? iptg('data-cf="note"', 'One-line explanation', c.note !== false) : ''}${k === 'trend' ? iptg('data-cf="events"', 'What was happening (COVID-19, new taxes)', c.events !== false) : ''}`) : '';
+  const size = PAIRABLE.includes(k) ? g('Size', `<div class="ipad"><div class="seg2"><button type="button" data-sz="half" aria-pressed="${sizeOf(k, c) === 'half'}">Half width</button><button type="button" data-sz="full" aria-pressed="${sizeOf(k, c) === 'full'}">Full width</button></div></div>`, 'Half width sits next to another half-width section.') : '';
   return `<div class="ipx">${what}${look}${size}${g('', `<button type="button" class="ipr ipb" data-mv="-1"${i ? '' : ' disabled'}>Move up</button><button type="button" class="ipr ipb" data-mv="1"${i < L.sections.length - 1 ? '' : ' disabled'}>Move down</button>`)}
     <p class="ipf ipf0">Updates by itself every month.</p><button type="button" class="ipdone" data-done>Done</button></div>`;
 }
@@ -564,7 +564,7 @@ function wirePanel() {
     if (d.bin2) return removeSec(d.bin2);
     if ('done' in d) { PS.open = false; drawPanel(); return panelTo(PS.k); }
     if (d.addk) return addSec(d.addk);
-    if (d.sz) return setConf(k, { size: d.sz === 'full' ? 'full' : undefined });
+    if (d.sz) return setConf(k, { size: d.sz === sizeOf(k) ? undefined : d.sz });
     if ('mback' in d) return setLayout({ months: { ...L.months, back: +d.mback } }, false);
     if (d.own) return setConf(k, { areas: d.own === '1' ? [...L.areas] : undefined });
     if (d.arm) return setConf(k, { areas: (L.conf[k]?.areas || L.areas).filter((a) => a !== d.arm) });

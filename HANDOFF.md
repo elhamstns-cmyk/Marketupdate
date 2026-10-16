@@ -45,11 +45,11 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
 
 ---
 
-## 4. What still needs to happen (as of October 15, 2026)
+## 4. What still needs to happen (as of October 16, 2026)
 
 **Ella's setup steps** (they unlock what is already built):
 
-1. Nothing to upload: everything up to R2 "Show me", S8 Homes sold, S4 Prices by home type and D6 Sections panel is live on GitHub.
+1. Nothing to upload: everything up to S2 Benchmark price over time (back to 2005, events, "Show me" row) is live on GitHub.
 2. In Supabase SQL Editor, run `new-database-tables.sql` (the personal links and views tables).
 3. In Vercel environment variables, add `CRON_SECRET` (any long random text).
 4. **Past months and Client activity (October 15, pushed):** in Supabase SQL Editor run `supabase/client-activity.sql` (adds the `visits` table and a month for personal links).
@@ -85,6 +85,8 @@ For how the code works, read `ARCHITECTURE.md` in the same folder.
   - Price range and bedroom tables
 - **GVR's own buyer's/seller's thresholds** (below 12% is a buyer's market, above 20% a seller's market) and comparisons with the 10-year average.
 
+**S2 data, once a year or when GVR re-benchmarks:** `python3 scripts/price-history-from-gvr.py "<folder of HPI Benchmark Summary files>"` rebuilds `data/price-long.js`. New months come in automatically from each month's report, so this isn't monthly work.
+
 **Later:**
 
 - PDF redesign to the calm look
@@ -104,7 +106,7 @@ Recommended order (proposed, Summary last). The status is for each section.
 |---|---|---|---|
 | 1 | **Key numbers** | Built (Oct 15) | One area: four tiles, Average days on market next to Homes sold. Several areas: one panel with a title on top of each column (Benchmark price · Homes sold · Days on market · Homes for sale; sold and days on market under "Sold in September"), one row per area with the number and a red/green pill (no bars or houses since Oct 16). Greater Vancouver first. Phone: one block per number. One "Every change is since Sep 2025 ⌄" menu: last month, 1, 3, 5, 10 years (`docs/s1-no-pictures-ui.png`) |
 | 2 | **Buyer's or seller's market** | Built | Scale per area and home type. GVR thresholds: below 12% buyer's, 12–20% balanced, above 20% seller's |
-| 3 | **Typical price over 12 months** | Built | Ella likes this graph. Fixed: every added city now shows; missing history is named under the chart |
+| 3 | **Benchmark price over time** (S2) | Built Oct 16 | Every month since January 2005. Opens on 1 year; buttons 1 · 5 · 10 years · All, drag or pinch to zoom, + and −, and a strip to drag back in time. 16 orange event dots ("Introduction of the foreign buyers tax" etc.) with a card and the price a year later. "Show me" row under the chart changes this chart only. Full width by default. Agents can switch events off |
 | 4 | **Prices by home type** | Built (Option D, Oct 15) | One layout for one city and several: a one-line story, column titles, one blue bar per row, the red/green % with the dollar change under it, and a key. **One city:** a row per home type. **Several:** tap Detached / Townhouse / Condo; cities from highest price first, Greater Vancouver under a dashed line (`docs/s4-option-d-ui.png`). The blue "Sep 2025 ⌄" under "Change since" is a menu like S1: last month, 1, 3, 5, 10 years (`docs/s4-period-ui.png`) |
 | 5 | **Neighbourhoods** | Built | City cards, ranked list, 5 time buttons. See §6 |
 | 6 | **Homes sold each month** | Built | One area: bars that brighten and show the number on hover. **Several areas (Oct 14):** a one-line story, Greater Vancouver on its own row, every city's bars side by side with a Bars / Lines switch, and each city's number and change from a year ago under the chart (`docs/s8-cities-ui.png`). Idea not decided: a "When do homes sell?" busy-season grid |
@@ -202,7 +204,7 @@ The maps are in `docs/`: `map-dashboard.png` and `map-report.png`.
 | R1.2 Older month line | "You're looking at March 2024. Changes compare with March 2023." and "See the newest month" | `board.js → oldLine()` |
 | R2 Area bar | "Show me: Both areas · Coquitlam · Burnaby North · + Add area" and a line saying what the report shows (docs/r2-area-bar-ui.png) | `board.js → areaBar()` |
 | S1 Key numbers | `numbers` | `board.js → R.numbers` |
-| S2 12-month price | `trend` | `R.trend`, `C.trend` |
+| S2 Benchmark price over time | `trend` (time buttons, zoom, strip, event dots and card, "Show me" row) | `R.trend`, `C.trend`, `events.js` |
 | S3 Buyer's or seller's market | `market` | `R.market` |
 | S4 Prices by home type | `types` | `R.types` |
 | S5 Neighbourhoods | `hoods` (picker, hero, tiles, who grew most, compare, take, peek card) | `hoods.js` |
@@ -246,6 +248,8 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-10-16 | S2 Benchmark price over time | **Built and pushed:** "Show me: All 3 areas · Coquitlam · …" row under the chart (option A, `docs/s2-areas-ui.png`). It changes this chart only and says so; tapping the area bar at the top takes over again. |
+| 2026-10-15 | S2 Benchmark price over time | **Built:** goes back to January 2005, every month (121 monthly GVR benchmark files from the portal, `~/Downloads/GVR data/monthly`). Past prices follow GVR's current figures (GVR re-benchmarked in May 2022), so the line matches GVR's own 1/3/5/10-year changes. Opens on **1 year** (Ella). 16 events, named "Introduction of …" for new rules (Ella's wording), dots that sit close share one dot with a number. Shaded periods and a Bank of Canada rate line were offered, not decided. Full width by default (was half). Mockup: `docs/s2-timeline-ui.png`. |
 | 2026-10-16 | S1 Key numbers | Several areas: **removed the bars and little houses** (Ella). Each row is now just the number and its red/green pill, a bit bigger; the house key and the Greater Vancouver note are gone (`docs/s1-no-pictures-ui.png`). |
 | 2026-10-16 | S1 Key numbers | The "since" menu lists only the times: Last month · 1 year ago · 3 years ago · 5 years ago · 10 years ago (no "since", no months). The blue words under each number still say "since Sep 2025 ⌄" (`docs/s1-menu-simple-ui.png`). S4's menu (`data-tper`) still uses the older wording; not changed in this chat. |
 | 2026-10-15 | S1 Key numbers | **Built and pushed (several areas):** the three tables didn't line up and were hard to read. Tried a one-table layout, bars, little houses, area cards and rings; Ella said no to rings and to the friendly-card look, liked the houses and bars, and wanted titles on top of each column and simpler. Picked `docs/s1-no-pictures-ui.png`: one panel, titles on top on a light blue band, Homes sold and Days on market together under "Sold in September", bars for price and days on market, little houses for sold and for sale (one house = 10/20/50/100 sold, 100–1,000 for sale, picked so the longest row stays short), changes as red/green pills, one "Every change is since …" menu. Greater Vancouver first row, numbers only (it's about 20× a city). Phone: one block per number. Renamed "days to sell" to **Average days on market** (GVR's term) everywhere. |
