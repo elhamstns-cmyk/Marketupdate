@@ -109,7 +109,7 @@ Recommended order (proposed, Summary last). The status is for each section.
 | 6 | **Homes sold each month** | Built | One area: bars that brighten and show the number on hover. **Several areas (Oct 14):** a one-line story, Greater Vancouver on its own row, every city's bars side by side with a Bars / Lines switch, and each city's number and change from a year ago under the chart (`docs/s8-cities-ui.png`). Idea not decided: a "When do homes sell?" busy-season grid |
 | 7 | **Long-term price growth** | Built | 3, 5 and 10 years from GVR's stats package |
 | 8 | **How areas compare** | Built, off by default | Icons in the column titles; tapping adds or removes an area without the page jumping, with an Undo message |
-| 9 | **Contact me** | Built | Photo and a message box for clients |
+| 9 | **Contact me** | Built | Photo, a ready message clients can change, and one **Send to …** button that emails the agent |
 | 10 | **Summary** | Built | Should be last |
 | new | **Interest rates** | UI only | Waiting for go-ahead |
 
@@ -286,3 +286,4 @@ Add one line per decision (newest first), so later chats know what was decided a
 | 2026-10-13 | S5 Neighbourhoods | Several cities: city cards replace the City box; one city open at a time; S5 follows R2; the client's area is pinned when switching; the peek card works across cities. Greater Vancouver and Whistler get a grey card and a message when tapped. Whistler wording agreed. UI in `docs/s5-*.png`. |
 | 2026-10-13 | R2 Area bar | "Side by side / One at a time" doesn't make sense. Proposed: one row "Show: Compare all · Coquitlam · Burnaby North · + Add area" (docs/area-toggle-ui.png). Waiting for go-ahead. |
 | 2026-10-13 | Code | Shared layout rules (`public/js/layout.js`) and automatic checks (`npm test`, which also runs on GitHub) are done. |
+| 2026-11-04 | S9 Contact me | **Changed and pushed (Ella: Email and Text buttons didn't work, make it simpler):** removed the Contact toggle, "Where", "I am" chips and the Email / Text / Copy buttons. Now: photo and name, a message box with a ready message (city filled in; clients can change it), and one **Send to Sarah** button. Our server emails it to the agent (`/api/message`, replies go to the client when they gave an email). The general link also asks for **Your email or phone** so the agent can reply; a personal link says who sent it. After sending: "Your message is on its way". Client activity and the Monday email now say "sent you a message" (tap `msg`). Not saved in Clients (no new table). |

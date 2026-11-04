@@ -157,7 +157,7 @@ The client calls this document `D`.
 | `leads` | `email` | Everyone who started sign-up, plus marketing consent |
 | `instagram` | `user_id` | Instagram connection: token (server-only), auto-post settings |
 | `personal_links` | `id` (short) | Client name, city, hood, type, `month` (a link made for one month, else empty), opens, last_opened_at |
-| `visits` | `id` (made by the page) | One report open: `link_id` (null = general link), `month`, `device`, `seconds` (reading time), `reached_end`, `parts` (seconds per section), `acts` (taps: `contact`, `email`, `text`, `copy`, `type:c`, `month:2021-03`, `area:<name>`), `started_at`, `updated_at`. Removed after 400 days by `weekly` |
+| `visits` | `id` (made by the page) | One report open: `link_id` (null = general link), `month`, `device`, `seconds` (reading time), `reached_end`, `parts` (seconds per section), `acts` (taps: `msg` (sent a message in S9), `contact`, `email`, `text`, `copy`, `type:c`, `month:2021-03`, `area:<name>`), `started_at`, `updated_at`. Removed after 400 days by `weekly` |
 | `hood_views` | bigserial | What clients looked at in Neighbourhoods: `link_id` (null = anonymous), `hood`, `kind` = `pick`, `peek` or `compare` |
 
 **Migrations:** append `create table if not exists` or `alter table … add column if not exists` to the end of `schema.sql`, and give the owner just the new block to run.
@@ -221,6 +221,7 @@ Cleaned on the server by `util.cleanShow()` and on the client by `board.layoutOf
 | `links` | Agent (Pro) | GET `?days=7\|30\|365`: personal links, most active first, each with `act` (from `activity.js → activity()`) and `looked`, plus `general` (general-link opens), `weekly` and `top`. POST: create (with optional `month`), `{action:'delete'}`, or `{action:'weekly', on}`. |
 | `track` | Public | Beacon. `{slug, p, kind: pick\|peek\|compare, city, hood}` → `hood_views`; `{slug, p, kind: 'visit', id, m, sec, end, dev, parts, acts}` → upsert into `visits` (`cleanVisit()` caps numbers and keeps only known sections and taps). Only for active Pro agents. Always returns 200. |
 | `ask` | Public | S5 Ask about my neighbourhood: `{slug, city, hood, p}` from a personal link, or `{slug, city, hood, contact}` (email or phone) from the general link; `website` is a hidden robot trap. Only for active Pro agents with `show.clients.pick` off and `ask` on. Saves to `hood_requests`; `reply: 'show'` also makes a personal link and returns its `url` (the page opens it). |
+| `message` | Public | S9 Contact me: `{slug, p, contact, message, city, month}`. Emails the message to the agent (any active plan). Without a personal link `p`, `contact` must be an email or phone. `website` is a hidden robot trap; at most 30 a day per agent per server. Nothing is saved. |
 | `weekly` | Cron (`CRON_SECRET`) | Emails each Pro agent which clients were actively looking in the last 7 days (`weeklyLines()`, very active first, plus links never opened and general-link opens). Skips agents with nothing new or with the email turned off. Deletes visits older than 400 days. |
 | `checkout`, `portal` | Agent | Stripe Checkout session and billing portal |
 | `stripe-webhook` | Stripe | Syncs `status`, `plan` and `period_end`. Sends a welcome email. |

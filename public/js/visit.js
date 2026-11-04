@@ -26,6 +26,8 @@ export function startVisit({ slug, p, month, root }) {
   }
   addEventListener('visibilitychange', () => document.hidden && send());
   addEventListener('pagehide', send);
+  // S9: the client sent the agent a message (board.js fires this once it went through).
+  root.addEventListener('mu:act', (e) => act(String(e.detail || '')));
   // What the client tapped: contact, email, text, copy, a home type in Neighbourhoods, an added area.
   root.addEventListener('click', (e) => { const t = e.target.closest('button,a'); if (!t) return; const d = t.dataset;
     if (d.id === 'ctog') act('contact'); else if (d.id === 'mail') act('email'); else if (d.id === 'sms') act('text'); else if (d.id === 'copy') act('copy');

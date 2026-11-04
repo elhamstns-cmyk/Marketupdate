@@ -27,14 +27,14 @@ export function activity(link, visits = [], views = [], { days = 30, now = Date.
   // Taps in the period.
   const acts = V.flatMap((v) => v.acts || []), months = [...new Set(acts.filter((a) => a.startsWith('month:')).map((a) => a.slice(6)).concat(latest ? V.map((v) => v.month) : []).filter((k) => k && k !== latest))].sort();
   const types = [...new Set(acts.filter((a) => a.startsWith('type:')).map((a) => a.slice(5)).filter((x) => x !== link.type))];
-  const contact = acts.filter((a) => ['contact', 'email', 'text', 'copy'].includes(a)).length;
+  const contact = acts.filter((a) => ['contact', 'email', 'text', 'copy', 'msg'].includes(a)).length, sentMsg = acts.includes('msg');
   // Neighbourhoods other than their own, most looked at first.
   const vw = views.filter((v) => new Date(v.created_at).getTime() >= since), looked = {};
   for (const v of vw) if (v.kind !== 'pick' && v.hood !== link.hood) looked[v.hood] = (looked[v.hood] || 0) + 1;
   const top = Object.entries(looked).sort((a, b) => b[1] - a[1]);
   const recent = all.slice(0, 5).map((v) => ({ at: v.started_at, seconds: v.seconds || 0, device: v.device, did: did(v, views, link) }));
   return { id: link.id, level, label: LEVEL[level], visits: V.length, prevVisits: prev.length, week: week.length, seconds, ends, lastAt,
-    parts: Object.entries(parts).sort((a, b) => b[1] - a[1]).map(([k, s]) => [k, PART[k] || k, s]), weeks, months, types, contact, looked: top.slice(0, 4), recent, why: why({ level, top, types, months, contact, link }) };
+    parts: Object.entries(parts).sort((a, b) => b[1] - a[1]).map(([k, s]) => [k, PART[k] || k, s]), weeks, months, types, contact, sentMsg, looked: top.slice(0, 4), recent, why: why({ level, top, types, months, contact, sentMsg, link }) };
 }
 
 // What happened in one visit, in plain words.
@@ -47,6 +47,7 @@ function did(v, views, link) {
     if (x.startsWith('type:') && x.slice(5) !== link.type) out.push(`switched to ${TYPE1[x.slice(5)]}`);
     else if (x.startsWith('month:')) out.push(`looked back at ${monthName(x.slice(6))}`);
     else if (x.startsWith('area:')) out.push(`added ${x.slice(5)}`);
+    else if (x === 'msg') out.push('sent you a message');
     else if (x === 'contact') out.push('opened Contact me');
     else if (x === 'email' || x === 'text') out.push(`tapped ${x === 'email' ? 'Email' : 'Text'} you`);
   }
@@ -55,12 +56,13 @@ function did(v, views, link) {
 }
 
 // "Why it matters": only facts, then a nudge when they are active.
-function why({ level, top, types, months, contact, link }) {
+function why({ level, top, types, months, contact, sentMsg, link }) {
   const bits = [];
   if (top.length) bits.push(`They're comparing ${top[0][0]}${top[1] ? ` and ${top[1][0]}` : ''} with ${link.hood}${types.length ? `, and checking ${types.map((x) => TYPE[x]).join(' and ')}` : ''}.`);
   else if (types.length) bits.push(`They're checking ${types.map((x) => TYPE[x]).join(' and ')}, not only ${TYPE[link.type] || 'their home type'}.`);
   if (months.length) bits.push(`They looked back at ${months.slice(0, 2).map(monthName).join(' and ')}.`);
-  if (contact) bits.push(`They opened your contact box${contact > 1 ? ` ${times(contact)}` : ''}.`);
+  if (sentMsg) bits.push('They sent you a message.');
+  else if (contact) bits.push(`They opened your contact box${contact > 1 ? ` ${times(contact)}` : ''}.`);
   if (!bits.length && level !== 'hot') return null;
   if (level === 'hot') bits.push('A good time to reach out.');
   else if (level === 'some') bits.push('Worth a friendly check-in.');

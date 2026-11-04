@@ -201,11 +201,15 @@ export function mountReport(root, D, A, opts = {}) {
     if (sh.length > 1) return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, '<div data-chart="soldm"></div>');
     return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, `${CF('sold').areas && sh.length > 1 ? `<div class="mini">${sh.map((a) => `<button type="button" data-sa="${esc(a)}" aria-pressed="${a === S.soldArea}">${dot(colour(a))}${esc(a)}</button>`).join('')}</div>` : ''}<div data-chart="sold"></div>`); };
   R.compare = () => card('compare', 'How cities compare', `Benchmark price in every city, with the change from ${lastYear}.${canEdit ? ' Tap a city to add it to the report.' : ''}`, `<div class="rank" data-chart="rank"></div>`);
-  R.contact = () => `<section class="cd cd-contact" data-sec="contact"><div class="crow">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div class="cx"><h3>Questions about your area?</h3><p class="sub">${esc([A.name, roleLabel(A), A.brokerage, A.phone].filter(Boolean).join(' · '))}</p></div><button type="button" class="btn" data-id="ctog">Contact ${F}</button></div>
-    <div class="cbox" data-id="cbox" hidden><div class="cgrid"><label class="fl">${ask.lab}<input type="text" data-id="where" placeholder="${ask.ph}"></label>
-    <div><span class="fl">I am</span><div class="chips" data-id="intent" role="group" aria-label="I am">${ask.chips.map((c) => `<button type="button" aria-pressed="false">${esc(c)}</button>`).join('')}</div></div></div>
-    <div><span class="fl">Your message to ${F}</span><p class="msg" data-id="msg"></p></div>
-    <div class="btns">${A.contact_email ? `<a class="btn" data-id="mail" href="#">Email ${F}</a>` : ''}${A.phone ? `<a class="btn alt" data-id="sms" href="#">Text ${F}</a>` : ''}<button class="btn alt" type="button" data-id="copy">Copy message</button></div></div></section>`;
+  // S9 Contact me: a ready message they can change, and one button that emails it to the agent (lib/routes/message.js).
+  // The general link also asks for an email or phone so the agent can reply; a personal link already says who it is.
+  R.contact = () => { const known = !!opts.personal?.id;
+    if (S.csent) return `<section class="cd cd-contact" data-sec="contact"><div class="c-ok"><span class="c-tick" aria-hidden="true">✓</span><h3>Your message is on its way</h3><p class="sub">${F} will get back to you soon.</p></div></section>`;
+    return `<section class="cd cd-contact" data-sec="contact"><div class="crow">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : `<span class="av av0" aria-hidden="true">${esc((A.name || '?').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase())}</span>`}<div class="cx"><h3>Questions about your area?</h3><p class="sub">${esc([A.name, roleLabel(A), A.brokerage].filter(Boolean).join(' · '))}</p></div></div>
+    <form class="cform" data-id="cform" novalidate><label class="fl" for="cmsg-${uid}">Your message to ${F}</label><textarea id="cmsg-${uid}" data-id="cmsg" rows="4" maxlength="2000">${esc(S.cmsg ?? text())}</textarea><p class="hint">Change or add anything you like.</p>
+    ${known ? '' : `<label class="fl">Your email or phone<input type="text" data-id="ccon" autocomplete="email" maxlength="120" placeholder="So ${F} can reply" value="${esc(S.ccon || '')}"></label>`}
+    <input name="website" class="nbask-hp" tabindex="-1" autocomplete="off" aria-hidden="true"><p class="c-err" data-id="cerr" role="alert"></p>
+    <button type="submit" class="btn c-go" data-id="csend">Send to ${F}</button></form></section>`; };
 
   function summaryPoints(sh) {
     const o = Object.fromEntries(sh.map((a) => [a, all(a)])), out = [];
@@ -586,14 +590,23 @@ export function mountReport(root, D, A, opts = {}) {
   }
   function charts() { root.querySelectorAll('[data-chart]').forEach((el) => C[el.dataset.chart](el)); }
   const q = (id) => root.querySelector(`[data-id="${id}"]`);
-  function text() { const w = q('where')?.value.trim() || (shown().length === 1 && shown()[0] !== 'Greater Vancouver' ? shown()[0] : 'my area'); return ask.msg(w, 'all', S.intent).replace(' (homes)', ''); }
-  function msg() { if (!q('msg')) return; const t = text(); q('msg').textContent = t;
-    if (q('mail')) q('mail').href = `mailto:${A.contact_email}?subject=${encodeURIComponent(ask.subj)}&body=${encodeURIComponent(t)}`;
-    if (q('sms')) { const d = String(A.phone).replace(/\D/g, ''); q('sms').href = `sms:+${d.length === 11 && d[0] === '1' ? d : '1' + d}?&body=${encodeURIComponent(t)}`; } }
+  function text() { const sh = shown(); return ask.note(sh.length === 1 ? sh[0] : ''); }
+  async function sendMsg(f) { const err = q('cerr'), go = q('csend'), m = q('cmsg').value.trim(), c = q('ccon')?.value.trim() || '';
+    err.textContent = '';
+    if (m.length < 2) return (err.textContent = 'Please write a message.');
+    if (q('ccon') && !(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c) || c.replace(/\D/g, '').length >= 10)) return (err.textContent = 'Please add your email or phone number.');
+    if (ED || opts.embedded) return toast('Clients tap this to send you their message. You can try it on your report link.');
+    go.disabled = true; go.textContent = 'Sending…';
+    try { const r = await fetch('/api/message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: A.slug, p: opts.personal?.id || null, contact: c, message: m, city: shown().join(', '), month: D.month, website: f.website.value }) });
+      const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) throw new Error(j.error || 'That didn’t send. Please try again.');
+      root.dispatchEvent(new CustomEvent('mu:act', { detail: 'msg' })); S.csent = true; const sec = root.querySelector('[data-sec="contact"]'); if (sec) sec.outerHTML = R.contact();
+    } catch (x) { err.textContent = /fetch|network/i.test(x.message) ? 'That didn’t send. Please try again.' : x.message; go.disabled = false; go.textContent = `Send to ${first(A)}`; } }
   function remember() { if (opts.embedded || ED) return; try { const u = new URL(location.href); u.searchParams.set('areas', S.areas.map(slug).join(',')); u.hash = ''; history.replaceState(null, '', u.toString().replace(/%2C/g, ',')); } catch {} }
   function setAreas(next, focus) { S.ton = null; S.areas = next.slice(0, MAX_AREAS); if (ED) saveLayout({ areas: [...S.areas] }); if (!S.areas.includes(S.focus)) S.focus = S.areas[0]; if (focus) S.focus = focus; remember(); draw(); }
   function wire() {
-    if (q('where')) { q('where').addEventListener('input', msg); msg(); }
+    q('cmsg')?.addEventListener('input', (e) => { S.cmsg = e.target.value; q('cerr').textContent = ''; });
+    q('ccon')?.addEventListener('input', (e) => { S.ccon = e.target.value; q('cerr').textContent = ''; });
+    if (q('cform')) q('cform').onsubmit = (e) => { e.preventDefault(); sendMsg(e.target); };
   }
   root.onclick = (e) => {
     if (e.target.closest('[data-ask]')) return openAsk();
@@ -610,7 +623,6 @@ export function mountReport(root, D, A, opts = {}) {
     if (b('[data-mclose]')) { S.moOpen = false; return draw(); }
     if (b('[data-myr]')) { const y = +b('[data-myr]').dataset.myr; if (y) { S.moYear = y; draw(); root.querySelector('.mo-yr b')?.focus?.(); } return; }
     if (b('[data-mo]')) return pickMonth(b('[data-mo]').dataset.mo);
-    if (b('[data-id="ctog"]')) { const x = q('cbox'); x.hidden = !x.hidden; if (!x.hidden) q('where')?.focus(); return; }
     if (b('[data-mv]')) { const x = b('[data-mv]'), s2 = [...L.sections], i = s2.indexOf(x.dataset.k), j = i + +x.dataset.mv; if (j < 0 || j >= s2.length) return; [s2[i], s2[j]] = [s2[j], s2[i]]; saveLayout({ sections: s2 }); return draw(); }
     if (b('[data-hide]')) { saveLayout({ sections: L.sections.filter((k) => k !== b('[data-hide]').dataset.hide) }); return draw(); }
     if (b('[data-show]')) { saveLayout({ sections: [...L.sections, b('[data-show]').dataset.show] }); draw(); return root.querySelector('.addsec')?.previousElementSibling?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
@@ -627,8 +639,6 @@ export function mountReport(root, D, A, opts = {}) {
     // Area chips pick the area for "Homes sold" when it shows one area at a time; with several areas it shows them all.
     if (b('[data-sa]') && !root.querySelector('[data-chart="soldm"]')) { S.soldArea = b('[data-sa]').dataset.sa; const el = root.querySelector('[data-chart="sold"]'); if (el) { C.sold(el); el.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } return; }
     if (b('.mrow')) { const r = b('.mrow'), on = !r.classList.contains('h'); root.querySelectorAll('.mrow').forEach((x) => x.classList.remove('h')); r.classList.toggle('h', on); return; }
-    if (b('[data-id="intent"] button')) { const x = b('button'), on = x.getAttribute('aria-pressed') === 'true'; q('intent').querySelectorAll('button').forEach((y) => y.setAttribute('aria-pressed', 'false')); x.setAttribute('aria-pressed', String(!on)); S.intent = on ? null : x.textContent; return msg(); }
-    if (b('[data-id="copy"]')) { navigator.clipboard?.writeText(text()).then(() => { q('copy').textContent = 'Copied'; setTimeout(() => q('copy') && (q('copy').textContent = 'Copy message'), 1800); }).catch(() => {}); }
   };
   root.onchange = (e) => { if (e.target.matches('[data-nper]')) { S.nPer = e.target.value; return keepPlace('[data-sec="numbers"]', draw); }
     if (e.target.matches('[data-tper]')) { S.tPer = e.target.value; return keepPlace('[data-sec="types"]', () => C.types(root.querySelector('[data-chart="types"]'))); }

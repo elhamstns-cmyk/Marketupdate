@@ -187,7 +187,17 @@
 /* contact */
 .bd .cd-contact{display:grid;gap:16px}
 .bd .crow{display:flex;align-items:center;gap:18px}.bd .crow .av{width:64px;height:64px;border-radius:50%;object-fit:cover;flex:none}.bd .crow .cx{flex:1;min-width:0}.bd .crow .btn{flex:none}
-.bd .cbox{display:grid;gap:14px;border-top:1px solid var(--ln);padding-top:16px}.bd .cbox[hidden]{display:none}
+.bd .crow .av0{display:flex;align-items:center;justify-content:center;background:var(--hl);color:var(--ac);font:650 20px var(--bf)}
+.bd .cform{display:grid;gap:12px;position:relative}
+.bd .cform textarea{font:16px/1.55 var(--bf);padding:12px 14px;border:1px solid var(--ln);border-radius:10px;background:var(--card);color:var(--ink);width:100%;min-height:118px;resize:vertical;box-sizing:border-box}
+.bd .cform textarea:focus,.bd .cform input:focus{outline:2px solid var(--ac);outline-offset:1px;border-color:var(--ac)}
+.bd .cform .hint{margin:-6px 0 0;font-size:13px;color:var(--mut)}
+.bd .cform .fl input{font-size:16px}
+.bd .cform .nbask-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.bd .c-err{margin:0;color:#c62828;font-size:14px;font-weight:600}.bd .c-err:empty{display:none}
+.bd .c-go{width:100%;min-height:48px;font-size:16px}.bd .c-go:disabled{opacity:.7;cursor:default}
+.bd .c-ok{text-align:center;padding:10px 0}.bd .c-ok h3{margin:8px 0 0}
+.bd .c-tick{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;background:var(--hl);color:var(--ac);font-size:24px;font-weight:700}
 .bd .who{display:flex;align-items:center;gap:16px}.bd .who .av{width:64px;height:64px;border-radius:50%;object-fit:cover;flex:none}
 .bd .lead{margin:0;max-width:70ch;font-size:14.5px;line-height:1.55;color:var(--ink)}
 .bd .cgrid{display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:start}
