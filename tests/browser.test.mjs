@@ -46,10 +46,8 @@ test('Key numbers: the "since" menu changes every change, and days on market sit
   assert.ok(await p.$('[data-sec="numbers"] .kn-pr .kpi:nth-of-type(2) .kl >> text=Average days on market'), 'days on market is next to homes sold');
   await p.selectOption('[data-sec="numbers"] select[data-nper] >> nth=1', 'm1');
   for (const t of await kc()) assert.match(t, /Aug 2026/);
-  await p.selectOption('[data-sec="numbers"] select[data-nper] >> nth=0', 'y10');
-  const t10 = await kc();
-  assert.match(t10[0], /%.*since Sep 2016/);
-  assert.match(t10[1], /No number yet for Sep 2016/);
+  // No "No number yet": every tile has its change.
+  for (const t of await kc()) assert.doesNotMatch(t, /No number yet/);
 }));
 
 test('Key numbers with several areas: titles on top of each column, one menu for every change', { skip }, () => page('/r/demo?areas=greater-vancouver,maple-ridge,coquitlam', async (p) => {
@@ -65,13 +63,13 @@ test('Key numbers with several areas: titles on top of each column, one menu for
   assert.equal(await p.$$eval(`${S} .kn-ln b`, (x) => x.length), 12);
   await p.selectOption('[data-sec="numbers"] select[data-nper]', 'm1');
   assert.match(await p.textContent('[data-sec="numbers"] .kn-since'), /Aug 2026/);
-  await p.selectOption('[data-sec="numbers"] select[data-nper]', 'y5');
-  assert.match(await p.textContent(S), /No number yet/);
+  assert.doesNotMatch(await p.textContent(S), /No number yet/);
 }));
 
-test('Key numbers: the menu lists only the times', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
+test('Key numbers: the menu lists only times that have every number', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
   const opts = await p.$eval('[data-sec="numbers"] select[data-nper]', (e) => [...e.options].map((o) => o.textContent));
-  assert.deepEqual(opts, ['Last month', '1 year ago', '3 years ago', '5 years ago', '10 years ago']);
+  // Only times with every number: homes sold, for sale and days on market start in 2025, so 3, 5 and 10 years aren't offered yet.
+  assert.deepEqual(opts, ['Last month', '1 year ago']);
 }));
 
 test('Key numbers with several areas on a phone: one block per number, nothing off the screen', { skip }, () => page('/r/demo?areas=greater-vancouver,maple-ridge,coquitlam', async (p) => {

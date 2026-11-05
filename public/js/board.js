@@ -86,10 +86,16 @@ export function mountReport(root, D, A, opts = {}) {
   const note = (k, t) => (CF(k).note === false ? '' : `<p class="note">${t}</p>`);
   const R = {};
   R.numbers = () => {
-    const sh = areasFor('numbers'), per = S.nPer, since = periodMonth(endKey, per), old = !['m1', 'y1'].includes(per);
+    const sh = areasFor('numbers');
+    // Only offer a time when every number has a value for it in every area shown (Ella: no choice without numbers).
+    const has = (k) => sh.every((a) => { const o = all(a), c = numbersChange(o, k, D.growth?.composite?.[a]);
+      return ['price', 'sales', 'active', 'dom'].every((f) => (f === 'price' ? o.price : f === 'sales' ? o.sales : f === 'active' ? o.active : o.dom) == null || c[f] != null); });
+    const PERS = NUM_PERIODS.filter(([k]) => has(k));
+    if (PERS.length && !PERS.some(([k]) => k === S.nPer)) S.nPer = PERS.some(([k]) => k === 'y1') ? 'y1' : PERS[0][0];
+    const per = S.nPer, since = periodMonth(endKey, per), old = !['m1', 'y1'].includes(per);
     // The blue "since Sep 2025" words are a menu: picking another time changes every change in this section.
     const pick = (pre) => `<span class="kn-sel">${pre}${since}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-      <select data-nper aria-label="Show the change since">${NUM_PERIODS.map(([k, l]) => `<option value="${k}"${k === per ? ' selected' : ''}>${l === 'last month' ? 'Last month' : l + ' ago'}</option>`).join('')}</select></span>`;
+      <select data-nper aria-label="Show the change since">${(PERS.length ? PERS : NUM_PERIODS).map(([k, l]) => `<option value="${k}"${k === per ? ' selected' : ''}>${l === 'last month' ? 'Last month' : l + ' ago'}</option>`).join('')}</select></span>`;
     const none = (v) => `<span class="na">${v}</span>`, miss = (isPrice) => none(isPrice ? 'not published' : old ? 'No number yet for' : 'no comparison published');
     const days = (d) => `<span class="ch ${d < 0 ? 'dn' : d > 0 ? 'upv' : ''}"><i>${d < 0 ? '▼' : d > 0 ? '▲' : '●'}</i>${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}</span>`;
     const chOf = (a) => numbersChange(all(a), per, D.growth?.composite?.[a]);
