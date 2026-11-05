@@ -43,3 +43,12 @@ test('the story reads naturally when everyone moved the same way', () => {
   // No busiest month when the chart shows only a few months.
   assert.equal(soldStory([up(4, 'A'), up(9, 'B')], [up(4, 'A'), up(9, 'B')], keys.slice(3), 'September').rest, ' in A and B.');
 });
+
+test('hasSales: the section shows only when there are months to draw', async () => {
+  const { hasSales } = await import('../public/js/charts.js');
+  assert.equal(hasSales(H, ['Greater Vancouver', 'Coquitlam'], ['condo'], '2026-09'), true);
+  // Only this month's number (what October 2026 looked like before its history was merged): nothing to draw.
+  const one = { sales: { condo: { Coquitlam: { '2026-09': 141 } } } };
+  assert.equal(hasSales(one, ['Coquitlam'], ['condo'], '2026-09'), false);
+  assert.equal(hasSales(undefined, ['Coquitlam'], ['condo'], '2026-09'), false);
+});

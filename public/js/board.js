@@ -1,7 +1,7 @@
 // The interactive market report: a page of cards (sections) the agent chooses and orders.
 // mountReport(root, D, A, opts) draws it with the agent's branding (A) and layout (A.show).
 import { get, money, esc, slug, areasOf, themeVars, palette, mix, lum, phoneFmt, roleLabel, askCopy, first, sourceLine, market, monthKey, TN } from './report.js';
-import { salesGroup, salesByArea, soldStory, monthLong, typesStoryOne, typesStoryAreas, dollarChange, NUM_PERIODS, periodMonth, numbersChange, typeChange } from './charts.js';
+import { salesGroup, salesByArea, hasSales, soldStory, monthLong, typesStoryOne, typesStoryAreas, dollarChange, NUM_PERIODS, periodMonth, numbersChange, typeChange } from './charts.js';
 import { makeHoods, hoodCities, hoodNames } from './hoods.js';
 import { EVENTS, EVENT_ICON } from './events.js';
 
@@ -579,7 +579,9 @@ export function mountReport(root, D, A, opts = {}) {
   function draw() {
     // Neighbourhoods follow the areas at the top, and the area tapped there when one area is picked ("Show me: <area>").
     HO?.sync(S.areas, S.view === 'one' && S.areas.length > 1 ? S.focus : null);
-    const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1).filter((k) => k !== 'hoods' || (HO && (!askMode() || L.clients.ask)));
+    const sh = shown(), secs = L.sections.filter((k) => k !== 'growth' || D.growth).filter((k) => k !== 'compare' || ALL.length > 1).filter((k) => k !== 'hoods' || (HO && (!askMode() || L.clients.ask)))
+      // S8: no monthly sales numbers for these areas → no empty card, the section is simply not shown.
+      .filter((k) => k !== 'sold' || hasSales(D.history, areasFor('sold'), typesFor('sold').map(([t]) => t), endKey));
     const head = sh.length === 1 ? `${esc(sh[0])} Market Report` : `Market Report: ${sh.length} cities`;
     root.innerHTML = `<div class="bw"><header class="top"><div><h1>${head}</h1>${MO.list.length > 1 ? `<div class="mo-row"><button type="button" class="mo-btn" data-mopen aria-haspopup="dialog" aria-expanded="${!!S.moOpen}">${esc(D.month)}<i aria-hidden="true">▾</i></button><span class="sub">Source: Greater Vancouver REALTORS®</span>${S.moOpen ? monthPop() : ''}</div>` : `<p class="sub">${esc(D.month)} · Source: Greater Vancouver REALTORS®</p>`}</div>
       ${L.agentTop && A.name ? `<div class="agent">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : ''}<div><b>${esc(A.name)}</b><span>${esc([roleLabel(A), A.brokerage].filter(Boolean).join(' · '))}</span>${A.phone ? `<span>${esc(A.phone)}</span>` : ''}</div>${A.logo ? `<img class="lg" src="${esc(A.logo)}" alt="">` : ''}</div>` : ''}</header>

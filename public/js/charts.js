@@ -37,6 +37,9 @@ export function salesByArea(H, areas, types, end) {
     return { ...a, v, now, ly, pct: now != null && ly ? Math.round(((now - ly) / ly) * 100) : null }; });
   return { keys, list };
 }
+// True when "Homes sold each month" has something to draw: at least two months in a row, ending this month,
+// with a number for every area. When it doesn't, the section is left off the report (Ella, Nov 2026).
+export const hasSales = (H, areas, types, end) => salesByArea(H, [...new Set(areas.map(salesGroup))].map((g) => ({ g })), types, end).keys.length >= 2;
 const FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const and = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 // The one-line story above the chart, in plain words. Text only (escape it before use).
