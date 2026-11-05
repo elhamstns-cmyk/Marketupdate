@@ -245,6 +245,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-11-04 | Data (all sections) | **Fixed:** after October 2026 was published, Key numbers showed "not published" instead of the price change. The October file carries only its own month(s) in `history`, and `withHistory()` (lib/util.js) replaced each area's whole history with them, wiping September, last year, etc. It now adds months area by area, so older months stay. This also fixes the 12-month price chart and Homes sold each month for October. Test in `tests/data.test.mjs`. |
 | 2026-10-16 | S1 Key numbers | The report's "Key numbers" title now uses the same three-bar icon as the Sections panel (it had a four-square grid). |
 | 2026-10-16 | S1 Key numbers | One area: the red/green change now sits level with the big number on the right of each tile, with the blue "since Sep 2025 ⌄" under it, when the tiles are wide enough (2×2 tiles, or 4 tiles on a wide screen). Narrow tiles and phones keep the change under the number (`docs/s1-change-inline-ui.png`). |
 | 2026-10-16 | P4 Your report preview | **Fixed (Ella: scrolling the left side scrolled the right side).** On a computer the details panel and the report each fill the window under the steps and scroll on their own; scrolling one never moves the other, and the page itself stays still. The PREVIEW watermark sits in the middle of the report box. Phones unchanged (one column, normal scrolling). Test added. |

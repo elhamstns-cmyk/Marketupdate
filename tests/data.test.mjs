@@ -60,3 +60,15 @@ test('Essentials gets the long price history for Greater Vancouver only', async 
   assert.ok(Object.keys(D.history.long.p).length > 10);
   assert.deepEqual(Object.keys(E.history.long.p), ['Greater Vancouver']);
 });
+
+// Bug (Nov 4): October was published with only "2026-10" in its price history, and every area lost its older months,
+// so Key numbers showed "not published" instead of the change and the 12-month chart had one point.
+test('a published month keeps the older history months', async () => {
+  const { withHistory } = await import('../lib/util.js');
+  const D = withHistory({ month: 'October 2026', history: { price: { composite: { 'Greater Vancouver': { '2026-10': 1070000 } } }, sales: { condo: { 'Grand Totals': { '2026-10': 700 } } } } });
+  const gv = D.history.price.composite['Greater Vancouver'];
+  assert.equal(gv['2026-10'], 1070000);
+  assert.ok(gv['2026-09'] && gv['2025-10'], 'September and a year ago are still there');
+  assert.ok(D.history.price.composite['Coquitlam']['2026-09'], 'other areas are untouched');
+  assert.ok(Object.keys(D.history.sales.condo['Grand Totals']).length > 12);
+});
