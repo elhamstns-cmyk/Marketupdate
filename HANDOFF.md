@@ -245,6 +245,7 @@ Add one line per decision (newest first), so later chats know what was decided a
 
 | Date | Part | Decision |
 |---|---|---|
+| 2026-11-04 | S1 Key numbers | Ella: never offer a choice that has no number. The "since" menu now lists a time only when price, homes sold, homes for sale and days on market all have a value for it in every area shown. Today: Last month and 1 year ago. 3, 5 and 10 years come back on their own once GVR's older Stats Packages are added to the history (homes sold, for sale and days on market start Jan 2025) (`docs/s1-menu-only-data-ui.png`). |
 | 2026-11-04 | Data (all sections) | **Fixed:** after October 2026 was published, Key numbers showed "not published" instead of the price change. The October file carries only its own month(s) in `history`, and `withHistory()` (lib/util.js) replaced each area's whole history with them, wiping September, last year, etc. It now adds months area by area, so older months stay. This also fixes the 12-month price chart and Homes sold each month for October. Test in `tests/data.test.mjs`. |
 | 2026-10-16 | S1 Key numbers | The report's "Key numbers" title now uses the same three-bar icon as the Sections panel (it had a four-square grid). |
 | 2026-10-16 | S1 Key numbers | One area: the red/green change now sits level with the big number on the right of each tile, with the blue "since Sep 2025 ⌄" under it, when the tiles are wide enough (2×2 tiles, or 4 tiles on a wide screen). Narrow tiles and phones keep the change under the number (`docs/s1-change-inline-ui.png`). |
