@@ -91,7 +91,13 @@
 .bd .kn-b .kn-th{padding:12px 14px}
 @container (max-width:760px){.bd .kn-g{display:none}.bd .kn-bs{display:block}.bd .kn-ln b{font-size:15px}}
 @container (max-width:980px){.bd .kn-k{grid-template-columns:1fr 1fr;grid-template-areas:"p f" "pr pr"}}
-@container (max-width:430px){.bd .kn-k{grid-template-columns:1fr;grid-template-areas:"p" "pr" "f"}}
+/* one area on a phone: full-width tiles, title on one line, the number and its change on one line (docs/s1-iphone-oneline-ui.png) */
+@container (max-width:639px){.bd .kn-k{grid-template-columns:1fr;grid-template-areas:"p" "pr" "f";gap:10px}
+.bd .kn-pr{grid-template-columns:1fr}.bd .kn-pr .kpi+.kpi{border-left:0;border-top:1px solid var(--ln)}
+.bd .kn .kpi{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:10px;row-gap:2px;padding:14px 16px}
+.bd .kn .kpi>.kl{flex-basis:100%;white-space:nowrap}.bd .kn .kpi>.kv{font-size:1.5rem;white-space:nowrap}
+.bd .kn .kpi>.kc{display:flex;flex-wrap:nowrap;align-items:baseline;gap:6px;margin-left:auto;white-space:nowrap;font-size:13px}.bd .kn .kpi>.kc .kn-sel{font-size:13px}
+.bd .kn .kpi>.kn-s{flex-basis:100%;margin-top:6px}}
 /* one area, when the tiles have room: the change sits level with the big number, the "since" menu under it */
 @container ((min-width:640px) and (max-width:980px)) or (min-width:1180px){.bd .kn .kpi{grid-template-columns:auto 1fr;column-gap:14px}
 .bd .kn .kpi>.kl,.bd .kn .kpi>.kn-s{grid-column:1/-1}.bd .kn .kpi>.kv{grid-column:1;grid-row:2}.bd .kn .kpi>.kc{display:contents}
