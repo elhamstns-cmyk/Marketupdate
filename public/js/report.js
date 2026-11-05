@@ -144,12 +144,15 @@ export function askCopy(A) {
     ? { h: 'Wondering what this means for your mortgage?', p: 'Prices and rates move together. I can walk you through what this market means for your pre-approval, renewal or refinance, at no cost.', lab: 'Your city or neighbourhood', ph: 'e.g. your city or neighbourhood',
         chips: ['buying a home', 'renewing soon', 'thinking of refinancing'], subj: 'A question about my mortgage',
         msg: (w, type, intent) => `Hi ${first(A)}, could you tell me what the current market in ${w} means for my mortgage?` + (intent ? ` I'm ${intent}.` : ''),
-        note: (w) => `Hi ${first(A)}, I just read your market report${w ? ` for ${w}` : ''}. I'd like to know what it means for my mortgage. Could you get in touch?` }
+        note: (w) => `Hi ${first(A)}, I just read your market report${w ? ` for ${w}` : ''}. I'd like to know what it means for my mortgage. Could you get in touch?`,
+        more: "Want to know what the market in your neighbourhood, or another city, means for your mortgage? Ask me and I'll walk you through it." }
     : { h: 'Want the numbers for your own neighbourhood?', p: 'City averages hide a lot. I can send you recent sales, price ranges and days on market for your street, building or neighbourhood, at no cost.', lab: 'Your city or neighbourhood', ph: 'e.g. your neighbourhood or building name',
         chips: ['thinking of selling', 'looking to buy', "just curious about my home's value"], subj: 'Market numbers for my area',
         msg: (w, type, intent) => `Hi ${first(A)}, could you send me the latest market numbers for ${w} (${TN[type]})?` + (intent ? ` I'm ${intent}.` : ''),
         // S9 Contact me: the ready message in the box (the client can change it).
-        note: (w) => `Hi ${first(A)}, I just read your market report${w ? ` for ${w}` : ''}. I'd like to know more about what my home could be worth. Could you get in touch?` };
+        note: (w) => `Hi ${first(A)}, I just read your market report${w ? ` for ${w}` : ''}. I'd like to know more about what my home could be worth. Could you get in touch?`,
+        // S9: the line under the Send button.
+        more: "Want the numbers for your own neighbourhood, or for another city or neighbourhood? Ask me and I'll send them to you." };
 }
 
 // opts.area: open on this area. opts.city: lock the report to that one city (a city report).

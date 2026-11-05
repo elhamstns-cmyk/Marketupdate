@@ -196,6 +196,7 @@
 .bd .cform .nbask-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
 .bd .c-err{margin:0;color:#c62828;font-size:14px;font-weight:600}.bd .c-err:empty{display:none}
 .bd .c-go{width:100%;min-height:48px;font-size:16px}.bd .c-go:disabled{opacity:.7;cursor:default}
+.bd .c-more{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;background:var(--hl);border-radius:12px}.bd .c-more svg{flex:none;color:var(--ac);margin-top:1px}.bd .c-more p{margin:0;font-size:15px;line-height:1.55;color:var(--ink)}
 .bd .c-ok{text-align:center;padding:10px 0}.bd .c-ok h3{margin:8px 0 0}
 .bd .c-tick{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;background:var(--hl);color:var(--ac);font-size:24px;font-weight:700}
 .bd .who{display:flex;align-items:center;gap:16px}.bd .who .av{width:64px;height:64px;border-radius:50%;object-fit:cover;flex:none}

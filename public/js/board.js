@@ -208,7 +208,8 @@ export function mountReport(root, D, A, opts = {}) {
     return `<section class="cd cd-contact" data-sec="contact"><div class="crow">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : `<span class="av av0" aria-hidden="true">${esc((A.name || '?').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase())}</span>`}<div class="cx"><h3>Questions about your area?</h3><p class="sub">${esc([A.name, roleLabel(A), A.brokerage].filter(Boolean).join(' · '))}</p></div></div>
     <form class="cform" data-id="cform" novalidate><label class="fl" for="cmsg-${uid}">Your message to ${F}</label><textarea id="cmsg-${uid}" data-id="cmsg" rows="4" maxlength="2000">${esc(S.cmsg ?? text())}</textarea><p class="hint">Change or add anything you like.</p>
     <input name="website" class="nbask-hp" tabindex="-1" autocomplete="off" aria-hidden="true"><p class="c-err" data-id="cerr" role="alert"></p>
-    <button type="submit" class="btn c-go" data-id="csend">Send to ${F}</button></form></section>`; };
+    <button type="submit" class="btn c-go" data-id="csend">Send to ${F}</button></form>
+    <div class="c-more"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><p>${esc(ask.more)}</p></div></section>`; };
 
   function summaryPoints(sh) {
     const o = Object.fromEntries(sh.map((a) => [a, all(a)])), out = [];
