@@ -202,12 +202,11 @@ export function mountReport(root, D, A, opts = {}) {
     return card('sold', 'Homes sold each month', `<span data-id="soldsub"></span>`, `${CF('sold').areas && sh.length > 1 ? `<div class="mini">${sh.map((a) => `<button type="button" data-sa="${esc(a)}" aria-pressed="${a === S.soldArea}">${dot(colour(a))}${esc(a)}</button>`).join('')}</div>` : ''}<div data-chart="sold"></div>`); };
   R.compare = () => card('compare', 'How cities compare', `Benchmark price in every city, with the change from ${lastYear}.${canEdit ? ' Tap a city to add it to the report.' : ''}`, `<div class="rank" data-chart="rank"></div>`);
   // S9 Contact me: a ready message they can change, and one button that emails it to the agent (lib/routes/message.js).
-  // The general link also asks for an email or phone so the agent can reply; a personal link already says who it is.
-  R.contact = () => { const known = !!opts.personal?.id;
+  // No email or phone box (Ella, Nov 2026): a personal link says who it is; on other links the client can add it to the message.
+  R.contact = () => {
     if (S.csent) return `<section class="cd cd-contact" data-sec="contact"><div class="c-ok"><span class="c-tick" aria-hidden="true">✓</span><h3>Your message is on its way</h3><p class="sub">${F} will get back to you soon.</p></div></section>`;
     return `<section class="cd cd-contact" data-sec="contact"><div class="crow">${A.photo ? `<img class="av" src="${esc(A.photo)}" alt="">` : `<span class="av av0" aria-hidden="true">${esc((A.name || '?').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase())}</span>`}<div class="cx"><h3>Questions about your area?</h3><p class="sub">${esc([A.name, roleLabel(A), A.brokerage].filter(Boolean).join(' · '))}</p></div></div>
     <form class="cform" data-id="cform" novalidate><label class="fl" for="cmsg-${uid}">Your message to ${F}</label><textarea id="cmsg-${uid}" data-id="cmsg" rows="4" maxlength="2000">${esc(S.cmsg ?? text())}</textarea><p class="hint">Change or add anything you like.</p>
-    ${known ? '' : `<label class="fl">Your email or phone<input type="text" data-id="ccon" autocomplete="email" maxlength="120" placeholder="So ${F} can reply" value="${esc(S.ccon || '')}"></label>`}
     <input name="website" class="nbask-hp" tabindex="-1" autocomplete="off" aria-hidden="true"><p class="c-err" data-id="cerr" role="alert"></p>
     <button type="submit" class="btn c-go" data-id="csend">Send to ${F}</button></form></section>`; };
 
@@ -591,13 +590,12 @@ export function mountReport(root, D, A, opts = {}) {
   function charts() { root.querySelectorAll('[data-chart]').forEach((el) => C[el.dataset.chart](el)); }
   const q = (id) => root.querySelector(`[data-id="${id}"]`);
   function text() { const sh = shown(); return ask.note(sh.length === 1 ? sh[0] : ''); }
-  async function sendMsg(f) { const err = q('cerr'), go = q('csend'), m = q('cmsg').value.trim(), c = q('ccon')?.value.trim() || '';
+  async function sendMsg(f) { const err = q('cerr'), go = q('csend'), m = q('cmsg').value.trim();
     err.textContent = '';
     if (m.length < 2) return (err.textContent = 'Please write a message.');
-    if (q('ccon') && !(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c) || c.replace(/\D/g, '').length >= 10)) return (err.textContent = 'Please add your email or phone number.');
     if (ED || opts.embedded) return toast('Clients tap this to send you their message. You can try it on your report link.');
     go.disabled = true; go.textContent = 'Sending…';
-    try { const r = await fetch('/api/message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: A.slug, p: opts.personal?.id || null, contact: c, message: m, city: shown().join(', '), month: D.month, website: f.website.value }) });
+    try { const r = await fetch('/api/message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: A.slug, p: opts.personal?.id || null, message: m, city: shown().join(', '), month: D.month, website: f.website.value }) });
       const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) throw new Error(j.error || 'That didn’t send. Please try again.');
       root.dispatchEvent(new CustomEvent('mu:act', { detail: 'msg' })); S.csent = true; const sec = root.querySelector('[data-sec="contact"]'); if (sec) sec.outerHTML = R.contact();
     } catch (x) { err.textContent = /fetch|network/i.test(x.message) ? 'That didn’t send. Please try again.' : x.message; go.disabled = false; go.textContent = `Send to ${first(A)}`; } }
@@ -605,7 +603,6 @@ export function mountReport(root, D, A, opts = {}) {
   function setAreas(next, focus) { S.ton = null; S.areas = next.slice(0, MAX_AREAS); if (ED) saveLayout({ areas: [...S.areas] }); if (!S.areas.includes(S.focus)) S.focus = S.areas[0]; if (focus) S.focus = focus; remember(); draw(); }
   function wire() {
     q('cmsg')?.addEventListener('input', (e) => { S.cmsg = e.target.value; q('cerr').textContent = ''; });
-    q('ccon')?.addEventListener('input', (e) => { S.ccon = e.target.value; q('cerr').textContent = ''; });
     if (q('cform')) q('cform').onsubmit = (e) => { e.preventDefault(); sendMsg(e.target); };
   }
   root.onclick = (e) => {
