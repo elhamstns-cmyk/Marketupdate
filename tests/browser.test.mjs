@@ -66,6 +66,11 @@ test('Key numbers with several areas: titles on top of each column, one menu for
   assert.doesNotMatch(await p.textContent(S), /No number yet/);
 }));
 
+test('Key numbers follows the city the client picks, even when the dashboard set Greater Vancouver for it', { skip }, () =>
+  page('/r/demo?areas=coquitlam&preview=' + encodeURIComponent(JSON.stringify({ show: { conf: { numbers: { areas: ['Greater Vancouver'] } } } })), async (p) => {
+    assert.match(await p.textContent('[data-sec="numbers"] .kn-h'), /Key numbers · Coquitlam/);
+  }));
+
 test('Key numbers: the menu lists only times that have every number', { skip }, () => page('/r/demo?areas=coquitlam', async (p) => {
   const opts = await p.$eval('[data-sec="numbers"] select[data-nper]', (e) => [...e.options].map((o) => o.textContent));
   // Only times with every number: homes sold, for sale and days on market start in 2025, so 3, 5 and 10 years aren't offered yet.

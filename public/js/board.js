@@ -66,7 +66,9 @@ export function mountReport(root, D, A, opts = {}) {
   const canEdit = (ED || L.clientAreas) && ALL.length > 1;
   const XTRA = [], colour = (a) => { let i = S.areas.indexOf(a); if (i < 0) { if (!XTRA.includes(a)) XTRA.push(a); i = S.areas.length + XTRA.indexOf(a); } return COL[i % COL.length]; };
   const CF = (k) => L.conf[k] || {};
-  const areasFor = (k) => CF(k).areas || shown();
+  // Key numbers always follows "Show me": a city set for it in the dashboard is used only while it is one of the cities shown.
+  // (Bug Nov 13: with Greater Vancouver set there, a client who picked Coquitlam still saw Greater Vancouver's numbers.)
+  const areasFor = (k) => { if (k !== 'numbers' || !CF(k).areas) return CF(k).areas || shown(); const keep = CF(k).areas.filter((a) => shown().includes(a)); return keep.length ? keep : shown(); };
   const typesFor = (k) => TYPE_ROWS.filter(([t]) => !CF(k).types || CF(k).types.includes(t));
   const shown = () => (S.view === 'one' && S.areas.length > 1 ? [S.focus] : S.areas);
   const all = (a) => get(D, a, 'all');
