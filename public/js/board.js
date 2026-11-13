@@ -194,7 +194,7 @@ export function mountReport(root, D, A, opts = {}) {
       if (!hood) return (err.textContent = 'Please choose a neighbourhood.');
       if (!known && !(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact) || contact.replace(/\D/g, '').length >= 10)) return (err.textContent = 'Please add your email or phone number.');
       const go = f.querySelector('.nbask-go'); go.disabled = true; go.textContent = 'Sending…';
-      try { const r = await fetch('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: A.slug, city, hood, p: opts.personal?.id || null, contact, website: f.website.value }) });
+      try { const r = await fetch('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: A.slug, city, hood, p: opts.personal?.id || null, who: opts.who?.() || '', contact, website: f.website.value }) });
         const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) throw new Error(j.error || 'Something went wrong. Please try again.');
         if (j.mode === 'show' && j.url) { f.innerHTML = `<div class="nbask-ok"><span class="nbask-tick">✓</span><h3>Here it is</h3><p>Opening your ${esc(hood)} numbers…</p></div>`; setTimeout(() => { location.href = j.url; }, 700); return; }
         f.innerHTML = `<div class="nbask-ok"><span class="nbask-tick">✓</span><h3>Thanks</h3><p>${esc(firstName)} will send you your ${esc(hood)} numbers soon.</p><button type="button" class="nbask-done" data-x>Close</button></div>`;
@@ -604,7 +604,7 @@ export function mountReport(root, D, A, opts = {}) {
     if (m.length < 2) return (err.textContent = 'Please write a message.');
     if (ED || opts.embedded) return toast('Clients tap this to send you their message. You can try it on your report link.');
     go.disabled = true; go.textContent = 'Sending…';
-    try { const r = await fetch('/api/message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: A.slug, p: opts.personal?.id || null, message: m, city: shown().join(', '), month: D.month, website: f.website.value }) });
+    try { const r = await fetch('/api/message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: A.slug, p: opts.personal?.id || null, who: opts.who?.() || '', message: m, city: shown().join(', '), month: D.month, website: f.website.value }) });
       const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) throw new Error(j.error || 'That didn’t send. Please try again.');
       root.dispatchEvent(new CustomEvent('mu:act', { detail: 'msg' })); S.csent = true; const sec = root.querySelector('[data-sec="contact"]'); if (sec) sec.outerHTML = R.contact();
     } catch (x) { err.textContent = /fetch|network/i.test(x.message) ? 'That didn’t send. Please try again.' : x.message; go.disabled = false; go.textContent = `Send to ${first(A)}`; } }

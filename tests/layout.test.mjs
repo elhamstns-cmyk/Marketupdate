@@ -101,10 +101,10 @@ test('every S2 event has a month, a name, a date line and a story, in time order
 
 test('D11: What clients can do starts on, and keeps only known choices', async () => {
   const { cleanClients, layoutOf, cleanLayout } = await import('../public/js/layout.js');
-  assert.deepEqual(cleanClients(), { pick: true, ask: true, reply: 'show' });
-  assert.deepEqual(cleanClients({ pick: false, ask: 'yes', reply: 'shout' }), { pick: false, ask: true, reply: 'show' });
+  assert.deepEqual(cleanClients(), { pick: true, ask: true, reply: 'show', who: true });
+  assert.deepEqual(cleanClients({ pick: false, ask: 'yes', reply: 'shout' }), { pick: false, ask: true, reply: 'show', who: true });
   assert.equal(cleanClients({ reply: 'tell' }).reply, 'tell');
-  assert.deepEqual(layoutOf({ clients: { pick: false } }).clients, { pick: false, ask: true, reply: 'show' });
+  assert.deepEqual(layoutOf({ clients: { pick: false } }).clients, { pick: false, ask: true, reply: 'show', who: true });
   assert.equal(cleanLayout({ clients: { pick: false, reply: 'tell' } }).clients.reply, 'tell');
 });
 
@@ -112,4 +112,16 @@ test('sameLayout notices a changed past-months setting', () => {
   const a = L.layoutOf(null, null), b = { ...a, months: { ...a.months, back: 12 } };
   assert.ok(L.sameLayout(a, { ...a }));
   assert.ok(!L.sameLayout(a, b));
+});
+
+test("Who's reading: names are letters only, and a CRM field that wasn't filled in gives nothing", () => {
+  assert.equal(L.cleanName('  Sarah   Lee '), 'Sarah Lee');
+  assert.equal(L.cleanName("Anne-Marie O'Brien"), "Anne-Marie O'Brien");
+  assert.equal(L.cleanName('Élodie Côté'), 'Élodie Côté');
+  assert.equal(L.cleanName('%contact_first_name% %contact_last_name%'), '');
+  assert.equal(L.cleanName('<script>'), '');
+  assert.equal(L.cleanName(''), '');
+  assert.ok(L.cleanName('a'.repeat(100)).length <= 60);
+  assert.equal(L.cleanClients({}).who, true);
+  assert.equal(L.cleanClients({ who: false }).who, false);
 });

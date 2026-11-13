@@ -31,10 +31,17 @@ export const MONTHS_BACK = [12, 36, 0];
 export const DEFAULT_MONTHS = { on: true, back: 36, links: false };
 // D11 What clients can do: pick their own neighbourhood; when they can't, ask the agent about it; and what happens when they ask
 // ('show' = their neighbourhood's numbers open for them right away, 'tell' = the agent is told and replies). Older saved 'send' counts as 'show'.
-export const DEFAULT_CLIENTS = { pick: true, ask: true, reply: 'show' };
+// who: on the shared link (not a personal link), ask "Who's reading?" before the report opens, unless the link already carries the name (?n=).
+export const DEFAULT_CLIENTS = { pick: true, ask: true, reply: 'show', who: true };
 export function cleanClients(c) {
   const x = c && typeof c === 'object' ? c : {};
-  return { pick: x.pick !== false, ask: x.ask !== false, reply: x.reply === 'tell' ? 'tell' : 'show' };
+  return { pick: x.pick !== false, ask: x.ask !== false, reply: x.reply === 'tell' ? 'tell' : 'show', who: x.who !== false };
+}
+// A reader's name, from "Who's reading?" or from the link (?n=, filled in by the agent's CRM, e.g. Follow Up Boss %contact_first_name%).
+// Letters, spaces and . ' - only, at most 60 characters. A CRM field that wasn't filled in ("%contact_name%") gives ''.
+export function cleanName(v) {
+  const s = String(v || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  return /^[\p{L}][\p{L} .'’-]*$/u.test(s) ? s : '';
 }
 // The order The Market Update recommends (Reset to recommended, and every new agent): the big picture first, then detail,
 // then the Summary, and Contact me last so the report ends with a way to reach the agent. "How cities compare" is off.

@@ -141,3 +141,6 @@ do $$ begin if exists (select 1 from information_schema.columns where table_name
   alter table hood_requests alter column email drop not null; end if; end $$;
 create index if not exists hood_requests_user on hood_requests (user_id, created_at desc);
 alter table hood_requests enable row level security;
+
+-- Who's reading (Nov 13, 2026): the name a reader gave on the shared link ("Who's reading?") or that came in the link (?n=, from the agent's CRM).
+alter table visits add column if not exists name text;

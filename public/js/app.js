@@ -567,7 +567,8 @@ function clientsPanel(L) {
     ${iptg2('data-lt="clientAreas"', 'city', 'Add other cities', 'For example Burnaby next to Coquitlam', L.clientAreas)}
     ${hoods ? iptg2('data-cl="pick"', 'hood', 'Pick their neighbourhood', 'For example Westwood Plateau in Coquitlam', C.pick) : ''}
     ${hoods ? iptg2('data-cl="ask"', 'ask', 'Ask you about their neighbourhood', C.pick ? "Shows a button when they can't pick one" : 'A button in place of Neighbourhoods', C.ask, C.pick) : ''}
-    ${iptg2('data-mt="on"', 'cal', 'Look at past months', 'Up to 3 years back', L.months.on)}</div>
+    ${iptg2('data-mt="on"', 'cal', 'Look at past months', 'Up to 3 years back', L.months.on)}
+    ${iptg2('data-cl="who"', 'me', "Ask who's reading", 'Your shared link asks for their name first. They can skip', C.who)}</div>
     ${hoods && !C.pick && C.ask ? `<div class="ipl">When a client asks</div><div class="ipg"><div class="ipad"><div class="seg2"><button type="button" data-reply="show" aria-pressed="${C.reply === 'show'}">Show it right away</button><button type="button" data-reply="tell" aria-pressed="${C.reply === 'tell'}">Just tell me</button></div></div></div>
     <p class="ipf">${C.reply === 'show' ? "Their neighbourhood's numbers open for them at once, and you're told." : "You're told, and you reply yourself."} People you don't know (your Instagram or website link) leave an email or phone either way.</p>` : ''}
     ${L.areas.length > 1 ? `<div class="ipl">Report opens on</div><div class="ipg"><div class="ipad"><div class="seg2"><button type="button" data-vw="side" aria-pressed="${L.view === 'side'}">All cities together</button><button type="button" data-vw="one" aria-pressed="${L.view === 'one'}">The first city</button></div></div></div>` : ''}`;
@@ -734,7 +735,8 @@ async function personalLinks(host) {
     loading = true;
     if (cfg.demo) { let mine = []; try { mine = JSON.parse(localStorage.getItem(PL_DEMO) || '[]'); } catch {}
       const c = demoClient(); data.items = [c, ...mine].map((x) => ({ ...x, act: activity(x, x.visits || [], x.views || [], { days, latest: monthKey(D.month) }) }));
-      data.top = [['Westwood Plateau', 9], ['Burke Mountain', 6], ['Coquitlam West', 4]]; data.general = 0; loading = false; return; }
+      data.top = [['Westwood Plateau', 9], ['Burke Mountain', 6], ['Coquitlam West', 4]]; data.general = 0;
+      data.readers = [{ name: 'Sarah Lee', opens: 3, seconds: 250, last: new Date().toISOString(), most: 'types' }, { name: 'Mike Ramos', opens: 1, seconds: 70, last: new Date(Date.now() - 864e5).toISOString(), most: null }]; data.unnamed = 12; loading = false; return; }
     try { data = await api(`/api/links?days=${days}`); err = ''; } catch (e) { err = e.message; }
     loading = false;
   }
@@ -766,6 +768,13 @@ async function personalLinks(host) {
       ${a.recent.length ? `<span class="lbl2">Recent visits</span><ul class="ca-tl">${a.recent.map((r) => `<li><b>${esc(when(r.at))}</b> · ${mins(r.seconds)}${r.device ? ` on a ${r.device}` : ''}${r.did.length ? ` · ${r.did.map(esc).join(' · ')}` : ''}</li>`).join('')}</ul>` : ''}`}
       ${a.why ? `<div class="ca-why"><b>Why it matters:</b> ${esc(a.why)}</div>` : ''}
       <div class="ca-act"><a class="btn" href="mailto:?subject=${encodeURIComponent(`Your ${x.hood} market report`)}&body=${encodeURIComponent(note)}">✉ Send them a note</a><button type="button" class="btn ghost" data-plc="${esc(x.id)}">Copy their link</button></div>`; }
+  // Who opened the shared link: names from "Who's reading?" or from the link (?n=), newest first.
+  function readersHtml() {
+    const R = data.readers || []; if (!R.length) return '';
+    const ini = (n) => esc(n.split(' ').filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase());
+    return `<div class="cp-l">Who opened your shared link</div><div class="cp-card">${R.map((r) => `<div class="rq"><span class="rd-i" aria-hidden="true">${ini(r.name)}</span><div class="rq-t"><b>${esc(r.name)}</b><small>${['Opened ' + timesW(r.opens), r.seconds ? 'read ' + mins(r.seconds) : '', r.most && SEC[r.most] ? 'read ' + esc(SEC[r.most].l) + ' most' : ''].filter(Boolean).join(' · ')}</small></div><span class="rd-w">${esc(when(r.last))}</span></div>`).join('')}</div>
+      <p class="small muted">${data.unnamed ? `${data.unnamed === 1 ? 'One more open' : `${data.unnamed} more opens`} with no name (they skipped, or opened it from Instagram or your website).` : ''} Names are what people typed, or what your CRM put in the link.</p>`;
+  }
   // P10: clients who asked about their neighbourhood (S5 Ask), newest first.
   function reqHtml() {
     const rq = (data.requests || []).filter((r) => r.status !== 'done').slice(0, 20), done = (data.requests || []).filter((r) => r.status === 'done').length;
@@ -795,7 +804,8 @@ async function personalLinks(host) {
       <div class="ca-top"><b>Most active first</b><div class="seg2">${PER.map(([d, l]) => `<button type="button" data-cad="${d}" aria-pressed="${d === days}">${l}</button>`).join('')}</div></div>
       ${data.items.length ? `<div class="ca-wrap"><table class="ca-tb"><thead><tr><th>👤 Client</th><th>🔥 How active</th><th>👁 Opened</th><th>⏱ Time reading</th><th>📍 Looked at most</th><th></th></tr></thead><tbody>${data.items.map(row).join('')}</tbody></table></div>`
         : `<p class="muted small center">${loading ? 'Loading…' : 'No personal links yet. Add your first client above.'}</p>`}
-      <p class="small muted">Tap a client to see what they read. ${data.general ? `Your general link (Instagram, your website) was opened ${timesW(data.general)} in the ${perName.replace('all time', 'last year')}. We can't tell who opened it.` : 'Your general link (Instagram, your website) is counted only as totals. We can’t tell who opened it.'}</p>
+      ${readersHtml()}
+      <p class="small muted">Tap a client to see what they read. ${data.readers?.length ? '' : data.general ? `Your general link (Instagram, your website) was opened ${timesW(data.general)} in the ${perName.replace('all time', 'last year')}. We can't tell who opened it.` : 'Your general link (Instagram, your website) is counted only as totals. We can’t tell who opened it.'}</p>
       ${data.top?.length ? `<p class="small muted">Most-viewed neighbourhoods (everyone who opened your report): ${data.top.map(([h, n]) => `${esc(h)} (${n})`).join(', ')}.</p>` : ''}
       <label class="tgr"><span>Email me every Monday with which clients were actively looking</span><input type="checkbox" data-plw${data.weekly !== false ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>
       <div class="plsoon"><b>Add many at once</b> <span class="pltag2">Later</span><br>Upload a contact list or connect your CRM (like Follow Up Boss) to make links for everyone automatically.</div>`;

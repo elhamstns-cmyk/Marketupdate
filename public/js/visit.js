@@ -6,8 +6,8 @@ const id = () => { const a = new Uint8Array(9); crypto.getRandomValues(a); retur
 // Reading time only counts while the page is on screen and the client did something in the last 2 minutes (or just opened it).
 const IDLE = 120;
 
-export function startVisit({ slug, p, month, root }) {
-  const V = { id: id(), slug, p: p || '', m: month || '', sec: 0, end: false, dev: innerWidth < 700 ? 'phone' : 'computer', parts: {}, acts: [] };
+export function startVisit({ slug, p, month, root, name }) {
+  const V = { id: id(), slug, p: p || '', m: month || '', name: name || '', sec: 0, end: false, dev: innerWidth < 700 ? 'phone' : 'computer', parts: {}, acts: [] };
   let last = Date.now(), sent = '', seen = Date.now();
   const busy = () => { last = Date.now(); };
   ['scroll', 'pointerdown', 'keydown', 'touchstart', 'mousemove'].forEach((ev) => addEventListener(ev, busy, { passive: true }));
@@ -35,5 +35,5 @@ export function startVisit({ slug, p, month, root }) {
   root.addEventListener('change', (e) => { if (e.target.dataset?.id === 'add' && e.target.value) act('area:' + e.target.value); }, true);
   function act(a) { if (V.acts.length < 40 && V.acts[V.acts.length - 1] !== a) V.acts.push(a.slice(0, 50)); }
   setTimeout(send, 1500);
-  return { act, month(k) { if (k) { V.m = k; act('month:' + k); } } };
+  return { act, name(n) { V.name = n || ''; send(); }, month(k) { if (k) { V.m = k; act('month:' + k); } } };
 }

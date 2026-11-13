@@ -7,6 +7,7 @@
 import { areasOf, slug, SAMPLES, loadFonts, monthKey } from '/js/report.js';
 import { mountReport } from '/js/board.js';
 import { startVisit } from '/js/visit.js';
+import { cleanName, cleanClients } from '/js/layout.js';
 const s = location.pathname.split('/')[2], q = new URLSearchParams(location.search);
 const url = (m, sw) => '/api/report?slug=' + encodeURIComponent(s) + (q.get('v') ? '&v=' + encodeURIComponent(q.get('v')) : '') + (q.get('p') ? '&p=' + encodeURIComponent(q.get('p')) : '') + (m ? '&m=' + m : '') + (sw ? '&sw=1' : '');
 const r = await fetch(url(q.get('m'))), j = await r.json();
@@ -21,13 +22,19 @@ else {
   loadFonts(['modern']);
   // What a client looks at in Neighbourhoods goes to the agent (named only with a personal link).
   const track = j.sample ? null : (kind, d) => { try { navigator.sendBeacon('/api/track', new Blob([JSON.stringify({ slug: s, p: j.personal?.id || '', kind, ...d })], { type: 'text/plain' })); } catch {} };
+  // Who's reading (shared link only): a name that came in the link (?n=, filled in by the agent's CRM) is kept on this phone and taken out of the address.
+  // Without one, a small box asks once before the report, with "Skip for now". A personal link already knows the name.
+  const WK = 'mup_who:' + s, store = { get: (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+  let who = j.personal ? '' : cleanName(q.get('n')) || cleanName(store.get(WK));
+  if (q.has('n')) { if (who) store.set(WK, who); const u = new URL(location.href); u.searchParams.delete('n'); history.replaceState(null, '', u.toString().replace(/%2C/g, ',')); }
+  const askWho = !j.sample && !j.personal && !who && !q.get('preview') && window.top === window && j.plan === 'pro' && cleanClients(A.show?.clients).who && !store.get(WK + ':skip');
   // Reading time, sections and taps for Client activity (D9).
-  const visit = j.sample || q.get('preview') ? null : startVisit({ slug: s, p: j.personal?.id || '', month: monthKey(j.report.month), root });
+  const visit = j.sample || q.get('preview') ? null : startVisit({ slug: s, p: j.personal?.id || '', month: monthKey(j.report.month), root, name: who });
   // Past months (R1.1): picking a month loads it and draws the report again, keeping the areas the client chose.
   const mount = (D) => {
     const pick = (new URLSearchParams(location.search).get('areas') || '').split(',').filter(Boolean), areas = areasOf(D).filter((a) => pick.includes(slug(a))).sort((a, b) => pick.indexOf(slug(a)) - pick.indexOf(slug(b)));
     document.title = `${area || 'Greater Vancouver'} Market Report, ${D.month} | ${A.name}`;
-    mountReport(root, D, A, { area, areas, personal: j.personal, track, months: { list: j.months || [], latest: j.latest, onPick } });
+    mountReport(root, D, A, { area, areas, personal: j.personal, track, who: () => who, months: { list: j.months || [], latest: j.latest, onPick } });
   };
   async function onPick(k) {
     try { const r2 = await fetch(url(k, 1)), j2 = await r2.json(); if (!r2.ok || !j2.report) return;
@@ -35,6 +42,26 @@ else {
       visit?.month(k); mount(j2.report); scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
   }
   mount(j.report);
+  if (askWho) whoBox();
+  function whoBox() {
+    const e = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    const box = document.createElement('div'); box.className = 'who-w';
+    box.innerHTML = `<form class="who" role="dialog" aria-modal="true" aria-labelledby="whoh" novalidate>
+      <div class="who-ag">${A.photo ? `<img src="${e(A.photo)}" alt="">` : ''}<div><b>${e(A.name || '')}</b><small>${e([A.role === 'broker' ? 'Mortgage broker' : 'REALTOR®', A.brokerage].filter(Boolean).join(' · '))}</small></div></div>
+      <h2 id="whoh">Your ${e(j.report.month.split(' ')[0])} market report</h2>
+      <p>Tell me who's reading, and I'll know who to send the numbers for your neighbourhood.</p>
+      <div class="who-2"><label>First name<input name="f" autocomplete="given-name" required></label><label>Last name<input name="l" autocomplete="family-name"></label></div>
+      <p class="who-err" role="status"></p>
+      <button class="who-go">Open my report</button><button type="button" class="who-skip">Skip for now</button>
+      <p class="who-pv">Only ${e((A.name || 'your agent').split(' ')[0])} sees your name.</p></form>`;
+    document.body.appendChild(box); document.body.classList.add('who-on'); setTimeout(() => box.querySelector('input').focus(), 50);
+    const done = () => { box.remove(); document.body.classList.remove('who-on'); };
+    box.querySelector('.who-skip').onclick = () => { store.set(WK + ':skip', '1'); done(); };
+    box.querySelector('form').onsubmit = (ev) => { ev.preventDefault(); const f = ev.target;
+      const n = cleanName(`${f.f.value} ${f.l.value}`);
+      if (!cleanName(f.f.value)) { box.querySelector('.who-err').textContent = 'Please type your first name (letters only), or tap Skip for now.'; return; }
+      who = n; store.set(WK, who); visit?.name(who); done(); };
+  }
   document.body.style.background = getComputedStyle(root).backgroundColor;
 }
 </script></body></html>

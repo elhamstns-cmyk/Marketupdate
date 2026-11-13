@@ -86,3 +86,9 @@ test('the Monday email puts very active clients first and names links never open
   assert.match(lines[1].t, /looked back at <b>March 2024<\/b>/);
   assert.deepEqual(quiet, ['Gary Thompson']);
 });
+
+test("a visit keeps a clean reader name, or none", () => {
+  assert.equal(cleanVisit({ name: 'Sarah Lee' }).name, 'Sarah Lee');
+  assert.equal(cleanVisit({ name: '%contact_name%' }).name, null);
+  assert.equal(cleanVisit({}).name, null);
+});

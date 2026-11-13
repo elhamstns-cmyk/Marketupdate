@@ -387,3 +387,42 @@ test('D6 Reset to recommended: greyed out when nothing changed, asks first, rese
   await p.click('.bdtoast button'); await p.waitForTimeout(400);
   assert.deepEqual(await order(), changed);
 }, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));
+
+// Sample mode never asks, so these pretend the report is a real Pro agent's shared link.
+const realLink = async (p) => p.route('**/api/report?*', async (r) => { const res = await r.fetch(), j = await res.json(); j.sample = false; j.plan = 'pro'; j.personal = null; await r.fulfill({ response: res, body: JSON.stringify(j) }); });
+const beacons = (p) => { const got = []; p.on('request', (r) => { if (r.url().includes('/api/track')) got.push(r.postData() || ''); }); return got; };
+
+test("Who's reading: the shared link asks once, Skip works, and the name goes with the visit", { skip }, async () => {
+  const p = await browser.newPage({ viewport: { width: 390, height: 800 } }), errors = []; p.on('pageerror', (e) => errors.push(e.message));
+  try {
+    await realLink(p); const sent = beacons(p);
+    await p.goto(BASE + '/r/demo'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1200);
+    assert.ok(await p.$('.who-w'), 'the box shows');
+    await p.click('.who-go'); assert.ok((await p.textContent('.who-err')).length > 5, 'a first name is needed');
+    await p.fill('.who input[name=f]', 'Sarah'); await p.fill('.who input[name=l]', 'Lee'); await p.click('.who-go');
+    assert.equal(await p.$('.who-w'), null, 'the report opens');
+    assert.equal(await p.evaluate(() => localStorage.getItem('mup_who:demo')), 'Sarah Lee');
+    await p.waitForTimeout(800); assert.ok(sent.some((b) => b.includes('"name":"Sarah Lee"')), 'the visit carries the name');
+    await p.reload(); await p.waitForTimeout(1000); assert.equal(await p.$('.who-w'), null, 'never asked again');
+    // Skip for now: the report opens and it doesn't ask again.
+    await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(1000);
+    await p.click('.who-skip'); assert.equal(await p.$('.who-w'), null);
+    await p.reload(); await p.waitForTimeout(1000); assert.equal(await p.$('.who-w'), null, 'skipped stays skipped');
+    assert.deepEqual(errors, []);
+  } finally { await p.close(); }
+});
+
+test("Who's reading: a name in the link (from the CRM) is used without asking and taken out of the address", { skip }, async () => {
+  const p = await browser.newPage({ viewport: { width: 1240, height: 900 } });
+  try {
+    await realLink(p); const sent = beacons(p);
+    await p.goto(BASE + '/app'); await p.evaluate(() => localStorage.clear());
+    await p.goto(BASE + '/r/demo?n=Mike%20Ramos'); await p.waitForTimeout(1500);
+    assert.equal(await p.$('.who-w'), null, 'not asked');
+    assert.ok(!p.url().includes('n='), 'the name left the address');
+    assert.ok(sent.some((b) => b.includes('"name":"Mike Ramos"')));
+    // A CRM field that wasn't filled in is ignored, so the box asks.
+    await p.evaluate(() => localStorage.clear()); await p.goto(BASE + '/r/demo?n=%25contact_first_name%25'); await p.waitForTimeout(1200);
+    assert.ok(await p.$('.who-w'));
+  } finally { await p.close(); }
+});
