@@ -36,7 +36,10 @@ export function cleanClients(c) {
   const x = c && typeof c === 'object' ? c : {};
   return { pick: x.pick !== false, ask: x.ask !== false, reply: x.reply === 'tell' ? 'tell' : 'show' };
 }
-export const DEFAULT_LAYOUT = { sections: SEC_IDS.filter((k) => k !== 'compare'), areas: ['Greater Vancouver'], agentTop: true, clientAreas: true, view: 'side', conf: {}, months: { ...DEFAULT_MONTHS }, clients: { ...DEFAULT_CLIENTS } };
+// The order The Market Update recommends (Reset to recommended, and every new agent): the big picture first, then detail,
+// then the Summary, and Contact me last so the report ends with a way to reach the agent. "How cities compare" is off.
+export const RECOMMENDED = ['numbers', 'market', 'trend', 'types', 'hoods', 'sold', 'growth', 'summary', 'contact'];
+export const DEFAULT_LAYOUT = { sections: [...RECOMMENDED], areas: ['Greater Vancouver'], agentTop: true, clientAreas: true, view: 'side', conf: {}, months: { ...DEFAULT_MONTHS }, clients: { ...DEFAULT_CLIENTS } };
 // The older on/off switches (before sections). Still saved so old reports keep working.
 const SHOW_KEYS = ['prices', 'changes', 'sold', 'forsale', 'days', 'market', 'detached', 'townhome', 'condo', 'summary', 'trend', 'compare', 'picker'];
 const IMG_KEYS = ['price', 'forsale', 'market', 'sold', 'photo'];
@@ -125,4 +128,4 @@ export function layoutOf(show, all) {
   return { sections, areas, agentTop: s.agentTop !== false, clientAreas: s.clientAreas !== false, view: s.view === 'one' ? 'one' : 'side', conf: cleanConf(s.conf, all), months: cleanMonths(s.months), clients: cleanClients(s.clients) };
 }
 const cl = (x) => JSON.stringify(cleanClients(x));
-export const sameLayout = (a, b) => JSON.stringify([a.sections, a.agentTop, a.clientAreas, a.view, a.conf || {}, cl(a.clients)]) === JSON.stringify([b.sections, b.agentTop, b.clientAreas, b.view, b.conf || {}, cl(b.clients)]);
+export const sameLayout = (a, b) => JSON.stringify([a.sections, a.agentTop, a.clientAreas, a.view, a.conf || {}, cl(a.clients), cleanMonths(a.months)]) === JSON.stringify([b.sections, b.agentTop, b.clientAreas, b.view, b.conf || {}, cl(b.clients), cleanMonths(b.months)]);

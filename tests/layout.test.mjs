@@ -32,8 +32,9 @@ test('a layout saved before a new section existed gets it once, after "Prices by
   assert.ok(!removed.sections.includes('hoods'));
 });
 
-test('the default layout has every section except "How areas compare"', () => {
-  assert.deepEqual(L.DEFAULT_LAYOUT.sections, L.SEC_IDS.filter((k) => k !== 'compare'));
+test('the recommended layout has every section except "How areas compare", Contact me last', () => {
+  assert.deepEqual([...L.DEFAULT_LAYOUT.sections].sort(), L.SEC_IDS.filter((k) => k !== 'compare').sort());
+  assert.deepEqual(L.DEFAULT_LAYOUT.sections, ['numbers', 'market', 'trend', 'types', 'hoods', 'sold', 'growth', 'summary', 'contact']);
   assert.deepEqual(L.layoutOf(null, null).sections, L.DEFAULT_LAYOUT.sections);
 });
 
@@ -105,4 +106,10 @@ test('D11: What clients can do starts on, and keeps only known choices', async (
   assert.equal(cleanClients({ reply: 'tell' }).reply, 'tell');
   assert.deepEqual(layoutOf({ clients: { pick: false } }).clients, { pick: false, ask: true, reply: 'show' });
   assert.equal(cleanLayout({ clients: { pick: false, reply: 'tell' } }).clients.reply, 'tell');
+});
+
+test('sameLayout notices a changed past-months setting', () => {
+  const a = L.layoutOf(null, null), b = { ...a, months: { ...a.months, back: 12 } };
+  assert.ok(L.sameLayout(a, { ...a }));
+  assert.ok(!L.sameLayout(a, b));
 });

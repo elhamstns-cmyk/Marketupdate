@@ -356,6 +356,32 @@ function setLayout(patch, redraw = true) {
   if (sh.mode === 'template') sh.template = snap(L);
   P.show = sh; touch('show'); drawTop(); if (redraw) preview(); drawPanel();
 }
+// D6 Reset to recommended: a check first (what the report becomes, what is kept), then the reset, then ~10 seconds to Undo.
+// It resets the order, which sections are on, every section's settings, past months and what clients can do.
+// It keeps the agent's cities, their details, their saved template and their client links.
+const RESET_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
+const REC_NOTE = { numbers: 'since 1 year ago', trend: 'opens on 1 year', hoods: 'opens on 5 years' };
+function resetAsk() {
+  $('.rsconf')?.remove();
+  const L = cur(), rec = DEFAULT_LAYOUT.sections, off = SEC_IDS.filter((k) => !rec.includes(k)), M = DEFAULT_LAYOUT.months;
+  const back = M.back === 12 ? '1 year back' : M.back ? `${M.back / 12} years back` : 'every month we have';
+  const cities = L.areas.length === 1 ? L.areas[0] : L.areas.length === 2 ? L.areas.join(' and ') : `${L.areas.slice(0, -1).join(', ')} and ${L.areas[L.areas.length - 1]}`;
+  const box = document.createElement('div'); box.className = 'rsconf';
+  box.innerHTML = `<div class="rsbg" data-rs="no"></div><div class="rsc" role="dialog" aria-modal="true" aria-labelledby="rsh"><h3 id="rsh">${RESET_ICON}Reset to recommended?</h3>
+    <p>Your report goes back to the order and settings we recommend for clients.</p>
+    <ol class="rsl">${rec.map((k, i) => `<li><span class="rsn">${i + 1}</span>${sic(k)}<span class="ipn">${esc(SEC[k].l)}</span>${REC_NOTE[k] ? `<small>${REC_NOTE[k]}</small>` : ''}</li>`).join('')}
+      ${off.map((k) => `<li class="off"><span class="rsn"></span>${sic(k)}<span class="ipn">${esc(SEC[k].l)}</span><small>off</small></li>`).join('')}</ol>
+    <div class="rsset"><b>Clients can:</b> add other cities, pick their neighbourhood, ask you about it, and look at past months (${back}).<br><b>Your take</b> in Neighbourhoods is written for you.</div>
+    <p class="rskeep">✓ <span>Kept as they are: <b>your cities</b> (${esc(cities)}), your name, photo and details, your template and your client links.</span></p>
+    <div class="row2"><button type="button" class="btn ghost" data-rs="no">Cancel</button><button type="button" class="btn" data-rs="yes">Reset</button></div></div>`;
+  document.body.appendChild(box); box.querySelector('[data-rs="yes"]').focus();
+  const close = () => { box.remove(); document.removeEventListener('keydown', esc1); };
+  const esc1 = (e) => { if (e.key === 'Escape') close(); }; document.addEventListener('keydown', esc1);
+  box.onclick = (e) => { const b = e.target.closest('[data-rs]'); if (!b) return; close(); if (b.dataset.rs !== 'yes') return;
+    const before = snap(cur()), R = JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
+    PS = { m: 'list', k: null }; setLayout({ ...R, areas: before.areas });
+    undoToast('Your report is back to the recommended layout.', () => { PS = { m: 'list', k: null }; setLayout(before); alertMsg('Put back the way you had it.'); }, 10000); };
+}
 const setConf = (k, patch) => { const c = { ...cur().conf }, x = { ...(c[k] || {}), ...patch }; Object.keys(x).forEach((f) => x[f] === undefined && delete x[f]); c[k] = x; setLayout({ conf: c }); };
 
 function dashboard() {
@@ -397,7 +423,7 @@ function wireZoom() {
 function drawTop() {
   const ls = $('#laysel'); if (!ls) return; const w = $('.dbar .who b'); if (w) w.textContent = P.name || 'Add your name'; const a = $('.dbar .me .av'); if (a) a.innerHTML = avatar();
   const t = isPro() && P.show?.template, m = mode();
-  ls.innerHTML = t ? `<label class="lay">Layout: <select id="layout" aria-label="Layout"><option value="default"${m === 'default' ? ' selected' : ''}>Default</option><option value="template"${m === 'template' ? ' selected' : ''}>My template</option></select></label>` : '';
+  ls.innerHTML = t ? `<label class="lay">Layout: <select id="layout" aria-label="Layout"><option value="default"${m === 'default' ? ' selected' : ''}>Recommended</option><option value="template"${m === 'template' ? ' selected' : ''}>My template</option></select></label>` : '';
 }
 function drawSend() { drawTop(); }
 const ready = () => { if (P.name && P.slug) return true; alertMsg('Add your name first.', true); PS = { m: 'details' }; drawPanel(); return false; };
@@ -472,9 +498,9 @@ function addSec(k) {
 // "+ Add a section" on the report: show the sections that can be added, in the panel.
 function showAddable() { PS = { m: 'list', k: PS.k }; drawPanel(); const g = $('#canadd');
   if (!g) return alertMsg('Every section is already on your report.'); panelTo(null, '#canadd'); document.querySelectorAll('#canadd + .ipg .ipr').forEach((x) => pulse(x)); }
-function undoToast(msg, undo) { document.querySelector('.bdtoast')?.remove(); const t = document.createElement('div'); t.className = 'bdtoast'; t.setAttribute('role', 'status');
+function undoToast(msg, undo, ms = 5000) { document.querySelector('.bdtoast')?.remove(); const t = document.createElement('div'); t.className = 'bdtoast'; t.setAttribute('role', 'status');
   t.innerHTML = `<span>${msg}</span><button type="button">Undo</button>`; document.body.appendChild(t);
-  t.querySelector('button').onclick = () => { t.remove(); undo(); }; clearTimeout(undoToast.t); undoToast.t = setTimeout(() => t.remove(), 5000); }
+  t.querySelector('button').onclick = () => { t.remove(); undo(); }; clearTimeout(undoToast.t); undoToast.t = setTimeout(() => t.remove(), ms); }
 
 /* ---------- the right panel ---------- */
 const tgl = (attr, l, on) => `<label class="tgr"><span>${l}</span><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="sw2" aria-hidden="true"></span></label>`;
@@ -568,14 +594,16 @@ function drawPanel() {
     const row = (k) => { const nm = esc(L.conf[k]?.title || SEC[k].l), sel = PS.k === k, open = sel && PS.open;
       return `<div class="ipr ipsec${sel ? ' sel' : ''}${open ? ' open' : ''}" draggable="true" data-sk="${k}" data-li="${k}" role="button" tabindex="0" title="Tap to find it on your report. Drag to move it.">${sic(k)}<span class="ipn">${nm}</span>
         <button type="button" class="ipgear" data-gear="${k}" aria-pressed="${open}" aria-label="Settings for ${nm}" title="Settings">${GEAR}</button>${sel ? `<button type="button" class="ipbin" data-bin2="${k}"${L.sections.length > 1 ? '' : ' disabled'} aria-label="Take ${nm} off your report" title="Take it off your report">${BIN2}</button>` : ''}</div>${open ? secSettings(k, L) : ''}`; };
+    const isRec = sameLayout(L, { ...DEFAULT_LAYOUT, areas: L.areas });
     body = `<h2 class="iph">Sections</h2><p class="ipsub">Tap a section to find it on your report. Tap ⚙ for its settings.</p>
+      <button type="button" class="rsbtn" id="ltreset"${isRec ? ' disabled' : ''}>${RESET_ICON}<span>${isRec ? 'Using the recommended layout' : 'Reset to recommended'}<small>Our order, sections and settings</small></span></button>
       <div class="ipl">On your report</div><div class="ipg">${L.sections.map(row).join('')}</div>
       ${off.length ? `<div class="ipl" id="canadd">More sections</div><div class="ipg">${off.map(([k, l]) => `<div class="ipr" data-li="${k}">${sic(k)}<span class="ipn">${esc(l)}</span><button type="button" class="ipadd" data-addk="${k}">+ Add</button></div>`).join('')}</div>` : ''}
       ${clientsPanel(L)}`;
   }
   if (pro && PS.m !== 'details') { const m = mode(), isDef = sameLayout(L, { ...DEFAULT_LAYOUT, areas: L.areas });
-    foot = m === 'template' ? `<span class="st"><i class="ok"></i>Using your template. Changes save to it.</span>${isDef ? '' : '<button type="button" class="linkbtn" id="ltreset">Back to the default layout</button>'}`
-      : `<span class="st"><i></i>${isDef ? 'Using the default layout' : 'You changed the default layout'}</span><button type="button" class="btn wide" id="savetpl">Save as my template</button><span class="small muted center">Every new month opens with your template.</span>${isDef ? '' : '<button type="button" class="linkbtn" id="ltreset">Back to the default layout</button>'}`; }
+    foot = m === 'template' ? `<span class="st"><i class="ok"></i>Using your template. Changes save to it.</span>`
+      : `<span class="st"><i></i>${isDef ? 'Using the recommended layout' : 'You changed the recommended layout'}</span><button type="button" class="btn wide" id="savetpl">Save as my template</button><span class="small muted center">Every new month opens with your template.</span>`; }
   el.innerHTML = `<div class="pbody${pro && PS.m !== 'details' ? ' ip' : ''}">${body}</div>${foot ? `<div class="pfoot">${foot}</div>` : ''}`;
   // Redrawing keeps the panel where it was scrolled to.
   const pb = el.querySelector('.pbody'); if (pb) pb.scrollTop = PS.m === LASTM ? keep : 0; LASTM = PS.m;
@@ -608,7 +636,7 @@ function wirePanel() {
     if (d.mv) { const s2 = [...L.sections], i = s2.indexOf(k), j = i + +d.mv; [s2[i], s2[j]] = [s2[j], s2[i]]; setLayout({ sections: s2 }); requestAnimationFrame(() => panelTo(k)); return setTimeout(() => selectSec(k, true), 60); }
     if ('hide' in d) return removeSec(k);
     if (d.vw) return setLayout({ view: d.vw });
-    if (b.id === 'ltreset') { if (!confirm('Go back to the default sections and order?')) return; return setLayout({ ...DEFAULT_LAYOUT, areas: L.areas }); }
+    if (b.id === 'ltreset') return resetAsk();
     if (b.id === 'savetpl') { P.show = { ...showOf(P), ...snap(cur()), mode: 'template', template: snap(cur()) }; touch('show'); drawTop(); drawPanel(); return alertMsg('Saved as your template. Every new month opens this way.'); }
     if ('plinks' in d) return show('clients');
     if (b.id === 'up4') return portal();

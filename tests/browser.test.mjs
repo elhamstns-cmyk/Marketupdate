@@ -366,3 +366,24 @@ test('P4 preview: on a computer, scrolling the left panel never moves the report
   await p.mouse.move(800, 600); for (let i = 0; i < 4; i++) { await p.mouse.wheel(0, 400); await p.waitForTimeout(120); }
   const s = await st(); assert.equal(s.win, 0); assert.ok(s.rp > 0, 'the report scrolls on its own');
 }));
+
+test('D6 Reset to recommended: greyed out when nothing changed, asks first, resets, and Undo puts it back', { skip }, () => page('/app?plan=pro', async (p) => {
+  const order = () => p.$$eval('#dpanel [data-sk]', (x) => x.map((e) => e.dataset.sk));
+  const REC = ['numbers', 'market', 'trend', 'types', 'hoods', 'sold', 'growth', 'summary', 'contact'];
+  assert.deepEqual(await order(), REC);
+  assert.ok(await p.$eval('#ltreset', (b) => b.disabled), 'nothing to reset yet');
+  // Take a section off: the button wakes up.
+  await p.click('#dpanel .ipsec[data-sk="market"] .ipn'); await p.waitForTimeout(300);
+  await p.click('#dpanel [data-bin2="market"]'); await p.waitForTimeout(1600);
+  const changed = await order(); assert.ok(!changed.includes('market'));
+  assert.ok(!(await p.$eval('#ltreset', (b) => b.disabled)));
+  // It asks first, and Cancel changes nothing.
+  await p.click('#ltreset'); assert.ok(await p.$('.rsconf .rsl'));
+  assert.equal((await p.$$('.rsconf .rsl li:not(.off)')).length, REC.length);
+  await p.click('.rsconf button[data-rs="no"]'); assert.equal(await p.$('.rsconf'), null); assert.deepEqual(await order(), changed);
+  // Reset: back to the recommended order, then Undo.
+  await p.click('#ltreset'); await p.click('.rsconf [data-rs="yes"]'); await p.waitForTimeout(400);
+  assert.deepEqual(await order(), REC);
+  await p.click('.bdtoast button'); await p.waitForTimeout(400);
+  assert.deepEqual(await order(), changed);
+}, { setup: () => { localStorage.clear(); localStorage.setItem('mup_demo_profile', JSON.stringify({ name: 'Test Agent', slug: 'demo', plan: 'pro' })); } }));

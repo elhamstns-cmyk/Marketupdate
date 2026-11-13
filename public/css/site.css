@@ -567,3 +567,18 @@ body.oncreate>.nav{display:none}
 /* Settings switches: a plain grey track when off (no green), and an always-on row that isn't faded. */
 .ip .sw2{background:#cfd5de}
 .ip .ipkeep{opacity:1}.ip .ipkeep .sw2{opacity:.5}
+/* D6 Reset to recommended: the button at the top of Sections, the check before it resets, and the Undo message */
+.rsbtn{display:flex;align-items:center;gap:10px;width:100%;border:1px solid #c9d6f2;background:#f3f6fd;border-radius:10px;padding:10px 12px;font:inherit;color:#1d4fbf;font-weight:700;font-size:.9rem;text-align:left;cursor:pointer;margin:0 0 12px}
+.rsbtn svg{flex:none}.rsbtn small{display:block;font-weight:500;color:#55606e;font-size:.76rem;margin-top:1px}
+.rsbtn:hover{background:#e9effb}.rsbtn:disabled{cursor:default;background:#f6f7f9;border-color:#e6e8ee;color:#55606e}.rsbtn:disabled svg{color:#8a929e}
+.rsconf{position:fixed;inset:0;z-index:60}.rsbg{position:absolute;inset:0;background:rgba(20,28,40,.35)}
+.rsc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,94vw);max-height:92vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.3);padding:22px;display:grid;gap:12px}
+.rsc h3{margin:0;font-size:1.15rem;display:flex;align-items:center;gap:10px}.rsc h3 svg{color:#1d4fbf}
+.rsc p{margin:0;color:#55606e;font-size:.88rem;line-height:1.5}
+.rsl{list-style:none;margin:0;padding:0;border:1px solid #e6e8ee;border-radius:10px}
+.rsl li{display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid #eef0f4;font-size:.9rem;color:#1b2430}.rsl li:first-child{border-top:0}
+.rsl .ipn{flex:1}.rsl small{font-size:.78rem;color:#55606e}.rsn{width:16px;font-weight:700;font-size:.8rem;color:#55606e}
+.rsl li.off{color:#8a929e}.rsl li.off .ipi{opacity:.55}
+.rsset{background:#f6f7f9;border-radius:10px;padding:11px 13px;font-size:.85rem;line-height:1.55;color:#55606e}.rsset b{color:#1b2430}
+.rsc .rskeep{display:flex;gap:8px;color:#1b2430}
+.rsc .row2{display:flex;gap:10px}.rsc .row2 .btn{flex:1}
